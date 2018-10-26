@@ -1,6 +1,4 @@
 # Meldingsgrensesnitt
-* Bruker JSON på alt
-* Standard prefixer på vanlige kommandoer - create, read, update, delete ++
 
 
 ## Index
@@ -17,44 +15,43 @@
 * **message** - Human readable string. `@todo Length?`
 * **debug** - any string. `@todo Length?`
 
-## JSON Formats
+## Protocol
 
-### Request
+* JSON-only protocol.
+* The payload could be array or object (`@todo` discuss if we should only allow array to simplify)
+* Prefix action names with:
+    * create, read, update, delete
+    * send, receive
+    * join, leave
 
-`@brief` - A request expects a response. Created on client.
+
+### Request - Server <- Client
+
+`@brief` - Created on client. Expects a response.
 
 ```
 {
     action
-    payload [
-        { key: value }
-        { key: value }
-        ....
-    ]
+    payload: [] | {}
     token
 }
 ```
 
-### Response Success
+### Response Success - Server -> Client
 
-`@brief` - Result of a request. Created on server.
+`@brief` - Created on server. Responding to a request. 
 
 
 ```
 {    
     action
-    payload [
-        { key: value }
-        { key: value }
-        ....
-    ]
+    payload: [] | {}
 }
 ```
 
-### Response Error
+### Response Error - Server -> Client
 
-`@brief` - Result of failed request. Created on server. 
-There is no payload. Display debug info on development server.
+`@brief` - Created on server. Responding to a failed request. No payload. Human readable message. Display debug info if development mode.
 
 ```
 {    
@@ -65,7 +62,7 @@ There is no payload. Display debug info on development server.
 ```
 
 
-### Send <-
+### Send - Server <- Client
 
 `@brief` - Client pushing a one-way data stream to the server. Does not want any response.
 
@@ -73,28 +70,20 @@ There is no payload. Display debug info on development server.
 ```
 {
     action
-    payload [
-        { key: value }
-        { key: value }
-        ....
-    ]
+    payload: [] | {}
     token
 }
 ```
 
 
-### Receive ->
+### Receive Server -> Client
 
 `@brief` - Server pushing one-way data stream to client.
 
 ```
 {
     action
-    payload [
-        { key: value }
-        { key: value }
-        ....
-    ]
+    payload: []
 }
 ```
 
