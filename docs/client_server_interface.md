@@ -1,16 +1,25 @@
+# Server-Client Communication
+
+
+# Index
+
+[TOC]
+
+
 # TODOS
+
 * [x] TODO: Skal vi bytte ut action med: Type?
 * [x] TODO: Skal vi ha PascalCase eller snake_case på feilkoder og action navn? snake_case i json, og PascalCase i Java.
-* [ ] TODO: Når skal vi sende user_id, når skal vi ikke?
+* [x] TODO: Når skal vi sende user_id, når skal vi ikke?
 * [ ] TODO: Sikre at alle error koder kan direkte knyttes til det objektet det er snakk om.
 * [ ] TODO: Sikre at vi er konsekvente på når det er sub-arrayer med objekter med navngitte attributter vs sub-array med verdier.
-* [ ] TODO: Oppdater alle til å sende med id.
+* [x] TODO: Oppdater alle til å sende med id.
 * [ ] TODO: Spør kolloen om tynnklienter?
-* [ ] TODO: Ska vi bruke s? nei, alle skal være entall, da alle meldinger kan inneholde flere objekter som skal handles på.
-* [ ] TODO: Fjern alle @examples tags
+* [x] TODO: Ska vi bruke s? nei, alle skal være entall, da alle meldinger kan inneholde flere objekter som skal handles på.
+* [x] TODO: Fjern alle @examples tags
 * [ ] TODO: Skriv @brief på alt?
 * [ ] TODO: Skriv @errors
-* [ ] TODO: Endre payload navnet på alle request_responses til success.
+* [x] TODO: Endre payload navnet på alle request_responses til success.
 * [ ] TODO: sjekk @requires authentication
 * [ ] TODO: Oppdater alle til å sende inn user_id.
 
@@ -19,106 +28,153 @@ Det eneste klienten gjør er å vise spillets tilstand. Den tar ingen avgjørels
 Serveren tar avgjørelser om hva som er lov og ikke. Serveren er den eneste som endrer på spillets tilstand.
 Dette medfører at vi ikke tar i bruk Ludo-klassen på klient, men bare på server.
 
-# Meldingsgrensesnitt
 
 
-## Index
-[TOC]
 
+# Message protocol
 
-## Validation rules
-
-* **type** - must be of Enum type
-* **codes** - must of ErrorCode type
-* **username** - Alphanumeric characteres, no whitespace. `@todo Length?`
-* **email** - string containing @, no whitespace. `@todo Length?`
-* **password_hash** - md5 hash of password (maybe sha1 or stronger?)
-* **id, chatId, ....** - positive integer
-* **message** - Human readable string. `@todo Length?`
-* **debug** - any string. `@todo Length?`
-* **friend_status** - "pending" | "friend". 
-
-## Message definition
 The aim of the protocol is to be as consistent as possible. Therefore all messages follow a standard pattern of 'type' and 'payload'. Where the type describes the type of the message and is always interpreted the same, and the payload is an array of objects that are interpreted differently based on the 'type' value.
 Messages can also contain a 'token' variable used for authentication if authentication is needed. This is only the case when clients are talking to the server.
 Any variables that is not the 'type', 'token' or inside the 'payload' are not considered part of the API, and can be removed without notice.
 
-## Communication protocol
-Communication either happens through 'one-way' data transfers, or 'two-way' transactions in the form of a request. 
+* Communication either happens through 'one-way' data transfers, or 'two-way' transactions in the form of a request-response pair.
+* Data is structured as valid JSON.
+* Three different kinds of messages:
+    * Request
+    * Response
+    * Event
 
-* JSON-only protocol.
-* The payload could be array or object (`@todo` discuss if we should only allow array to simplify)
+## Request - server <-- client
 
-### Request Responses
-All requests expects a response, either in the form of a success, or an error. The 'type' of the response will be the 'type' name of the request (where \_request is trimmed) postfixed with either \_success or \_error.
+**Format**
 
-### Success Responses
-In the cases where a request succeeds, the data within the payload is interpreted based on the 'type' itself. 
-Unless otherwise noted, all responses are guaranteed to have at least one element in their payload.
+`id` Indentifies a unique request-response-pair.
+`type` What type of request this is. Always postfixed with `_request`.
+`payload` An array of items containing application specific data
+`payload[].id` indentifies a unique item within the payload
+`auth_token` an optional parameter. Used if the request requires authentication.
 
-### Error Responses
-All requests can fail, and when they do they follow a consistent format. 
-In the case where a request failed, the payload will contain all the codes for the different errors that occured. Upon reception of an error response at least one error code is guaranteed, but multiple error codes may be supplied.
-
-`@examples`
-
-```json
-{    
-    "type": "create_user_error",
+```
+{
+    "id": <id>,
+    "type": <type>_request,
     "payload": [
-        {"code": "invalid_email" },
-        {"code": "username_too_long" },
-        {"code": "invalid_password" }
+        {"id": <id>, ...<data> },
+        {"id": <id>, ...<data> }
+        ...
+    ],
+    "auth_token": <token>
+}
+```
+**Example**
+```json
+{
+    "id": 0,
+    "type": "create_user_request",
+    "payload": [
+        {
+             "id": 0,
+             "username": "JohnDoe" ,
+             "email": "john.doe@ubermail.com",
+             "password": "Scecret password"
+        },
+        {
+             "id": 1,
+             "username": "John Doe" ,
+             "email": "john.doe@ubermail.com",
+             "password": "S"
+        }
     ]
 }
 ```
-### Error Constants
-In the case an error occurs you should use the explicit enum values supplied by the Error class. The actual numerical codes for the different error values are ommited to avoid implementers using them rather than the constants.
 
-*invalid_email*
-Occurs when the supplied email for a create_user request does not meet the requirements of an email. I.e. It fails the regex for valid emails.
+## Reponse - server --> client
 
-*username_too_long*
-Occurs when the supplied username is too long to be put into the database.
+**Format**
 
-*invalid_token*
-Ocurs when a token has timed out or otherwise is invalid.
+`id` Indentifies a unique request-response-pair.
+`type` What type of response this is. Always postfixed with `_response`.
+`success` An array the items which were successfully processed.
+`success[].id` Should match a corresponding `id` in the request payload.
+`error` items which experienced an error during processing.
+`error[].id` Should match a corresponding `id` in the request payload.
+`error[].code` Array of error codes as strings. Guaranteed to always have one or more.
 
-`@todo` How should we respond that the password supplied wasn't correct? Do we just have a generic: Login failed because of username password missmatch?
-
-### Verify token
-
-A verify token may be used in a request - reponse pair, to match a response with request.
-
->Forslag: Kvart request-response-par har en request_token . Request_token blir alene brukt til å verifisere hvilke responses som hører til hvilke requests. Det er derfor viktig at hvert request_token er unikt. Eksempelvis kan request_token produseres av klienten på denne måten request_token = hash( microtime() + client_secret );.  Her antar vi at microtime er unikt hver gang klienten lager en ny request.  client_secret  er for å sikre at request_token bare blir brukt som en token, og ikke som et tidspunkt.
-
-
-## TODO: Explain why this is the generic response
-```json
-{
-    "type": "join_chats_request",
-    "payload": [],
-    "token": "aegir"
-}
+```
 {   
-    "type": "join_chats_response",
-    "payload": [
-        {"chat_id": 2},
-        {"chat_id": 1},
-        {"chat_id": 8},
+    "id": <id>,
+    "type": "<type>_response",
+    "success": [
+        {"id": <id>, ...<data>}
+        ...
     ],
-    "errors": [
-        {"chat_id": 3, "codes": []},
-    ],   
+    "error": [
+        {"id": <id>, "code": [<code1>, <code2>, ...]}
+        ...
+    ]
 }
 ```
+
+**Example**
+```json
+{
+    "id": 0,
+    "type": "create_user_success",
+    "success": [
+        { "id": 0 , "user_id": 2}
+    ],
+    "error": [
+        { "id": 1, "code": ["invalid_username", "email_already_exists", 
+                            "invalid_password"]}
+    ]
+}
+```
+
+## Event - server --> client
+
+
+Events are one-way communication from the server to clients. You can think of it like push-notifications. The server does not want response from client. Examples of an event is: Game invite, game updated, game completed, chat invite, chat updated, chat message...
+
+**Format**
+`type` What type of event this is.
+`payload` An array of items containing application specific data
+```
+{
+    "type": <type>,
+    "payload": [
+        { ...<data> },
+        { ...<data> }
+    ]
+}
+```
+
+**Example**
+
+```json
+{
+    "type": "game_invite",
+    "payload": [
+        {"inviter_id": 1, "game_id": 4},
+        {"inviter_id": 1, "game_id": 4}
+    ]
+}
+```
+
+
+# Ludo API
+
+## Note on general errors
+
+* `@error` does not generally include validation errors. For overview of validation errors see @see [ValidationRules](#Validation-rules) or [Error Constants](#Error-Constants)
+* All API requests which `@requires authentication` may throw these two errors `not_authenticated` and `not_authorized`.
+
 
 ## User API
 
 ### create_user
 
-`@brief` - Creates a user with the given username, email and password hash.
-`@errors` 
+`@brief` Creates a user with the given username, email and password hash.
+`@error` email_already_exists
 
 create_user_request
 ```json
@@ -126,12 +182,18 @@ create_user_request
     "id": 0,
     "type": "create_user_request",
     "payload": [
-        { 
-             "id": 3
+        {
+             "id": 0,
              "username": "JohnDoe" ,
              "email": "john.doe@ubermail.com",
-             "password_hash": "6265b22b66502d70d5f004f08238ac3c"
-        }    
+             "password": "Scecret password"
+        },
+        {
+             "id": 1,
+             "username": "John Doe" ,
+             "email": "john.doe@ubermail.com",
+             "password": "S"
+        }
     ]
 }
 ```
@@ -140,15 +202,22 @@ create_user_response
 ```json
 {
     "id": 0,
-    "type": "create_user_success",
-    "payload": [
-        { "id": 0 }
+    "type": "create_user_response",
+    "success": [
+        { "id": 0, "user_id": 2 }
     ],
-    "error": []
+    "error": [
+        { "id": 1, "code": ["invalid_username", "email_already_exists", 
+                            "invalid_password"]}
+    ]
 }
 ```
 
+
 ### login
+
+`@brief` Login a user using email and password. If already logged in, refresh `auth_token`, practically logging out all currently logged in clients. Already logged in is not an error.
+`@error` email_or_password_incorrect
 
 login_request
 ```json
@@ -159,7 +228,12 @@ login_request
         { 
             "id": 0,
             "email": "jonas.solsvik@gmail.com", 
-            "password_hash": "6265b22b66502d70d5f004f08238ac3c" 
+            "password": "Secret Password" 
+        },
+        { 
+            "id": 1,
+            "email": "jonas.solsvk@gmail.com", 
+            "password": "ecret Passworz" 
         }
     ]
 }
@@ -170,17 +244,20 @@ login_response
 {
     "id": 1,
     "type": "login_response",
-    "payload": [
-        {"id": 0, "user_id": 2, "token": "f136803ab9c241079ba0cc1b5d02ee77" }
+    "success": [
+        {"id": 0, "user_id": 2, "auth_token": "f136803..." }
+    ],
+    "error": [
+        {"id": 1, "code": ["email_or_password_incorrect"]}
     ]
 }
 ```
 
-### logout
-Note: No elements in the payload is required, but the payload variable is still required.
-`@requires` authentication
 
-`@Examples`
+### logout
+
+`@requires` authentication
+`@brief` Logout user. Idempotent. Already logged out is not an error.
 
 logout_request
 ```json
@@ -191,7 +268,7 @@ logout_request
         {"id": 0, "user_id": 1},
         {"id": 1, "user_id": 2}
     ],
-    "token": "f13680.."
+    "auth_token": "f13680.."
 }
 ```
 
@@ -200,7 +277,7 @@ logout_response
 {
     "id": 2,
     "type": "logout_response",
-    "payload": [
+    "success": [
         {"id": 0}
     ],
     "errors": [
@@ -209,91 +286,31 @@ logout_response
 }
 ```
 
-### update_user
 
-`@brief` Update user information. 
+### get_user
+
 `@requires` authentication
-`@examples`
+`@brief` The information you get on each user will vary depending on you authorization level. The fields you are not allowed to see are still present but empty. All users are allowed to see `username` and `avatar_uri`.
 
-update_user_request
+get_user_request (The token belongs to user_id: 3)
 ```json
 {
     "id": 3,
-    "type": "update_user_request",
+    "type": "get_user_request",
     "payload": [
-        { 
-             "id": 0,
-             "user_id": 2,
-             "username": "JohnDoe" ,
-             "email": "john.doe@ubermail.com",
-             "password_hash": "6265b22b66502d70d5f004f08238ac3c"
-        }
+        {"id": 0, "user_id": 3},
+        {"id": 1, "user_id": 4}
     ],
-    "token": "f13680.."
-}
-```
-update_user_request
-
-@TODO implement
-
-
-### delete_user
-
-`@brief` Delete user
-
-delete_user_request
-```json
-{
-    "id": 4,
-    "type": "delete_user_request",
-    "payload": [
-        {"id:" 0, user_id": 3 }
-        {"id:" 1, user_id": 2 }
-
-    ],
-    "token": "f1368.." 
+    "auth_token": "f1368.." 
 }
 ```
 
-delete_user_success
+get_user_response
 ```json
 {
- 
- "id": 4,
-    "type": "delete_user_success",
-    "payload": [
-        { "id": 0 }
-    ], 
-    "error": [
-        {"id": 1, "codes":["unathorized"]}
-    ]
-}
-```
-
-### get_user
-`@brief` Get users.
-`@requires` authentication
-`@note` All information on the user with "user_id" belonging to the authentication token, minimal information on others. The fields on the users with minimal information are still present but empty.
-`@minimal information` Name, Avatar_uri
-
-`@examples`
-get_users_request (The token belongs to user_id: 3)
-```json
-{
-    "type": "get_users_request",
-    "payload": [
-        {"user_id": 3},
-        {"user_id": 4},
-    ],
-    "token": "f1368.." 
-}
-```
-
-get_users_success
-```json
-{
-    "type": "get_users_success",
-    "payload": [
+    "id": 3,
+    "type": "get_user_response",
+    "success": [
         {
             "user_id": 3, 
             "username": "John Doe", 
@@ -304,106 +321,212 @@ get_users_success
             "user_id": 4, 
             "username": "Jenna", 
             "avatar_uri": "http://imgur.com/myavatar", 
-            "email": "" 
+            "email": ""
         },
     ],
-    "token": "f1368.." 
+    "error": [
+    ]
 }
 ```
+
+
+### update_user
+ 
+`@requires` authentication
+`@brief` Update user ainformation.
+`@error` user_not_found
+
+update_user_request
+```json
+{
+    "id": 4,
+    "type": "update_user_request",
+    "payload": [
+        { 
+             "id": 0,
+             "user_id": 2,
+             "username": "JohnDoe" ,
+             "email": "john.doe@ubermail.com",
+             "password": "New Secret Password"
+        },
+        { 
+             "id": 1,
+             "user_id": 3,
+             "username": "Jenna Doe" ,
+             "email": "john.doe@ u bermail.com",
+             "password": "New Sec ret Password"
+        }
+    ],
+    "auth_token": "f13680.."
+}
+```
+
+update_user_response
+```json
+{
+    "id": 4,
+    "type": "update_user_response",
+    "success": [
+        {"id": 0}
+    ],
+    "error": [
+        {"id": 1, "code": ["invalid_email"]}
+    ]
+}
+```
+
+
+### delete_user
+
+`@requires` authentication
+`@brief` Deletes user
+`@error` user_not_found
+
+delete_user_request
+```json
+{
+    "id": 5,
+    "type": "delete_user_request",
+    "payload": [
+        {"id": 0, "user_id": 3 },
+        {"id": 1, "user_id": 2 }
+    ],
+    "auth_token": "f1368.." 
+}
+```
+
+delete_user_response
+```json
+{
+    "id": 5,
+    "type": "delete_user_response",
+    "success": [
+        { "id": 0 }
+    ], 
+    "error": [
+        {"id": 1, "codes":["not_authorized"]}
+    ]
+}
+```
+
 
 ## Friends API
 
 ### get_friend
 
-`@brief`
 `@requires` authentcation
+`@brief` Get 1 or more friends from friendslist.
+`@error` friend_not_found
 
-`@examples`
 get_friend_request
 ```json
 {
+    "id": 6,
     "type": "get_friend_request",
     "payload": [
-        {"user_id": 3},
+        {"id": 0, "friend_id": 3},
+        {"id": 1, "friend_id": 4},
+        {"id": 2, "friend_id": 5}
     ],
-    "token": "f1368.." 
+    "auth_token": "f1368.." 
 }
 ```
 
 get_friend_response
 ```json
 {
+    "id": 6,
     "type": "get_friend_response",
-    "payload": [
+    "success": [
         {
-            "user_id": 4, 
+            "id": 1,
+            "friend_id": 4, 
             "username": "Jenna", 
             "avatar_uri": "http://imgur.com/myavatar", 
             "email": "",
             "status": "friend"
         },
         {
-            "user_id": 5, 
+            "id": 2,
+            "friend_id": 5, 
             "username": "Garry", 
             "avatar_uri": "http://imgur.com/myavatar", 
             "email": "",
             "status": "pending"
         }
     ],
+    "error": [
+        {"id": 0, "code": ["friend_not_found"]}
+    ]
 }
 ```
 
 
 ### friend
-`@brief`
-`@requires` authentication
 
-`@examples`
+`@requires` authentication
+`@brief` Friend someone. Both users has to friend each other, to actually be friends. If only one of the users has friended the other, the friend is just a pending.
+`@error` user_not_found | friend_not_found
+
+
 
 friend_request
 ```json
 {
+    "id": 7,
     "type": "friend_request",
     "payload": [
-        {"user_id": 3, "friend_id": 4},
-        {"user_id": 3, "friend_id": 5},
+        {"id": 0, "user_id": 3, "friend_id": 4},
+        {"id": 1, "user_id": 4, "friend_id": 5},
     ],
-    "token": "f1368.." 
+    "auth_token": "f1368.." 
 }
 ```
 
-friend_success
+friend_response
 ```json
 {
-    "type": "friend_success",
-    "payload": []
+    "id": 7,
+    "type": "friend_response",
+    "success": [
+        {"id": 1}
+    ],
+    "error": [
+        {"id": 0, "code": ["user_not_found"]}
+    ]
 }
 ```
 
 ### unfriend
 
-`@brief` Unfriend can also be used to ignore pending friend requests.
 `@requires` authentication
-
-`@examples`
+`@brief` Unfriend can also be used to ignore other users trying to be your friend.
+`@error` user_not_found | friend_not_found
 
 unfriend_request
 ```json
 {
+    "id":  8,
     "type": "ufriend_request",
     "payload": [
-        {"user_id": 3, "friend_id": 4},
-        {"user_id": 3, "friend_id": 5}
+        {"id": 0, "user_id": 3, "friend_id": 4},
+        {"id": 1, "user_id": 3, "friend_id": 5}
     ],
-    "token": "f1368.." 
+    "auth_token": "f1368.." 
 }
 ```
 
-unfriend_success
+unfriend_response
 ```json
 {
-    "type": "ufriend_success",
-    "payload": []
+    "id":  8,
+    "type": "unfriend_response",
+    "success": [
+        {"id": 1}
+    ],
+    "error": [
+        {"id": 0, "code": ["friend_not_found"]}
+    ]
 }
 ```
 
@@ -413,61 +536,60 @@ unfriend_success
 
 ### create_chat
 
-`@brief` - Create chat with given name
 `@requires` authentication
-
-`@Examples`
+`@brief` - Create chat with given name
 
 create_chat_request
 ```json
 {    
-    "id": 3,
+    "id": 9,
     "type": "create_chat_request",
-    "payload": [
+    "success": [
         {"id": 0, "user_id": 2, "name": "My cool chat"}
     ],
-    "token": "f4029..",
+    "auth_token": "f4029..",
 }
 ```
 
 create_chat_response
 ```json
 {
-    "id": 3,
+    "id": 9,
     "type": "create_chat_response",
-    "payload": [
-        {"id": 0, chat_id": 4}
+    "success": [
+        {"id": 0, "chat_id": 4}
     ],
     "errors": []
 }
 ```
 
-### join_chats
+### join_chat
 
-`@brief` - join chosen chats
 `@requires` authentication
+`@brief` join chosen chats
+`@error` access_denied
 
-`@examples`
-
-join_chats_request
+join_chat_request
 ```json
 {
-    "type": "join_chats_request",
+    "id": 10,
+    "type": "join_chat_request",
     "payload": [
         {"id": 0, "user_id": 3, "chat_id": 2},
         {"id": 1, "user_id": 4, "chat_id": 1},
         {"id": 2, "user_id": 4, "chat_id": 3},
         {"id": 3, "user_id": 4, "chat_id": 8}
     ],
-    "token": "f4029.."
+    "auth_token": "f4029.."
 }
 ```
 
-join_chats_response
+join_chat_response
 ```json
 {
-    "type": "join_chats_response",
-    "payload": [
+    "id": 10,
+    "type": "join_chat_response",
+    "success": [
         {"id": 0},
         {"id": 1},
         {"id": 2}
@@ -479,19 +601,20 @@ join_chats_response
 ```
 
 ### get_chat
-`@brief` - Gets all the non-game chats. If no chat_id is supplied, all chats are returned.
-`@requires` - authentication
 
-`@Examples`
+`@requires` authentication
+`@brief` - Gets all the non-game chats. If no chat_id is supplied, all chats are returned.
 
 get_chat_request
 ```json
 {
+    "id": 11,
     "type": "get_chat_request",
     "payload": [
-        {"chat_id": 2}
+        {"id": 0, "chat_id": 2}
+        {"id": 1, "chat_id": 2}
     ],
-    "token": "f4029.."
+    "auth_token": "f4029.."
 }
 ```
 
@@ -499,38 +622,38 @@ get_chat_request
 get_chat_response
 ```json
 {
+    "id": 11,
     "type": "get_chat_response",
-    "payload": [
-        {"chat_id": 2, "name": "my cool chat", "participant_id": [1, 2, 3] },
-        {"chat_id": 3, "name": "my cool chat2", "participant_id": [1, 3, 4] }
+    "success": [
+        {"id": 0, "chat_id": 2, "name": "my cool chat", "participant_id": [1, 2, 3] },
+        {"id": 1, "chat_id": 3, "name": "my cool chat2", "participant_id": [1, 3, 4] }
     ],
-    "errors": []
+    "error": []
 }
 ```
 
 ### send_chat_message
-`@brief` - Send message to all participants of any active chat
-`@requires` - authentication
 
-`@example`
+`@requires` authentication
+`@brief` - Send message to all participants of any active chat
 
 send_chat_message_request
 ```json
 {
-    "id": 0,
+    "id": 12,
     "type": "send_chat_message_request",
     "payload": [
-        {"id": 0, user_id": 3, "chat_id": 2, "message_id": "ff88109i3", "message": "Hei"},
-        {"id": 1, user_id": 3, "chat_id": 2, "message_id": "ff0193940", "message": "på" }
+        {"id": 0, "user_id": 3, "chat_id": 2, "message": "Hei"},
+        {"id": 1, "user_id": 3, "chat_id": 2, "message": "på" }
     ],
-    "token": "f4029.."
+    "auth_token": "f4029.."
 }
 ```
 
 send_chat_message_response
 ```json
 {
-    "id": 0,
+    "id": 12,
     "type": "send_chat_message_response",
     "success": [
         {"id": 0}
@@ -543,32 +666,32 @@ send_chat_message_response
 
 ### send_chat_invite
 
-`@Brief` - Send chat invite to friend
-`@Constraint` - `fromId` has to be the id of friend
-
-`@example`
+`@requires` authentication
+`@brief` - Send chat invite to friend
 
 send_chat_invite_request
 ```json
 {
+    "id": 13,
     "type": "send_chat_invite_request",
     "payload": [
-        {"user_id": 2, "invitee": 1, "chat_id": 4, "invite_id": "ff88109i3"},
-        {"user_id": 2, "invitee": 2, "chat_id": 3, "invite_id": "ff0193940"},
+        {"id": 0, "user_id": 2, "invitee_id": 1, "chat_id": 4},
+        {"id": 1, "user_id": 2, "invitee_id": 2, "chat_id": 3},
     ],
-    "token": "f4029.."
+    "auth_token": "f4029.."
 }
 ```
 
 send_chat_invite_response
 ```json
 {
+    "id": 13,
     "type": "send_chat_invite_response",
-    "payload": [
-        {"invite_id": "ff88109i3"},
-        {"invite_id": "ff0193940"},
+    "success": [
+        {"id": 0, "invite_id": "ff88109i3"},
+        {"id": 1, "invite_id": "ff0193940"},
     ],
-    "errors": [],
+    "error": [],
 }
 ```
 
@@ -583,41 +706,44 @@ send_chat_invite_response
 create_game_request
 ```json
 {
+    "id": 14,
     "type": "create_game_request",
     "payload": [
         {
+            "id": 0,
             "user_id": 1,
             "game_id": "ff88109i3",
             "max_participants": 4,
         },
         {
+            "id": 1,
             "user_id": 1,
             "game_id": "ff88109i4", 
             "max_participants": 2,
         },
         {
+            "id": 2,
             "user_id": 1,
             "game_id": "ff0193940", 
             "max_participants": -2,
         }
     ],
-    "user_token": "f4029..",
-    "request_id": 3
+    "auth_token": "f4029..",
 }
 ```
 
 create_game_response
 ```json
 {
+    "id": 14,
     "type": "create_game_response",
-    "payload": [
-        {"game_id": "ff88109i3"},
-        {"game_id": "ff88109i4"}
+    "success": [
+        {"id": 0, "game_id": "0"},
+        {"id": 1, "game_id": "1"}
     ],
-    "errors": [
-        {"game_id": "ff0193940", "codes": ["max_participants_not_unsigned_integer"]}
-    ],
-    "request_id": 3
+    "error": [
+        {"id": 2, "code": ["max_participants_not_unsigned_integer"]}
+    ]
 }
 ```
 
@@ -628,25 +754,27 @@ create_game_response
 send_game_invite_request
 ```json
 {
+    "id": 15,
     "type": "send_game_invite_request",
     "payload": [
-        {"user_id": 2, "invitee_id": 1, "game_id": 4, "game_invite_id": "ff88109i3"}
+        {"id": 0, "user_id": 3, "invitee_id": 1, "game_id": 5},
+        {"id": 1, "user_id": 2, "invitee_id": 1, "game_id": 4}
     ],
-    "token": "f4029..",
-    "request_id": 4
+    "auth_token": "f4029.."
 }
 ```
 
 send_game_invite_response
 ```json 
 {
+    "id": 15,
     "type": "send_game_invite_response",
-    "payload": [
+    "success": [
+        {"id": 1, "game_invite_id": "ff88109i3"}
     ],
-    "errors": [
-        {"game_invite_id": "ff88109i3", "codes": ["user_does_not_exist"]}
-    ],
-    "request_id": 4
+    "error": [
+        {"id": 0, "code": ["user_not_found"]}
+    ]
 }
 ```
 
@@ -655,23 +783,23 @@ send_game_invite_response
 decline_game_invite_request
 ```json
 {
+    "id": 16,
     "type": "decline_game_invite_request",
     "payload": [
-        {"user_id": 2, "game_invite_id": "ff88109i3"},
-    ],
-    "request_id": 5
+        {"id": 0, "game_invite_id": "ff88109i3"},
+    ]
 }
 ```
 
 decline_game_invite_response
 ```json 
 {
+    "id": 16,
     "type": "decline_game_invite_response",
-    "payload": [
-        {"game_invite_id": "ff88109i3"},
+    "success": [
+        {"id": 0}
     ],
-    "errors": [],
-    "request_id": 5
+    "error": [],
 }
 ```
 
@@ -684,66 +812,64 @@ decline_game_invite_response
 join_games_request
 ```json
 {
+    "id": 17,
     "type": "join_games_request",
     "payload": [
-        {"user_id": 3, "game_id": 2},
-        {"user_id": 3, "game_id": 1},
-        {"user_id": 3, "game_id": 3},
-        {"user_id": 3, "game_id": 8}
+        {"id": 0, "user_id": 3, "game_id": 2},
+        {"id": 1, "user_id": 3, "game_id": 1},
+        {"id": 2, "user_id": 3, "game_id": 3},
+        {"id": 3, "user_id": 3, "game_id": 8}
     ],
-    "token": "f4029..",
-    "request_id": 6
+    "auth_token": "f4029..",
 }
 ```
 
 join_games_response
 ```json
 {
+    "id": 17,
     "type": "join_games_response",
-    "payload": [
-        {"game_id": 2},
-        {"game_id": 1},
-        {"game_id": 8}
+    "success": [
+        {"id": 0},
+        {"id": 1},
+        {"id": 3}
     ],
     "errors": [
-        {"chat_id": 3, "codes": ["access_denied"]}
-    ],
-    "request_id": 6
+        {"id": 2, "code": ["access_denied"]}
+    ]
 }
 ```
 
 
 ### start_games
-`@brief` - Start game of Ludo with 2 or more players.
-`@constraint` - The user who starts the game has to be the owner/creator of the game.
+`@brief` - Start game of Ludo with 2 or more players. The user who starts the game has to be the owner/creator of the game.
 `@triggers` - game_update
-
+`@error` not_enough_players
 
 start_games_request
 ```json 
 {
+    "id": 18,
     "type": "start_games_request",
     "payload": [
-        {"user_id": 2, "game_id": "ffa08fj"},
-        {"user_id": 2, "game_id": "ffa08tk"}
-
+        {"id": 0, "game_id": "ffa08fj"},
+        {"id": 1, "game_id": "ffa08tk"}
     ],
-    "token": "f4029..",
-    "request_id": 6
+    "auth_token": "f4029.."
 }
 ```
 
 start_games_response
 ```json 
 {
+    "id": 18,
     "type": "start_games_response",
-    "payload": [
-        {"game_id": "ffa08fj"},
+    "success": [
+        {"id": 0},
     ],
-    "errors": [
-        {"game_id": "ffa08tk", "codes": ["not_enough_players"]}
-    ],
-    "request_id": 6
+    "error": [
+        {"id": 1, "code": ["not_enough_players"]}
+    ]
 }
 ```
 
@@ -754,31 +880,32 @@ start_games_response
 get_games_request
 ```json 
 {
+    "id": 19,
     "type": "get_games_request",
     "payload": [
-        {"game_id": "ffa08fj"},
-        {"game_id": "ffa0840"}
+        {"id": 0, "game_id": "ffa08fj"},
+        {"id": 1, "game_id": "ffa0840"}
     ],
-    "token": "f4029..",
-    "request_id": 6
+    "auth_token": "f4029..",
 }
 ```
 
 get_games_response
 ```json 
 {
+    "id": 19,
     "type": "start_game_response",
-    "payload": [
+    "success": [
         {
+            "id": 0,
             "game_id": "ffa08fj", 
             "owner_id": 2, 
             "participant_ids": [2,3,4]
         }
     ],
-    "errors": [
-        {"game_id": "ffa0840", "codes": ["access_denied"]}
-    ],
-    "request_id": 6
+    "error": [
+        {"id": 1, "codes": ["access_denied"]}
+    ]
 }
 ```
 
@@ -790,6 +917,7 @@ get_games_response
 send_roll_dice_request
 ```json 
 {
+    "id": 20,
     "type": "send_roll_dice_request",
     "payload": [
         {"id": 0, "game_id": "ffa0840"},
@@ -797,25 +925,23 @@ send_roll_dice_request
         {"id": 2, "game_id": "ffa084g"},
         {"id": 3, "game_id": "ffa0jj3"}
     ],
-    "token": "f4029..",
-    "request_id": 7
+    "auth_token": "f4029..",
 }
 ```
 
 send_roll_dice_response
 ```json 
 {
-    "id": 7,
+    "id": 20,
     "type": "send_roll_dice_response",
-    "payload": [
+    "success": [
         {"id": 1},
         {"id": 2},
         {"id": 3}
     ],
-    "errors": [
+    "error": [
         {"id": 0, "codes": ["not_your_turn"]},
-    ],
-    "token": "f4029..",
+    ]
 }
 ```
 
@@ -826,13 +952,13 @@ send_roll_dice_response
 move_piece_request
 ```json 
 {
-    "id": 8,
+    "id": 21,
     "type": "move_piece_request",
     "payload": [
         {"id": 0, "game_id": "ff10849", "piece_id": 1},
         {"id": 1, "game_id": "ff10554", "piece_id": 5}
     ],
-    "token": "f4029.."
+    "auth_token": "f4029.."
 }
 ```
 
@@ -840,12 +966,12 @@ move_piece_request
 move_piece_response
 ```json 
 {
-    "id": 8,
+    "id": 21,
     "type": "move_piece_response",
-    "payload": [
+    "success": [
         {"id": 1}
     ],
-    "errors": [
+    "error": [
         {"id": 0, "codes": ["illegal_move_for_piece"]}
     ]
 }
@@ -897,7 +1023,7 @@ Events API does not data.
 }
 ```
 
-### chat_invites
+### chat_invite
 `@Brief` - Recieve chat invite from any of my friends.
 
 ```json
@@ -909,7 +1035,7 @@ Events API does not data.
 }
 ```
 
-### chat_messages
+### chat_message
 `@brief` - Receive chat messages from chats i have joined
 
 chat_message
@@ -923,7 +1049,7 @@ chat_message
 }
 ```
 
-### game_invites
+### game_invite
 `@brief` - Invites from friends to a ludo game
 
 ```json
@@ -944,8 +1070,6 @@ chat_message
 {
     "type": "roll_dice",
     "payload": [],
-    "errors": [],
-    "request_id": 8
 }
 ```
 
@@ -958,11 +1082,85 @@ chat_message
 {
     "type": "move_piece",
     "payload": [],
-    "errors": [],
-    "request_id": 8
+
+}
+```
+
+### force_logout
+
+`@brief` - Happens to a currently logged in client, when a user logs in on another client.
+
+```json
+{
+    "type": "force_logout",
+    "payload":[]
 }
 ```
 
 
+## Error Constants
+In the case an error occurs you should use the explicit enum values supplied by the Error class. The actual numerical codes for the different error values are ommited to avoid implementers using them rather than the constants.
+
+**invalid_type**
+Does not match validation rule for `type`.
+
+**invalid_id**
+Does not match validation rule for `id`.
+
+**invalid_email**
+Does not match validation rule for `email`.
+
+**invalid_username**
+Does not match validation rule for `username`.
+
+**invalid_password**
+Does not match validation rule for `password`.
+
+**email_or_password_incorrect**
+Either eamil or pasword is incorrect. We do not tell which one of them.
+
+**authentication_failed**
+Token failed to authenticate client.
+
+**email_already_exists**
+Another user with that email already exists.
+
+
+## Validation Rules
+
+**id and \<keyword>_id**
+* positive integer
+* min 0
+* max 9,223,372,036,854,775,807
+* @throws `invalid_id`
+
+**type**
+* enumeration type 
+* @see ludo/enum/MessageType.java
+* @throws `invalid_type`
+
+**friend_status** 
+* enumeration type
+* "pending" | "friend" | "unfriend" 
+* @see ludo/enum/FriendStatus.java
+* @throws `invalid_friend_status`
+
+**username** 
+* Latin letters only. 
+* No whitespace. 
+* Length <= 32
+* @throws `invalid_username`
+
+**email**
+* @TODO insert regex here
+* string containing exactly a single --> `@` <-- or 
+* no whitespace
+* contain atleast one .
+* @throws `invalid_email`
+
+**password**
+* length >= 12 characers.
+* No other requirements, length is enough.
+* throws `invalid_password`
 
 
