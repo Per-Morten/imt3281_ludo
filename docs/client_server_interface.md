@@ -119,7 +119,7 @@ Any variables that is not the 'type', 'token' or inside the 'payload' are not co
 ```json
 {
     "id": 0,
-    "type": "create_user_success",
+    "type": "create_user_response",
     "success": [
         { "id": 0 , "user_id": 2}
     ],
@@ -166,8 +166,8 @@ Events are one-way communication from the server to clients. You can think of it
 ## Note on general errors
 
 * `@error` does not generally include validation errors. For overview of validation errors see @see [ValidationRules](#Validation-rules) or [Error Constants](#Error-Constants)
-* All API requests which `@requires authentication` may throw these two errors `not_authenticated` and `not_authorized`.
-
+* All API requests which `@requires authentication` may lead to these two errors `not_authenticated` and `not_authorized`.
+* When something is not found via an `id` a `<something>_not_found` error is returned.
 
 ## User API
 
@@ -281,7 +281,7 @@ logout_response
         {"id": 0}
     ],
     "errors": [
-        {"id": 1, "codes":["not_authorized"]}
+        {"id": 1, "code":["not_authorized"]}
     ]
 }
 ```
@@ -404,7 +404,7 @@ delete_user_response
         { "id": 0 }
     ], 
     "error": [
-        {"id": 1, "codes":["not_authorized"]}
+        {"id": 1, "code":["not_authorized"]}
     ]
 }
 ```
@@ -424,9 +424,9 @@ get_friend_request
     "id": 6,
     "type": "get_friend_request",
     "payload": [
-        {"id": 0, "friend_id": 3},
-        {"id": 1, "friend_id": 4},
-        {"id": 2, "friend_id": 5}
+        {"id": 0, "user_id": 3},
+        {"id": 1, "user_id": 4},
+        {"id": 2, "user_id": 5}
     ],
     "auth_token": "f1368.." 
 }
@@ -440,7 +440,7 @@ get_friend_response
     "success": [
         {
             "id": 1,
-            "friend_id": 4, 
+            "user_id": 4, 
             "username": "Jenna", 
             "avatar_uri": "http://imgur.com/myavatar", 
             "email": "",
@@ -448,7 +448,7 @@ get_friend_response
         },
         {
             "id": 2,
-            "friend_id": 5, 
+            "user_id": 5, 
             "username": "Garry", 
             "avatar_uri": "http://imgur.com/myavatar", 
             "email": "",
@@ -476,8 +476,8 @@ friend_request
     "id": 7,
     "type": "friend_request",
     "payload": [
-        {"id": 0, "user_id": 3, "friend_id": 4},
-        {"id": 1, "user_id": 4, "friend_id": 5},
+        {"id": 0, "user_id": 3, "other_id": 4},
+        {"id": 1, "user_id": 4, "other_id": 5},
     ],
     "auth_token": "f1368.." 
 }
@@ -509,8 +509,8 @@ unfriend_request
     "id":  8,
     "type": "ufriend_request",
     "payload": [
-        {"id": 0, "user_id": 3, "friend_id": 4},
-        {"id": 1, "user_id": 3, "friend_id": 5}
+        {"id": 0, "user_id": 3, "other_id": 4},
+        {"id": 1, "user_id": 3, "other_id": 5}
     ],
     "auth_token": "f1368.." 
 }
@@ -595,10 +595,44 @@ join_chat_response
         {"id": 2}
     ],
     "errors": [
-        {"id": 3, "codes": ["access_denied"]}
+        {"id": 3, "code": ["access_denied"]}
     ]
 }
 ```
+
+### leave_chat
+
+`@requires` authentication
+`@brief` leave an ongoing chat session
+
+leave_chat_request
+```json
+{
+    "id": 10,
+    "type": "leave_chat_request",
+    "payload": [
+        {"id": 0, "chat_id": 2},
+        {"id": 1, "chat_id": 3}
+    ],
+    "auth_token": "f4029.."
+}
+```
+
+leave_chat_response
+```json
+{
+    "id": 10,
+    "type": "leave_chat_response",
+    "success": [
+        {"id": 1}
+    ],
+    "error": [
+        {"id": 0, "code": ["chat_not_found"]}
+    ]
+}
+```
+
+
 
 ### get_chat
 
@@ -676,7 +710,7 @@ send_chat_invite_request
     "type": "send_chat_invite_request",
     "payload": [
         {"id": 0, "user_id": 2, "invitee_id": 1, "chat_id": 4},
-        {"id": 1, "user_id": 2, "invitee_id": 2, "chat_id": 3},
+        {"id": 1, "user_id": 2, "invitee_id": 2, "chat_id": 3}
     ],
     "auth_token": "f4029.."
 }
@@ -688,8 +722,8 @@ send_chat_invite_response
     "id": 13,
     "type": "send_chat_invite_response",
     "success": [
-        {"id": 0, "invite_id": "ff88109i3"},
-        {"id": 1, "invite_id": "ff0193940"},
+        {"id": 0},
+        {"id": 1}
     ],
     "error": [],
 }
@@ -699,6 +733,8 @@ send_chat_invite_response
 ## Game API
 
 ### create_game
+
+`@requires` authentication
 `@Brief` - Create a game of Ludo. Decied how many participants you want.
 `@Errors` - max_participants_not_unsigned_integer
 
@@ -709,24 +745,9 @@ create_game_request
     "id": 14,
     "type": "create_game_request",
     "payload": [
-        {
-            "id": 0,
-            "user_id": 1,
-            "game_id": "ff88109i3",
-            "max_participants": 4,
-        },
-        {
-            "id": 1,
-            "user_id": 1,
-            "game_id": "ff88109i4", 
-            "max_participants": 2,
-        },
-        {
-            "id": 2,
-            "user_id": 1,
-            "game_id": "ff0193940", 
-            "max_participants": -2,
-        }
+        {"id": 0, "user_id": 1},
+        {"id": 1, "user_id": 1},
+        {"id": 2, "user_id": 59}
     ],
     "auth_token": "f4029..",
 }
@@ -738,17 +759,18 @@ create_game_response
     "id": 14,
     "type": "create_game_response",
     "success": [
-        {"id": 0, "game_id": "0"},
-        {"id": 1, "game_id": "1"}
+        {"id": 0, "game_id": 0},
+        {"id": 1, "game_id": 1}
     ],
     "error": [
-        {"id": 2, "code": ["max_participants_not_unsigned_integer"]}
+        {"id": 2, "code": ["user_id_not_found"]}
     ]
 }
 ```
 
 ### send_game_invite
 
+`@requires` authentication
 `@Brief` - Send game invite to friend
 
 send_game_invite_request
@@ -770,7 +792,7 @@ send_game_invite_response
     "id": 15,
     "type": "send_game_invite_response",
     "success": [
-        {"id": 1, "game_invite_id": "ff88109i3"}
+        {"id": 1}
     ],
     "error": [
         {"id": 0, "code": ["user_not_found"]}
@@ -780,13 +802,15 @@ send_game_invite_response
 
 ### decline_game_invite
 
+`@requires` authentication
+
 decline_game_invite_request
 ```json
 {
     "id": 16,
     "type": "decline_game_invite_request",
     "payload": [
-        {"id": 0, "game_invite_id": "ff88109i3"},
+        {"id": 0, "game_id": 0},
     ]
 }
 ```
@@ -803,17 +827,17 @@ decline_game_invite_response
 }
 ```
 
-### join_games
+### join_game
 
-`@brief` - join chosen games
 `@requires` authentication
+`@brief` - join chosen games
 `@triggers` - game_update
 
-join_games_request
+join_game_request
 ```json
 {
     "id": 17,
-    "type": "join_games_request",
+    "type": "join_game_request",
     "payload": [
         {"id": 0, "user_id": 3, "game_id": 2},
         {"id": 1, "user_id": 3, "game_id": 1},
@@ -824,11 +848,11 @@ join_games_request
 }
 ```
 
-join_games_response
+join_game_response
 ```json
 {
     "id": 17,
-    "type": "join_games_response",
+    "type": "join_game_response",
     "success": [
         {"id": 0},
         {"id": 1},
@@ -840,30 +864,68 @@ join_games_response
 }
 ```
 
+### leave_game
 
-### start_games
+`@requires` authentication
+`@brief` - leaves the chosen games
+`@triggers` - game_update
+
+join_game_request
+```json
+{
+    "id": 17,
+    "type": "leave_game_request",
+    "payload": [
+        {"id": 0, "user_id": 3, "game_id": 2},
+        {"id": 1, "user_id": 3, "game_id": 1},
+        {"id": 2, "user_id": 3, "game_id": 3},
+        {"id": 3, "user_id": 3, "game_id": 8}
+    ],
+    "auth_token": "f4029..",
+}
+```
+
+join_game_response
+```json
+{
+    "id": 25,
+    "type": "leave_game_response",
+    "success": [
+        {"id": 0},
+        {"id": 1},
+        {"id": 3}
+    ],
+    "errors": [
+        {"id": 2, "code": ["access_denied"]}
+    ]
+}
+```
+
+### start_game
+
+`@requires` authentication
 `@brief` - Start game of Ludo with 2 or more players. The user who starts the game has to be the owner/creator of the game.
 `@triggers` - game_update
 `@error` not_enough_players
 
-start_games_request
+start_game_request
 ```json 
 {
     "id": 18,
-    "type": "start_games_request",
+    "type": "start_game_request",
     "payload": [
-        {"id": 0, "game_id": "ffa08fj"},
-        {"id": 1, "game_id": "ffa08tk"}
+        {"id": 0, "game_id": 0},
+        {"id": 1, "game_id": 1}
     ],
     "auth_token": "f4029.."
 }
 ```
 
-start_games_response
+start_game_response
 ```json 
 {
     "id": 18,
-    "type": "start_games_response",
+    "type": "start_game_response",
     "success": [
         {"id": 0},
     ],
@@ -873,46 +935,94 @@ start_games_response
 }
 ```
 
-### get_games
+### get_game_header
 
-`@brief` - Get metainformation from games with id
+`@requires` authentication
+`@brief` - Get metainformation from games with id. `owner_id`, `player_id` and `pending_id` are all the respective users `user_id`'s.
 
-get_games_request
+get_game_header_request
 ```json 
 {
     "id": 19,
-    "type": "get_games_request",
+    "type": "get_game_header_request",
     "payload": [
-        {"id": 0, "game_id": "ffa08fj"},
-        {"id": 1, "game_id": "ffa0840"}
+        {"id": 0, "game_id": 0},
+        {"id": 1, "game_id": 1}
     ],
     "auth_token": "f4029..",
 }
 ```
 
-get_games_response
+get_game_header_response
 ```json 
 {
     "id": 19,
-    "type": "start_game_response",
+    "type": "get_game_header_response",
     "success": [
         {
             "id": 0,
-            "game_id": "ffa08fj", 
-            "owner_id": 2, 
-            "participant_ids": [2,3,4]
+            "game_id": 0, 
+            "owner_id": 2,
+            "player_id": [58, 3, 4, 7],
+            "pending_id": [1]
         }
     ],
     "error": [
-        {"id": 1, "codes": ["access_denied"]}
+        {"id": 1, "code": ["access_denied"]}
+    ]
+}
+```
+
+### get_game_state
+
+`@requires` authentication
+`@brief` - Gets the current gamestate of the games games with id game_id. 
+`piece_positions` is a 2d array containing the positions of the 4 pieces belonging to each player. 
+get_game_state_request
+```json 
+{
+    "id": 19,
+    "type": "get_game_state_request",
+    "payload": [
+        {"id": 0, "game_id": 0},
+        {"id": 1, "game_id": 1}
+    ],
+    "auth_token": "f4029..",
+}
+```
+
+get_game_state_response
+```json 
+{
+    "id": 19,
+    "type": "get_game_response",
+    "success": [ 
+        // In this game player 58 threw a 4, and will move its piece
+        {
+            "id": 0,                 
+            "player_order": [58, 3, 4, 7],
+            "current_player_id": 58,
+            "next_action": move,
+            "previous_dice_throw": 4,
+            "piece_positions": [
+                [ 3, 1,  3,  5],    // player 1
+                [ 7, 7,  7,  7],    // player 2
+                [32, 2,  0,  0],    // player 3
+                [ 0, 1, 17, 19]     // player 4
+            ]
+        }
+    ],
+    "error": [
+        {"id": 1, "code": ["access_denied"]}
     ]
 }
 ```
 
 ### send_roll_dice
 
+`@requires` authentication
 `@brief` - The player wants to roll the dice
-`@triggers` - roll_dice
+`@triggers` - game_update
 
 send_roll_dice_request
 ```json 
@@ -920,10 +1030,10 @@ send_roll_dice_request
     "id": 20,
     "type": "send_roll_dice_request",
     "payload": [
-        {"id": 0, "game_id": "ffa0840"},
-        {"id": 1, "game_id": "ffa0jj6"},
-        {"id": 2, "game_id": "ffa084g"},
-        {"id": 3, "game_id": "ffa0jj3"}
+        {"id": 0, "user_id": 0, "game_id": 0},
+        {"id": 1, "user_id": 0, "game_id": 1},
+        {"id": 2, "user_id": 0, "game_id": 2},
+        {"id": 3, "user_id": 0, "game_id": 3}
     ],
     "auth_token": "f4029..",
 }
@@ -940,14 +1050,15 @@ send_roll_dice_response
         {"id": 3}
     ],
     "error": [
-        {"id": 0, "codes": ["not_your_turn"]},
+        {"id": 0, "code": ["not_your_turn"]},
     ]
 }
 ```
 
 ### send_move_piece
 
-`@triggers` - move_piece
+`@requires` authentication
+`@triggers` - game_update
 
 move_piece_request
 ```json 
@@ -955,8 +1066,8 @@ move_piece_request
     "id": 21,
     "type": "move_piece_request",
     "payload": [
-        {"id": 0, "game_id": "ff10849", "piece_id": 1},
-        {"id": 1, "game_id": "ff10554", "piece_id": 5}
+        {"id": 0, "user_id": 0, "game_id": 0, "piece_index": 0},
+        {"id": 1, "user_id": 1, "game_id": 1, "piece_index": 3}
     ],
     "auth_token": "f4029.."
 }
@@ -972,123 +1083,104 @@ move_piece_response
         {"id": 1}
     ],
     "error": [
-        {"id": 0, "codes": ["illegal_move_for_piece"]}
+        {"id": 0, "code": ["illegal_move_for_piece"]}
     ]
 }
 ```
 
 ## Events API
 
-Server events pushed to clients. 
-One way messages. 
-Server does not expect response from clients.
-Events API does not data.
+* Server event pushed to client.
+* One way communication.
+* Server does not want response from client.
+* Generally an event only carry id, not actual data.
+* Data fetched from a separate get-request, using the id.
 
-### friends_update
-`@brief` - Notify about friends with new data
+### friend_update
+
+`@brief` - Friend data is updated.
 
 ```json 
 {
     "type": "friend_update",
     "payload": [
-        { "user_id": 2},
-        { "user_id": 3},
+        {"user_id": 2},
+        {"user_id": 3},
     ]
 }
 ```
 
-### chats_update
-`@brief` - Notify about chats with new data. Meta information about the chat, such as new participants, name change, etc.
+### chat_update
+
+`@brief` - Chat you are in has been updated
 
 ```json
 {
-    "type": "chats_update",
+    "type": "chat_update",
     "payload": [
-        { "chat_id": 2},
-        { "chat_id": 3},
+        {"chat_id": 2},
+        {"chat_id": 3},
     ]
 }
 ```
 
-### games_update
-`@brief` - Notify about games with new data
-
-```json 
-{
-    "type": "game_update",
-    "payload": [
-        { "game_id": 2},
-        { "game_id": 3},
-    ]
-}
-```
 
 ### chat_invite
-`@Brief` - Recieve chat invite from any of my friends.
+`@Brief` - Someone invited you to a chat.
 
 ```json
 {
     "type": "chat_invite",
     "payload": [
-        {"user_id": 2, "invitee_id": 1, "chat_id": 4, "invite_id": "ff88109i3"},
+        {"user_id": 2, "chat_id": 4},
     ]
 }
 ```
 
 ### chat_message
-`@brief` - Receive chat messages from chats i have joined
+`@brief` - Someone sent a new chat message.
 
 chat_message
 ```json
 {
     "type": "chat_message",
     "payload": [
-        {"user_id": 3, "chat_id": 2, "message_id": "ff88109i3", "message": "Hei"},
-        {"user_id": 3, "chat_id": 2, "message_id": "ff0193940", "message": "på" }
+        {"user_id": 3, "chat_id": 2, "message": "Hei"},
+        {"user_id": 3, "chat_id": 2, "message": "på" }
+    ]
+}
+```
+
+### game_update
+
+`@brief` - Game you are in has been updated
+
+```json 
+{
+    "type": "game_update",
+    "payload": [
+        {"game_id": 2},
+        {"game_id": 3},
     ]
 }
 ```
 
 ### game_invite
-`@brief` - Invites from friends to a ludo game
+`@brief` - Someone sent you a game invite.
 
 ```json
 {
     "type": "game_invite",
     "payload": [
-        {"user_id": 1, "invitee_id": 1, "game_id": 4},
-        {"user_id": 1, "invitee_id": 1, "game_id": 4}
+        {"user_id": 1, "game_id": 4},
+        {"user_id": 1, "game_id": 4}
     ]
-}
-```
-
-### roll_dice 
-
-`@brief` - undecided
-
-```json 
-{
-    "type": "roll_dice",
-    "payload": [],
-}
-```
-
-
-### move_piece
-
-`@brief` - undecided
-
-```json 
-{
-    "type": "move_piece",
-    "payload": [],
-
 }
 ```
 
 ### force_logout
 
-`@brief` - Happens to a currently logged in client, when a user logs in on another client.
+`@brief` - Sent to currently logged in client, when a user logs in on another client.
 
 ```json
 {
@@ -1122,8 +1214,14 @@ Either eamil or pasword is incorrect. We do not tell which one of them.
 **authentication_failed**
 Token failed to authenticate client.
 
+**authorization_failed**
+The authenticated client was not authorized to do operation.
+
 **email_already_exists**
 Another user with that email already exists.
+
+**\<keyword\>_id_not_found**
+The suplied id was not found
 
 
 ## Validation Rules
@@ -1141,9 +1239,15 @@ Another user with that email already exists.
 
 **friend_status** 
 * enumeration type
-* "pending" | "friend" | "unfriend" 
+* pending | friend | unfriend 
 * @see ludo/enum/FriendStatus.java
 * @throws `invalid_friend_status`
+
+**next_move**
+* enumeration type
+* move | roll
+* @see ludo/enum/NextMove.java
+* @error `invalid_next_move`
 
 **username** 
 * Latin letters only. 
@@ -1162,5 +1266,6 @@ Another user with that email already exists.
 * length >= 12 characers.
 * No other requirements, length is enough.
 * throws `invalid_password`
+
 
 
