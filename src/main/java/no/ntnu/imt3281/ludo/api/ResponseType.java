@@ -1,0 +1,30 @@
+package no.ntnu.imt3281.ludo.api;
+
+public enum ResponseType {
+    LoginResponse,
+    LogoutResponse,
+    GetUserResponse,
+    CreateUserResponse,
+    UpdateUserResponse,
+    DeleteUserResponse,
+    GetFriendResponse,
+    FriendResponse,
+    UnfriendResponse,
+    JoinChatResponse,
+    LeaveChatResponse,
+    GetChatResponse,
+    CreateChatResponse,
+    SendChatMessageResponse,
+    SendChatInviteResponse,
+    CreateGameResponse,
+    JoinGameResponse,
+    LeaveGameResponse,
+    SendGameInviteResponse,
+    DeclineGameInviteResponse,
+    StartGameResponse,
+    GetGameHeaderResponse,
+    GetGameStateResponse,
+    SendRollDiceResponse,
+    MovePieceResponse,
+    ;
+}
