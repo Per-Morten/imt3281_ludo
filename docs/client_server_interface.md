@@ -23,14 +23,6 @@
 * [ ] TODO: sjekk @requires authentication
 * [ ] TODO: Oppdater alle til å sende inn user_id.
 
->Kan vi ha det slik at all spillogikk ligger på serveren?
-Det eneste klienten gjør er å vise spillets tilstand. Den tar ingen avgjørelser (annet enn å spørre om å kaste terning og flytte en brikke). Hver gang spillets tilstand endrer seg, så sender serveren oppdatert data på nytt til klienten.
-Serveren tar avgjørelser om hva som er lov og ikke. Serveren er den eneste som endrer på spillets tilstand.
-Dette medfører at vi ikke tar i bruk Ludo-klassen på klient, men bare på server.
-
-
-
-
 # Message protocol
 
 The aim of the protocol is to be as consistent as possible. Therefore all messages follow a standard pattern of 'type' and 'payload'. Where the type describes the type of the message and is always interpreted the same, and the payload is an array of objects that are interpreted differently based on the 'type' value.
@@ -54,7 +46,7 @@ Any variables that is not the 'type', 'token' or inside the 'payload' are not co
 `payload[].id` indentifies a unique item within the payload
 `auth_token` an optional parameter. Used if the request requires authentication.
 
-```
+```json
 {
     "id": <id>,
     "type": <type>_request,
@@ -66,6 +58,7 @@ Any variables that is not the 'type', 'token' or inside the 'payload' are not co
     "auth_token": <token>
 }
 ```
+
 **Example**
 ```json
 {
@@ -163,11 +156,17 @@ Events are one-way communication from the server to clients. You can think of it
 
 # Ludo API
 
-## Note on general errors
+## General errors
 
 * `@error` does not generally include validation errors. For overview of validation errors see @see [ValidationRules](#Validation-rules) or [Error Constants](#Error-Constants)
 * All API requests which `@requires authentication` may lead to these two errors `not_authenticated` and `not_authorized`.
 * When something is not found via an `id` a `<something>_not_found` error is returned.
+
+## Payload limits and Response Length
+* A request payload can contain up to 100 items
+* Range requests can only contain 10 page requests.
+* A page has a maximum limit of 100 items
+* In the case where a payload has more than the maximum number of items, those items will not be processed but be reported as errors upon response.
 
 ## User API
 
@@ -329,6 +328,55 @@ get_user_response
 }
 ```
 
+### get_user_range
+
+`@requires` authentication
+`@brief` - Get a range of users.
+
+get_user_range
+```json 
+{
+    "id": 19,
+    "type": "get_user_range_request",
+    "payload": [
+        {"id": 0, "page_index": 0}
+        {"id": 1, "page_index": 99}
+    ],
+    "auth_token": "f4029..",
+}
+```
+
+get_user_range_response
+```json 
+{
+    "id": 19,
+    "type": "get_user_range_response",
+    "success": [
+        {
+            "id": 0,
+            "user":
+            [
+                {
+                    "user_id": 3, 
+                    "username": "John Doe", 
+                    "avatar_uri": "http://imgur.com/myavatar", 
+                    "email": "john.doe@gmail.com"
+                },
+                {
+                    "user_id": 4, 
+                    "username": "Jenna", 
+                    "avatar_uri": "http://imgur.com/myavatar", 
+                    "email": ""
+                },
+            ]
+        }
+    ],
+    "error": [
+        {"id": 1, "code": ["page_out_of_bounds"]}
+    ]
+}
+```
+
 
 ### update_user
  
@@ -435,17 +483,50 @@ get_friend_response
     "id": 6,
     "type": "get_friend_response",
     "success": [
-        {
-            "id": 1,
-            "user_id": 4, 
-        },
-        {
-            "id": 2,
-            "user_id": 5, 
-        }
+        { "id": 1, "user_id": 4 },
+        { "id": 2, "user_id": 5 }
     ],
     "error": [
         {"id": 0, "code": ["friend_not_found"]}
+    ]
+}
+```
+
+### get_friend_range
+
+`@requires` authentication
+`@brief` - Get a range of friends.
+
+get_friend_range
+```json 
+{
+    "id": 19,
+    "type": "get_friend_range_request",
+    "payload": [
+        {"id": 0, "page_index": 0}
+        {"id": 1, "page_index": 99}
+    ],
+    "auth_token": "f4029..",
+}
+```
+
+get_friend_range_response
+```json 
+{
+    "id": 19,
+    "type": "get_friend_range_response",
+    "success": [
+        {
+            "id": 0,
+            "friend":
+            [
+                { "user_id": 2 },
+                { "user_id": 3 }
+            ]
+        }
+    ],
+    "error": [
+        {"id": 1, "code": ["page_out_of_bounds"]}
     ]
 }
 ```
@@ -626,7 +707,7 @@ leave_chat_response
 ### get_chat
 
 `@requires` authentication
-`@brief` - Gets all the non-game chats. If no chat_id is supplied, all chats are returned.
+`@brief` - Gets all the non-game chats.
 
 get_chat_request
 ```json
@@ -652,6 +733,49 @@ get_chat_response
         {"id": 1, "chat_id": 3, "name": "my cool chat2", "participant_id": [1, 3, 4] }
     ],
     "error": []
+}
+```
+
+### get_chat_range
+
+`@requires` authentication
+`@brief` - Gets all the non-game chats from the specified range.
+
+get_chat_range
+```json 
+{
+    "id": 19,
+    "type": "get_chat_range_request",
+    "payload": [
+        {"id": 0, "page_index": 0}
+        {"id": 1, "page_index": 99}
+    ],
+    "auth_token": "f4029..",
+}
+```
+
+get_chat_range_response
+```json 
+{
+    "id": 19,
+    "type": "get_chat_range_response",
+    "success": [
+        {
+            "id": 0,
+            "chat":
+            [
+                {
+                    "chat_id": 2, "name": "my cool chat", "participant_id": [1, 2, 3] 
+                },
+                {
+                    "chat_id": 3, "name": "my cool chat2", "participant_id": [1, 3, 4] 
+                }
+            ]
+        }
+    ],
+    "error": [
+        {"id": 1, "code": ["page_out_of_bounds"]}
+    ]
 }
 ```
 
@@ -924,29 +1048,29 @@ start_game_response
 }
 ```
 
-### get_game_header
+### get_game
 
 `@requires` authentication
 `@brief` - Get metainformation from games with id. `owner_id`, `player_id` and `pending_id` are all the respective users `user_id`'s.
 
-get_game_header_request
+get_game_request
 ```json 
 {
     "id": 19,
-    "type": "get_game_header_request",
+    "type": "get_game_request",
     "payload": [
-        {"id": 0, "game_id": 0},
+        {"id": 0, "game_id": 0}
         {"id": 1, "game_id": 1}
     ],
     "auth_token": "f4029..",
 }
 ```
 
-get_game_header_response
+get_game_response
 ```json 
 {
     "id": 19,
-    "type": "get_game_header_response",
+    "type": "get_game_response",
     "success": [
         {
             "id": 0,
@@ -961,6 +1085,56 @@ get_game_header_response
     ]
 }
 ```
+
+### get_game_range
+
+`@requires` authentication
+`@brief` - Get metainformation from games based on page. `owner_id`, `player_id` and `pending_id` are all the respective users `user_id`'s.
+
+get_game_range_request
+```json 
+{
+    "id": 19,
+    "type": "get_game_range_request",
+    "payload": [
+        {"id": 0, "page_index": 0}
+        {"id": 1, "page_index": 99}
+    ],
+    "auth_token": "f4029..",
+}
+```
+
+get_game_range_response
+```json 
+{
+    "id": 19,
+    "type": "get_game_range_response",
+    "success": [
+        {
+            "id": 0,
+            "game":
+            [
+                {
+                    "game_id": 0, 
+                    "owner_id": 2,
+                    "player_id": [58, 3, 4, 7],
+                    "pending_id": [1]
+                },
+                {
+                    "game_id": 1, 
+                    "owner_id": 3,
+                    "player_id": [58, 3, 4, 7],
+                    "pending_id": [1]
+                }
+            ]
+        }
+    ],
+    "error": [
+        {"id": 1, "code": ["page_out_of_bounds"]}
+    ]
+}
+```
+
 
 ### get_game_state
 
