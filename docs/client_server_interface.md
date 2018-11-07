@@ -415,7 +415,7 @@ delete_user_response
 ### get_friend
 
 `@requires` authentcation
-`@brief` Get 1 or more friends from friendslist.
+`@brief` Get 0 or more friends from friendslist. Empty payload returns all friends
 `@error` friend_not_found
 
 get_friend_request
@@ -424,9 +424,6 @@ get_friend_request
     "id": 6,
     "type": "get_friend_request",
     "payload": [
-        {"id": 0, "user_id": 3},
-        {"id": 1, "user_id": 4},
-        {"id": 2, "user_id": 5}
     ],
     "auth_token": "f1368.." 
 }
@@ -441,18 +438,10 @@ get_friend_response
         {
             "id": 1,
             "user_id": 4, 
-            "username": "Jenna", 
-            "avatar_uri": "http://imgur.com/myavatar", 
-            "email": "",
-            "status": "friend"
         },
         {
             "id": 2,
             "user_id": 5, 
-            "username": "Garry", 
-            "avatar_uri": "http://imgur.com/myavatar", 
-            "email": "",
-            "status": "pending"
         }
     ],
     "error": [
