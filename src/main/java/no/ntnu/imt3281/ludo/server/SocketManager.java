@@ -1,63 +1,52 @@
 package no.ntnu.imt3281.ludo.server;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.SocketException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
-import org.json.JSONObject;
-
-// Thoughts:
-// * Also need a way to be notified when people disconnect, as that means they must be removed from all their games.
-//      * Can possibly just log people out if the connection is destroyed?
-//      * Want a way to go through and remove all sockets that are disconnected.
-//          * Cannot just do it in manageEstablishedConnections on fail,
-//            as we can get a "race" on it being added to mSockets before it is removed from mUnknown and mSockets.
-//            However, the chances of that race happening are quite slim, so rethink if it is really needed.
-//            I.e. do we need 100% thread safety, or do we just need to be thread safe enough?
+import no.ntnu.imt3281.ludo.common.Connection;
+import no.ntnu.imt3281.ludo.common.Logger;
 
 /**
- * SocketManager handles all forms of communication with clients through
- * sockets. Sending messages can be done through the send function, while
- * receiving messages happens through callbacks.
+ * SocketManager for the server side of the application. Handles sending and
+ * receiving messages with the clients.
+ *
+ * Receiving messages is done through the onReceiveCallback. Note: Important to
+ * set onReceiveCallback before starting the manager. Rather than just supplying
+ * the message, the callback also supplies an ID belonging to the socket the
+ * message comes from, which is useful for knowing who to respond to when
+ * sending message.
+ *
+ * Manager runs in its own thread, and therefore needs to be started and stopped
+ * manually.
  */
 public class SocketManager {
-    private Consumer<Long> mOnConnectAcceptedCallback;
-    private Consumer<JSONObject> mOnReceiveCallback;
-    private ExecutorService mThreadPool;
+
+    // Need specific callback for logging in and creating user, so we can map user
+    // id to socket.
+    private BiConsumer<Long, String> mOnReceiveCallback;
+    private Thread mThread;
     private AtomicBoolean mRunning;
     private int mListeningPort;
 
     // Sockets that has yet to receive a user id.
     private AtomicLong mUnknownId;
-    // Sockets with a negative integer
-    private ConcurrentHashMap<Long, Socket> mSockets;
+
+    private ConcurrentHashMap<Long, Connection> mSockets;
+
+    private ServerSocket mServerSocket;
 
     /**
-     * Initializes the SocketManager with the callback it should use when receiving
-     * a message.
+     * Initializes the SocketManager with the port it should listen to.
      *
-     * @param onReceiveCallback The function to call when a message has been
-     *                          received. This function must be safe to call in a
-     *                          concurrent setting.
-     *
-     * @param listeningPort     The port that the SocketManager should listen to
-     *                          incoming connections on.
+     * @param listeningPort The port that the SocketManager should listen to
+     *                      incoming connections on.
      */
-    public SocketManager(Consumer<JSONObject> onReceiveCallback,
-                         Consumer<Long> onConnectAcceptedCallback,
-                         int listeningPort) {
-
-        mOnConnectAcceptedCallback = onConnectAcceptedCallback;
-        mOnReceiveCallback = onReceiveCallback;
-        mThreadPool = Executors.newCachedThreadPool();
+    public SocketManager(int listeningPort) {
         mRunning = new AtomicBoolean(false);
         mListeningPort = listeningPort;
 
@@ -67,61 +56,103 @@ public class SocketManager {
     }
 
     /**
-     * Starts running the SocketManager, note, blocking method, so should be run in
-     * its own thread.
+     * Sets the callback to use when receiving a message. This must be done before
+     * the manager is started.
      *
-     * @throws IOException
+     * @param onReceiveCallback The function to call when a message has been
+     *                          received. This function must be safe to call in a
+     *                          concurrent setting.
      */
-    public void run() throws IOException {
-        mRunning.set(true);
-
-        try (var server = new ServerSocket(mListeningPort)) {
-            while (mRunning.get()) {
-                var socket = server.accept();
-
-                // Don't know the "user_id" of the client belonging to this socket connection
-                // yet,
-                // therefore we are temporarily marking it as unknown.
-                // once we get an "user_id" for it, we will update the key so it is a regular socket.
-                // and it can be used to send messages.
-
-                var newSocketId = mUnknownId.decrementAndGet();
-                mSockets.put(newSocketId, socket);
-
-                mOnConnectAcceptedCallback.accept(newSocketId);
-                mThreadPool.execute(() -> manageEstablishedConnection(socket));
-            }
-
-        } catch (RuntimeException e) {
-            System.out.print(String.format("Exception encountered: %s", e.getMessage()));
-        }
+    public void setOnReceiveCallback(BiConsumer<Long, String> onReceiveCallback) {
+        mOnReceiveCallback = onReceiveCallback;
     }
 
-    private void manageEstablishedConnection(Socket socket) {
-        try (var reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-            while (mRunning.get()) {
-                var line = reader.readLine();
-                if (line != null) {
-                    try {
-                        // Should we really do json parsing here, or just send the string?
-                        // Would be cool to avoid the whole string thing here.
-                        var json = new JSONObject(line);
-                        mOnReceiveCallback.accept(json);
-                    } catch (RuntimeException e) {
-                        // TODO: Log when logger is in place.
-                    }
-                }
-            }
+    /**
+     * Starts the serversocket listening for incoming connections on the port. The
+     * SocketManager runs in its own thread. It crashes the entire application in
+     * the case where it cannot start the thread or establish the socket.
+     */
+    public void start() {
+        try {
+            mServerSocket = new ServerSocket(mListeningPort);
         } catch (IOException e) {
-
-            // TODO: Execute like if the user logged off.
+            Logger.log(Logger.Level.ERROR,
+                    String.format("Could not open ServerSocket in SocketManager, exception: %s, trace: %s",
+                            e.getClass().getName(), e.getStackTrace()));
         }
-
-        mSockets.values().remove(socket);
+        mRunning.set(true);
+        mThread = new Thread(() -> {
+            try {
+                run();
+            } catch (IOException e) {
+                Logger.log(Logger.Level.ERROR,
+                        String.format("Could not start SocketManagerThread, exception: %s, trace: %s",
+                                e.getClass().getName(), e.getStackTrace()));
+            }
+        });
+        mThread.start();
     }
 
-    public void assignIdToSocket(long unknownId, long id) {
-        Socket socket;
+    /**
+     * Stops the SocketManager, joining its thread. Crashes the application in case
+     * it cannot close the server socket, or join the thread.
+     */
+    public void stop() {
+
+        mRunning.set(false);
+        try {
+            mServerSocket.close();
+        } catch (Exception e) {
+            Logger.log(Logger.Level.ERROR,
+                    String.format("Could not close SocketManager socket, exception: %s, trace: %s",
+                            e.getClass().getName(), e.getStackTrace()));
+        }
+
+        // Need to close all sockets, as that will also stop any potential blocking
+        // readlines,
+        // so an ugly but working solution to stop blocking readlines is to close the
+        // sockets.
+        for (var s : mSockets.values()) {
+            try {
+                s.stop();
+            } catch (Exception e) {
+                Logger.log(Logger.Level.WARN, String.format("Exception Encountered when closing client sockets, %s, %s",
+                        e.getClass().getName(), e.getStackTrace()));
+            }
+        }
+
+        try {
+            mThread.join();
+        } catch (Exception e) {
+            Logger.log(Logger.Level.ERROR, "Could not join the SocketManager Thread");
+        }
+    }
+
+    /**
+     * Sends the specified message to the client indicated by the id.
+     *
+     * @param id      The ID of the socket to send the message through.
+     * @param message The string containing the message to send. Must not end with
+     *                \n
+     */
+    public void send(long id, String message) {
+        var socket = mSockets.get(id);
+        try {
+            socket.send(message);
+        } catch (Exception e) {
+            Logger.log(Logger.Level.WARN, String.format("Exception Encountered when sending message, %s, %s",
+                    e.getClass().getName(), e.getStackTrace()));
+        }
+    }
+
+    /**
+     * Updates the ID of the socket specified by oldId.
+     *
+     * @param oldId The current id of the socket to update.
+     * @param id    The desired id of the socket.
+     */
+    public void assignIdToSocket(long oldId, long id) {
+        Connection socket;
 
         // NOTE: This is not an "atomic" operation, we are doing 2 atomic operations !=
         // 1 atomic operation
@@ -144,30 +175,48 @@ public class SocketManager {
         // multi-threaded programs single threaded
         // which is a horrible concept, and also most likely leads to worse performance
         // than just working single threaded.
-        if ((socket = mSockets.remove(unknownId)) != null && !socket.isClosed()) {
+        if ((socket = mSockets.remove(oldId)) != null) {
             mSockets.put(id, socket);
         }
     }
 
-    public void shutdown() {
-        mRunning.set(false);
+    private void run() throws IOException {
+        try {
+            while (mRunning.get()) {
+                var socket = mServerSocket.accept();
 
-        // Need to close all sockets, as that will also stop any potential blocking readlines,
-        // so an ugly but working solution to stop blocking readlines is to close the sockets.
-        for (var s : mSockets.values()) {
-            try {
-                s.close();
-            } catch(Exception e) {
-                // TODO: Log this, get a logger in place
+                // Don't know the "user_id" of the client belonging to this socket connection
+                // yet,
+                // therefore we are temporarily marking it as unknown.
+                // once we get an "user_id" for it, we will update the key so it is a regular
+                // socket.
+                // and it can be used to send messages.
+                try {
+                    final var newSocketId = mUnknownId.decrementAndGet();
+                    var connection = new Connection(socket);
+                    connection.setOnReceiveCallback((value) -> {
+                        mOnReceiveCallback.accept(newSocketId, value);
+                    });
+
+                    connection.start();
+                    mSockets.put(newSocketId, connection);
+                } catch (Exception e) {
+                    Logger.log(Logger.Level.WARN,
+                            String.format("Exception encountered when creating new connection: %s, %s",
+                                    e.getClass().getName(), e.getStackTrace()));
+                }
+            }
+        } catch (SocketException e) {
+            if (mRunning.get()) {
+                Logger.log(Logger.Level.ERROR,
+                        String.format("SocketManager Socket closed unexpectedly, exception: %s, trace: %s",
+                                e.getClass().toString(), e.getStackTrace()));
+            }
+        } finally {
+            if (!mServerSocket.isClosed()) {
+                mServerSocket.close();
             }
         }
-
-        mThreadPool.shutdown();
-    }
-
-    // Need to also
-    public void send(JSONObject obj) {
-
     }
 
 }
