@@ -1,18 +1,23 @@
 package no.ntnu.imt3281.ludo.client;
 
+import javafx.application.Platform;
+
+import java.io.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ActionListener implements Runnable {
+public class ActionConsumer implements Runnable {
 
-    private final static Logger LOGGER = Logger.getLogger(ActionListener.class.getName());
+    private final static Logger LOGGER = Logger.getLogger(ActionConsumer.class.getName());
     private final ArrayBlockingQueue<Runnable> incommingActions = new ArrayBlockingQueue<Runnable>(100);
+    private PrintWriter mRequestWriter;
+    private MutationConsumer mMutationConsumer;
 
     @Override
     public void run() {
         LOGGER.setLevel(Level.ALL);
-        System.out.println("Hello from a ActionListener thread!");
+        System.out.println("Hello from a ActionConsumer thread!");
 
         boolean running = true;
         while(running) {
@@ -24,15 +29,28 @@ public class ActionListener implements Runnable {
                 Thread.currentThread().interrupt();
             }
         }
-        System.out.println("Byebye from a ActionListener thread!");
+        System.out.println("Byebye from a ActionConsumer thread!");
     }
 
-    void dispatch(Runnable action) throws InterruptedException {
-        this.incommingActions.put(action);
+    void bind(MutationConsumer mutationConsumer, OutputStream requestStream) {
+        mMutationConsumer = mutationConsumer;
+        mRequestWriter = new PrintWriter(requestStream);
+    }
+
+    public void dispatch(Runnable action) {
+        try {
+            this.incommingActions.put(action);
+            System.out.println("Action incomming");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            Platform.exit();
+        }
     }
     
-    void Login(String username, String password) {
-        
+    public void login(String username, String password) {
+        mRequestWriter.println(username + password);
+        mRequestWriter.flush();
+        mMutationConsumer.commit(() -> mMutationConsumer.loginPending());
     }
 
     void Logout() {

@@ -1,45 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import java.lang.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.ButtonBar?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.LudoController">
+<AnchorPane xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.LudoController">
    <children>
       <BorderPane prefHeight="800.0" prefWidth="1400.0">
          <top>
             <MenuBar BorderPane.alignment="CENTER">
               <menus>
-                <Menu mnemonicParsing="false" text="File">
-                  <items>
-                        <MenuItem mnemonicParsing="false" text="Connect" />
-                    <MenuItem mnemonicParsing="false" text="Close" />
-                  </items>
-                </Menu>
                 <Menu mnemonicParsing="false" text="Game">
                   <items>
-                    <MenuItem fx:id="random" mnemonicParsing="false" onAction="#joinRandomGame" text="Random game" />
-                        <MenuItem mnemonicParsing="false" text="Challenge players" />
+                    <MenuItem fx:id="random" mnemonicParsing="false" onAction="#onRandomGame" text="Random game" />
+                        <MenuItem mnemonicParsing="false" onAction="#onChallangePlayers" text="Challenge players" />
                   </items>
                 </Menu>
                   <Menu mnemonicParsing="false" text="Chat">
                     <items>
-                      <MenuItem mnemonicParsing="false" text="Join room" />
-                        <MenuItem mnemonicParsing="false" text="List rooms" />
+                      <MenuItem mnemonicParsing="false" onAction="#onChatInviteList" text="Invite List" />
+                        <MenuItem mnemonicParsing="false" onAction="#onRoomList" text="Room List" />
                     </items>
                   </Menu>
-                <Menu mnemonicParsing="false" text="Help">
-                  <items>
-                    <MenuItem mnemonicParsing="false" text="About" />
-                  </items>
-                </Menu>
+                  <Menu mnemonicParsing="false" text="User">
+                     <items>
+                        <MenuItem mnemonicParsing="false" onAction="#onUserProfile" text="Profile" />
+                        <MenuItem mnemonicParsing="false" onAction="#onUserFriendList" text="Friend List" />
+                     </items>
+                  </Menu>
               </menus>
             </MenuBar>
          </top>
          <center>
             <TabPane fx:id="tabbedPane" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER" />
          </center>
+         <bottom>
+            <ButtonBar prefHeight="37.0" prefWidth="1400.0" BorderPane.alignment="CENTER" />
+         </bottom>
       </BorderPane>
    </children>
 </AnchorPane>

@@ -2,6 +2,7 @@ package no.ntnu.imt3281.ludo.gui;
 
 import java.io.IOException;
 import java.util.ResourceBundle;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -11,7 +12,18 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.AnchorPane;
 
+import no.ntnu.imt3281.ludo.client.*;
+
 public class LudoController {
+
+    private ActionConsumer mActionConsumer;
+
+    public void bind(ActionConsumer actionConsumer) {
+        mActionConsumer = actionConsumer;
+    }
+
+    @FXML
+    private ResourceBundle resources;
 
     @FXML
     private MenuItem random;
@@ -20,7 +32,38 @@ public class LudoController {
     private TabPane tabbedPane;
 
     @FXML
-    public void joinRandomGame(ActionEvent e) {  	
+    void onChallangePlayers(ActionEvent event) {
+
+    }
+
+    @FXML
+    void onChatInviteList(ActionEvent event) {
+
+    }
+
+    @FXML
+    void onRoomList(ActionEvent event) {
+
+    }
+
+    @FXML
+    void onUserFriendList(ActionEvent event) {
+
+    }
+
+    @FXML
+    void onUserProfile(ActionEvent event) {
+
+    }
+
+    @FXML
+    void initialize() {
+        assert random != null : "fx:id=\"random\" was not injected: check your FXML file 'Ludo.fxml'.";
+        assert tabbedPane != null : "fx:id=\"tabbedPane\" was not injected: check your FXML file 'Ludo.fxml'.";
+    }
+
+    @FXML
+    void onRandomGame(ActionEvent e) {
     	FXMLLoader loader = new FXMLLoader(getClass().getResource("GameBoard.fxml"));
     	loader.setResources(ResourceBundle.getBundle("no.ntnu.imt3281.I18N.i18n"));
 
@@ -39,4 +82,6 @@ public class LudoController {
 			e1.printStackTrace();
 		}
     }
+
+
 }

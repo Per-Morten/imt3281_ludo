@@ -1,21 +1,28 @@
 package no.ntnu.imt3281.ludo.client;
 
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.scene.layout.AnchorPane;
+import no.ntnu.imt3281.ludo.gui.LudoController;
+
+import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Logger;
+import javafx.stage.Stage;
 
-class MutationListener implements Runnable {
+class MutationConsumer implements Runnable {
 
     private final static Logger LOGGER = Logger.getLogger(ActionConsumer.class.getName());
     private final ArrayBlockingQueue<Runnable> incommingMutations = new ArrayBlockingQueue<Runnable>(100);
-
     private State mCurrentState;
+    private ActionConsumer mActionConsumer;
 
     @Override
     public void run() {
         // LOGGER.setLevel(Level.ALL);
-        System.out.println("Hello from a MutationListener thread!");
-
-        mCurrentState = new State();
+        System.out.println("Hello from a MutationConsumer thread!");
 
         boolean running = true;
         while(running) {
@@ -28,22 +35,42 @@ class MutationListener implements Runnable {
                 Thread.currentThread().interrupt();
             }
         }
-        System.out.println("Byebye from a MutationListener thread!");
+        System.out.println("Byebye from a MutationConsumer thread!");
     }
 
-    void commit(Runnable mutation) throws InterruptedException {
-        this.incommingMutations.put(mutation);
+    void commit(Runnable mutation) {
+        try {
+            this.incommingMutations.put(mutation);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            Platform.exit();
+        }
     }
-    
-    void LoginPending() {
+
+    void bind(ActionConsumer actionConsumer) {
+        mActionConsumer = actionConsumer;
+    }
+
+
+    /**
+     * Display network error, do nothing
+     */
+    public void networkError() {
+
+    }
+
+    /**
+     * Display logging in...
+     */
+    public void loginPending() {
+
+    }
+
+    public void loginSuccess() {
         
     }
 
-    void LoginSuccess() {
-        
-    }
-
-    void LoginError() {
+    public void loginError() {
         
     }
 
