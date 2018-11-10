@@ -14,6 +14,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javafx.concurrent.Task;
+import no.ntnu.imt3281.ludo.common.Logger;
+
 /**
  * Controls FXML Controllers
  */
@@ -23,7 +25,9 @@ public class MutationConsumer {
     private FXMLLoader mLoginFile;
     private FXMLLoader mLudoFile;
     private FXMLLoader mGameBoardFile;
-    private ExecutorService mExecutor = Executors.newCachedThreadPool();
+    private ExecutorService mAnimations = Executors.newCachedThreadPool();
+    private ExecutorService mCommitListener = Executors.newSingleThreadExecutor();
+
     /**
      * Setup initial state, then listen for mutations
      * @param primaryStage
@@ -56,7 +60,7 @@ public class MutationConsumer {
         LoginController loginController = mLoginFile.getController();
         loginController.bind(mActionConsumer);
 
-        mExecutor.execute(() -> {
+        mCommitListener.execute(() -> {
             boolean running = true;
             while (running) {
                 try {
@@ -103,13 +107,15 @@ public class MutationConsumer {
     }
 
     /**
-     * @mutation
      * Display logging in...
      */
     public void loginPending() {
+        this.startMutation("loginPending");
+
+        mAnimations.shutdownNow();
         LoginController loginController = mLoginFile.getController();
 
-        mExecutor.execute(() -> {
+        mAnimations.execute(() -> {
             boolean running = true;
             int i = 0;
             int step = 8;
@@ -131,6 +137,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void loginSuccess() {
+        this.startMutation("loginSuccess");
 
     }
 
@@ -138,7 +145,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void loginError() {
-
+        this.startMutation("");
     }
 
 
@@ -146,7 +153,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void LogoutPending() {
-
+        this.startMutation("");
     }
 
 
@@ -154,7 +161,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void LogoutSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -162,7 +169,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void LogoutError() {
-
+        this.startMutation("");
     }
 
 
@@ -170,7 +177,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetUserPending() {
-
+        this.startMutation("");
     }
 
 
@@ -178,7 +185,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetUserSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -186,7 +193,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetUserError() {
-
+        this.startMutation("");
     }
 
 
@@ -194,7 +201,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void CreateUserPending() {
-
+        this.startMutation("");
     }
 
 
@@ -202,7 +209,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void CreateUserSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -210,7 +217,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void CreateUserError() {
-
+        this.startMutation("");
     }
 
 
@@ -218,7 +225,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void UpdateUserPending() {
-
+        this.startMutation("");
     }
 
 
@@ -226,7 +233,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void UpdateUserSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -234,7 +241,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void UpdateUserError() {
-
+        this.startMutation("");
     }
 
 
@@ -242,7 +249,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void DeleteUserPending() {
-
+        this.startMutation("");
     }
 
 
@@ -250,7 +257,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void DeleteUserSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -258,7 +265,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void DeleteUserError() {
-
+        this.startMutation("");
     }
 
 
@@ -266,7 +273,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetFriendPending() {
-
+        this.startMutation("");
     }
 
 
@@ -274,7 +281,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetFriendSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -282,7 +289,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetFriendError() {
-
+        this.startMutation("");
     }
 
 
@@ -290,7 +297,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void FriendPending() {
-
+        this.startMutation("");
     }
 
 
@@ -298,7 +305,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void FriendSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -306,7 +313,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void FriendError() {
-
+        this.startMutation("");
     }
 
 
@@ -314,7 +321,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void UnfriendPending() {
-
+        this.startMutation("");
     }
 
 
@@ -322,7 +329,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void UnfriendSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -330,7 +337,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void UnfriendError() {
-
+        this.startMutation("");
     }
 
 
@@ -338,7 +345,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void JoinChatPending() {
-
+        this.startMutation("");
     }
 
 
@@ -346,7 +353,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void JoinChatSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -354,7 +361,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void JoinChatError() {
-
+        this.startMutation("");
     }
 
 
@@ -362,7 +369,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void LeaveChatPending() {
-
+        this.startMutation("");
     }
 
 
@@ -370,7 +377,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void LeaveChatSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -378,7 +385,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void LeaveChatError() {
-
+        this.startMutation("");
     }
 
 
@@ -386,7 +393,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetChatPending() {
-
+        this.startMutation("");
     }
 
 
@@ -394,7 +401,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetChatSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -402,7 +409,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetChatError() {
-
+        this.startMutation("");
     }
 
 
@@ -410,7 +417,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void CreateChatPending() {
-
+        this.startMutation("");
     }
 
 
@@ -418,7 +425,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void CreateChatSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -426,7 +433,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void CreateChatError() {
-
+        this.startMutation("");
     }
 
 
@@ -434,7 +441,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendChatMessagePending() {
-
+        this.startMutation("");
     }
 
 
@@ -442,7 +449,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendChatMessageSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -450,7 +457,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendChatMessageError() {
-
+        this.startMutation("");
     }
 
 
@@ -458,7 +465,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendChatInvitePending() {
-
+        this.startMutation("");
     }
 
 
@@ -466,7 +473,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendChatInviteSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -474,7 +481,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendChatInviteError() {
-
+        this.startMutation("");
     }
 
 
@@ -482,7 +489,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void CreateGamePending() {
-
+        this.startMutation("");
     }
 
 
@@ -490,7 +497,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void CreateGameSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -498,7 +505,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void CreateGameError() {
-
+        this.startMutation("");
     }
 
 
@@ -506,7 +513,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void JoinGamePending() {
-
+        this.startMutation("");
     }
 
 
@@ -514,7 +521,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void JoinGameSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -522,7 +529,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void JoinGameError() {
-
+        this.startMutation("");
     }
 
 
@@ -530,7 +537,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void LeaveGamePending() {
-
+        this.startMutation("");
     }
 
 
@@ -538,7 +545,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void LeaveGameSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -546,7 +553,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void LeaveGameError() {
-
+        this.startMutation("");
     }
 
 
@@ -554,7 +561,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendGameInvitePending() {
-
+        this.startMutation("");
     }
 
 
@@ -562,7 +569,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendGameInviteSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -570,7 +577,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendGameInviteError() {
-
+        this.startMutation("");
     }
 
 
@@ -578,7 +585,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void DeclineGameInvitePending() {
-
+        this.startMutation("");
     }
 
 
@@ -586,7 +593,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void DeclineGameInviteSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -594,7 +601,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void DeclineGameInviteError() {
-
+        this.startMutation("");
     }
 
 
@@ -602,7 +609,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void StartGamePending() {
-
+        this.startMutation("");
     }
 
 
@@ -610,7 +617,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void StartGameSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -618,7 +625,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void StartGameError() {
-
+        this.startMutation("");
     }
 
 
@@ -626,7 +633,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetGameHeaderPending() {
-
+        this.startMutation("");
     }
 
 
@@ -634,7 +641,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetGameHeaderSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -642,7 +649,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetGameHeaderError() {
-
+        this.startMutation("");
     }
 
 
@@ -650,7 +657,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetGameStatePending() {
-
+        this.startMutation("");
     }
 
 
@@ -658,7 +665,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetGameStateSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -666,7 +673,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void GetGameStateError() {
-
+        this.startMutation("");
     }
 
 
@@ -674,7 +681,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendRollDicePending() {
-
+        this.startMutation("");
     }
 
 
@@ -682,7 +689,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendRollDiceSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -690,7 +697,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void SendRollDiceError() {
-
+        this.startMutation("");
     }
 
 
@@ -698,7 +705,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void MovePiecePending() {
-
+        this.startMutation("");
     }
 
 
@@ -706,7 +713,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void MovePieceSuccess() {
-
+        this.startMutation("");
     }
 
 
@@ -714,8 +721,17 @@ public class MutationConsumer {
      * @mutation
      */
     public void MovePieceError() {
-
+        this.startMutation("");
     }
 
+    /**
+     * Log action level info
+     *
+     * @param methodName name of callee
+     */
+    private void startMutation(String methodName) {
+        Logger.log(Logger.Level.INFO, "Action -> " + methodName);
+        mAnimations.shutdownNow();
+    }
 
 }
