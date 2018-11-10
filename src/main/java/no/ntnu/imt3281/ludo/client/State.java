@@ -16,10 +16,10 @@ import java.io.IOException;
 public class State {
      public String mToken = "";
 
-     private static final String filename = "state.json";
+     private static final String filename = "client-cache.json";
 
     /**
-     * Load state object from state.json
+     * Load state object from client-cache.json
      *
      * @return created state
      */
@@ -41,7 +41,7 @@ public class State {
     }
 
     /**
-     * Dump state object into a state.json file
+     * Dump state object into a client-cache.json file
      *
      * @param state
      */
