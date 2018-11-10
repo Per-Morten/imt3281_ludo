@@ -13,6 +13,7 @@ import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.MutationConsumer;
+import org.json.JSONObject;
 
 
 /**
@@ -31,7 +32,7 @@ public class Client extends Application {
     private final MutationConsumer mMutationConsumer = new MutationConsumer();
     private final MessageConsumer mMessageConsumer = new MessageConsumer();
     private SocketManager mSocketManager;
-
+    private State mState;
     /**
      * Client entry point
      * @param args command line arguments
@@ -52,7 +53,7 @@ public class Client extends Application {
         try {
             mSocketManager = new SocketManager(InetAddress.getByName(mAddress), mPort);
         } catch (UnknownHostException e) {
-            Logger.log(Level.ERROR, "UnknownHostException on new SocketManager: " + e.toString());
+            Logger.log(Level.ERROR, "UnknownHostException on new SocketManager: " + e.getCause());
         }
 
         // Bind consumer dependencies
@@ -64,14 +65,15 @@ public class Client extends Application {
         try {
             mSocketManager.start();
         } catch (IOException e) {
-            Logger.log(Level.ERROR, "IOException on SocketMAnager.start()): " + e.toString());
+            Logger.log(Level.ERROR, "IOException on SocketMAnager.start()): " + e.getCause());
         }
 
         // Action consumer runs in its own thread
         mExecutorService.execute(mActionConsumer);
 
-        // Mutation consumer runs on the FXML thread
-        mMutationConsumer.run(primaryStage);
+
+        mState = State.load();
+        mMutationConsumer.run(primaryStage, mState);
     }
 
     /**
@@ -80,10 +82,12 @@ public class Client extends Application {
     @Override
     public void stop() {
         mExecutorService.shutdownNow();
+
         try {
             mSocketManager.stop();
         } catch (InterruptedException e) {
             Logger.log(Level.ERROR, "InterruptedException when trying to stop mSocketManager: " + e.toString());
         }
+        State.dump(mState);
     }
 }

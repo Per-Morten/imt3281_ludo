@@ -13,7 +13,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javafx.concurrent.Task;
+import no.ntnu.imt3281.ludo.client.State;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 
@@ -28,12 +28,13 @@ public class MutationConsumer {
     private FXMLLoader mLudoFile;
     private FXMLLoader mGameBoardFile;
     private ExecutorService mCommitListener = Executors.newSingleThreadExecutor();
-
+    private State mState;
     /**
      * Setup initial state, then listen for mutations
      * @param primaryStage
      */
-    public void run(Stage primaryStage) {
+    public void run(Stage primaryStage, State state) {
+        mState = state;
 
         mLoginFile = new FXMLLoader(getClass().getResource("../gui/Login.fxml"));
         mLudoFile = new FXMLLoader(getClass().getResource("../gui/Ludo.fxml"));
@@ -42,7 +43,6 @@ public class MutationConsumer {
         // Handle close window
         primaryStage.setOnCloseRequest((WindowEvent e) -> {
             Platform.exit();
-            // TODO LOG ERROR
         });
 
         // Set initial scene root
@@ -50,9 +50,7 @@ public class MutationConsumer {
         try {
             loginPane = mLoginFile.load();
         } catch (IOException e) {
-            e.printStackTrace();
-            Platform.exit();
-            // TODO LOG ERROR
+            Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.getCause());
         }
         var root = new Scene(loginPane);
         primaryStage.setScene(root);
