@@ -11,10 +11,10 @@ public class MessageConsumer {
 
     void bind(MutationConsumer mutationConsumer, SocketManager socketManager) {
         mMutationConsumer = mutationConsumer;
-        socketManager.setOnReceiveCallback(message -> this.consume(message));
+        socketManager.setOnReceiveCallback(this::feed);
     }
 
-    private void consume(String message) {
+    private void feed(String message) {
         Logger.log(Logger.Level.DEBUG, message);
     }
 }

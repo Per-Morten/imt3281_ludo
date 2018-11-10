@@ -11,10 +11,9 @@ import no.ntnu.imt3281.ludo.gui.MutationConsumer;
 public class ActionConsumer implements Runnable {
 
     private final ArrayBlockingQueue<Action> mIncommingActions = new ArrayBlockingQueue<Action>(100);
-    private PrintWriter mRequestWriter;
     private MutationConsumer mMutationConsumer;
     private SocketManager mSocketManager;
-
+    private int mAutoincrementer = 0;
     /**
      * Thread entry point
      */
@@ -39,7 +38,7 @@ public class ActionConsumer implements Runnable {
      *
      * @param action action to consume
      * */
-    public void dispatch(Action action) {
+    public void feed(Action action) {
         try {
             this.mIncommingActions.put(action);
         } catch (InterruptedException e) {
@@ -56,7 +55,19 @@ public class ActionConsumer implements Runnable {
     public void login(String username, String password) {
         this.startAction("login");
         this.send(username + password);
-        this.commit(MutationConsumer::loginPending);
+        mMutationConsumer.feed(MutationConsumer::loginPending);
+    }
+
+    /**
+     * login user with username and password
+     *
+     * @param username existing username
+     * @param password existing password
+     */
+    public void createUser(String username, String password) {
+        this.startAction("createUser");
+        this.send(username + password);
+        mMutationConsumer.feed(MutationConsumer::createUserPending);
     }
 
 
@@ -72,13 +83,6 @@ public class ActionConsumer implements Runnable {
      */
     public void getUser() {
         this.startAction("getUser");
-    }
-
-    /**
-     *
-     */
-    public void createUser() {
-        this.startAction("createUser");
     }
 
     /**
@@ -258,14 +262,6 @@ public class ActionConsumer implements Runnable {
         Logger.log(Level.INFO, "Action -> " + methodName);
     }
 
-    /**
-     * Commit mutation to mutation consumer
-     *
-     * @param mutation mutation to commit
-     */
-    private void commit(Mutation mutation) {
-        mMutationConsumer.commit(mutation);
-    }
 
     /**
      * Send message to socket

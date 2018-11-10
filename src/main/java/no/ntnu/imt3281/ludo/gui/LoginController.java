@@ -22,13 +22,23 @@ public class LoginController {
     Button mButtonLogin;
 
     @FXML
+    Button mButtonRegister;
+
+    @FXML
     Rectangle mRectangle;
 
     @FXML
     void onClickLogin(ActionEvent event) {
         var username = mInputUsername.getText();
         var password = mInputPassword.getText();
-        mActionConsumer.dispatch(a -> a.login(username, password));
+        mActionConsumer.feed(action -> action.login(username, password));
+    }
+
+    @FXML
+    void onClickRegister(ActionEvent event) {
+        var username = mInputUsername.getText();
+        var password = mInputPassword.getText();
+        mActionConsumer.feed(action -> action.createUser(username, password));
     }
 
     @FXML

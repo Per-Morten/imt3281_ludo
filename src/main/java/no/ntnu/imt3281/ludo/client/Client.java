@@ -13,7 +13,6 @@ import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.MutationConsumer;
-import org.json.JSONObject;
 
 
 /**
@@ -59,7 +58,7 @@ public class Client extends Application {
         // Bind consumer dependencies
         mActionConsumer.bind(mMutationConsumer, mSocketManager);
         mMessageConsumer.bind(mMutationConsumer, mSocketManager);
-        mMutationConsumer.bind(mActionConsumer);
+        mMutationConsumer.bind(primaryStage, mActionConsumer);
 
         // Start socket
         try {
@@ -73,7 +72,7 @@ public class Client extends Application {
 
 
         mState = State.load();
-        mMutationConsumer.run(primaryStage, mState);
+        mMutationConsumer.run(mState);
     }
 
     /**

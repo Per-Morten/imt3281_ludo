@@ -4,6 +4,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import no.ntnu.imt3281.ludo.client.ActionConsumer;
@@ -28,20 +29,44 @@ public class MutationConsumer {
     private FXMLLoader mLudoFile;
     private FXMLLoader mGameBoardFile;
     private ExecutorService mCommitListener = Executors.newSingleThreadExecutor();
-    private State mState;
+    private State mIntermediateState;
+    private State mCommitedState;
+    private Stage mPrimaryStage;
+
+    /**
+     * Make a synchronized copy of the current state
+     *
+     * @return current state
+     */
+    public synchronized State getCurrentState() {
+        return mCommitedState;
+    }
+
+
+    /**
+     * Bind dependencies
+     * @param actionConsumer
+     */
+    public void bind(Stage primaryStage, ActionConsumer actionConsumer) {
+        mPrimaryStage = primaryStage;
+        mActionConsumer = actionConsumer;
+    }
+
     /**
      * Setup initial state, then listen for mutations
-     * @param primaryStage
+     *
+     * @param initialState
      */
-    public void run(Stage primaryStage, State state) {
-        mState = state;
+    public void run(State initialState) {
+        mCommitedState = initialState;
+        mIntermediateState = initialState;
 
         mLoginFile = new FXMLLoader(getClass().getResource("../gui/Login.fxml"));
         mLudoFile = new FXMLLoader(getClass().getResource("../gui/Ludo.fxml"));
         mGameBoardFile = new FXMLLoader(getClass().getResource("../gui/GameBoard.fxml"));
 
         // Handle close window
-        primaryStage.setOnCloseRequest((WindowEvent e) -> {
+        mPrimaryStage.setOnCloseRequest((WindowEvent e) -> {
             Platform.exit();
         });
 
@@ -53,51 +78,26 @@ public class MutationConsumer {
             Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.getCause());
         }
         var root = new Scene(loginPane);
-        primaryStage.setScene(root);
-        primaryStage.show();
+        mPrimaryStage.setScene(root);
+        mPrimaryStage.show();
 
         LoginController loginController = mLoginFile.getController();
         loginController.bind(mActionConsumer);
 
-        mCommitListener.execute(() -> {
-            boolean running = true;
-            while (running) {
-                try {
-                    Mutation mutation = mIncommingMutations.take();
-                    mutation.run(MutationConsumer.this);
-                } catch (InterruptedException e) {
-                    running = false;
-                    Logger.log(Level.ERROR, "InterruptedException when commiting mutation to MutationConsumer: " + e.getCause());
-                }
-            }
-        });
+        this.runConsumeMutations();
     }
 
     /**
-     * Commit new mutations to GUI
-     * @param mutation
+     * Feed new mutations to consumer
+     *
+     * @param mutation to be executed
      */
-    public void commit(Mutation mutation) {
+    public void feed(Mutation mutation) {
         try {
             mIncommingMutations.put(mutation);
         } catch (InterruptedException e) {
+            Logger.log(Level.INFO, "Commit interrupted");
         }
-    }
-
-    /**
-     * Bind dependencies
-     * @param actionConsumer
-     */
-    public void bind(ActionConsumer actionConsumer) {
-        mActionConsumer = actionConsumer;
-    }
-
-    /**
-     * Mutation
-     * Display network error, do nothing
-     */
-    public void networkError() {
-
     }
 
     /**
@@ -105,13 +105,14 @@ public class MutationConsumer {
      */
     public void loginPending() {
         this.startMutation("loginPending");
+
+        this.toastPending("Logging in..."); // TODO i18n
         LoginController loginController = mLoginFile.getController();
 
         for (int i = 0; i < 360; ++i) {
             int time = i;
+            Platform.runLater(() -> loginController.mRectangle.setRotate(time));
             try {
-                Platform.runLater(() -> loginController.mRectangle.setRotate(time));
-
                 Thread.sleep(2);
             } catch (InterruptedException e) {
                 break;
@@ -120,28 +121,38 @@ public class MutationConsumer {
     }
 
     /**
-     * @mutation
+     * Log in user, display main windows
      */
     public void loginSuccess() {
         this.startMutation("loginSuccess");
 
+        /*
+            // Set initial scene root
+            AnchorPane ludoPane = new AnchorPane();
+            try {
+                ludoPane = mLudoFile.load();
+            } catch (IOException e) {
+                Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.getCause());
+            }
+            var root = new Scene(ludoPane);
+            mPrimaryStage.setScene(root);
+            mPrimaryStage.show();
+           */
     }
 
     /**
-     * @mutation
+     * Register user
      */
-    public void loginError() {
-        this.startMutation("loginError");
+    public void createUserPending() {
+        this.startMutation("createUserPending");
+
     }
 
-
     /**
-     * @mutation
      */
-    public void LogoutPending() {
+    public void CreateUserSuccess() {
         this.startMutation("");
     }
-
 
     /**
      * @mutation
@@ -150,21 +161,6 @@ public class MutationConsumer {
         this.startMutation("");
     }
 
-
-    /**
-     * @mutation
-     */
-    public void LogoutError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void GetUserPending() {
-        this.startMutation("");
-    }
 
 
     /**
@@ -178,65 +174,10 @@ public class MutationConsumer {
     /**
      * @mutation
      */
-    public void GetUserError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void CreateUserPending() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void CreateUserSuccess() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void CreateUserError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void UpdateUserPending() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
     public void UpdateUserSuccess() {
         this.startMutation("");
     }
 
-
-    /**
-     * @mutation
-     */
-    public void UpdateUserError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void DeleteUserPending() {
-        this.startMutation("");
-    }
 
 
     /**
@@ -247,42 +188,11 @@ public class MutationConsumer {
     }
 
 
-    /**
-     * @mutation
-     */
-    public void DeleteUserError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void GetFriendPending() {
-        this.startMutation("");
-    }
-
 
     /**
      * @mutation
      */
     public void GetFriendSuccess() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void GetFriendError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void FriendPending() {
         this.startMutation("");
     }
 
@@ -298,41 +208,10 @@ public class MutationConsumer {
     /**
      * @mutation
      */
-    public void FriendError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void UnfriendPending() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
     public void UnfriendSuccess() {
         this.startMutation("");
     }
 
-
-    /**
-     * @mutation
-     */
-    public void UnfriendError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void JoinChatPending() {
-        this.startMutation("");
-    }
 
 
     /**
@@ -346,41 +225,10 @@ public class MutationConsumer {
     /**
      * @mutation
      */
-    public void JoinChatError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void LeaveChatPending() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
     public void LeaveChatSuccess() {
         this.startMutation("");
     }
 
-
-    /**
-     * @mutation
-     */
-    public void LeaveChatError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void GetChatPending() {
-        this.startMutation("");
-    }
 
 
     /**
@@ -391,21 +239,6 @@ public class MutationConsumer {
     }
 
 
-    /**
-     * @mutation
-     */
-    public void GetChatError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void CreateChatPending() {
-        this.startMutation("");
-    }
-
 
     /**
      * @mutation
@@ -414,21 +247,6 @@ public class MutationConsumer {
         this.startMutation("");
     }
 
-
-    /**
-     * @mutation
-     */
-    public void CreateChatError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void SendChatMessagePending() {
-        this.startMutation("");
-    }
 
 
     /**
@@ -439,21 +257,6 @@ public class MutationConsumer {
     }
 
 
-    /**
-     * @mutation
-     */
-    public void SendChatMessageError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void SendChatInvitePending() {
-        this.startMutation("");
-    }
-
 
     /**
      * @mutation
@@ -462,21 +265,6 @@ public class MutationConsumer {
         this.startMutation("");
     }
 
-
-    /**
-     * @mutation
-     */
-    public void SendChatInviteError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void CreateGamePending() {
-        this.startMutation("");
-    }
 
 
     /**
@@ -487,42 +275,13 @@ public class MutationConsumer {
     }
 
 
-    /**
-     * @mutation
-     */
-    public void CreateGameError() {
-        this.startMutation("");
-    }
 
-
-    /**
-     * @mutation
-     */
-    public void JoinGamePending() {
-        this.startMutation("");
-    }
 
 
     /**
      * @mutation
      */
     public void JoinGameSuccess() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void JoinGameError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void LeaveGamePending() {
         this.startMutation("");
     }
 
@@ -538,39 +297,7 @@ public class MutationConsumer {
     /**
      * @mutation
      */
-    public void LeaveGameError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void SendGameInvitePending() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
     public void SendGameInviteSuccess() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void SendGameInviteError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void DeclineGameInvitePending() {
         this.startMutation("");
     }
 
@@ -586,22 +313,6 @@ public class MutationConsumer {
     /**
      * @mutation
      */
-    public void DeclineGameInviteError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void StartGamePending() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
     public void StartGameSuccess() {
         this.startMutation("");
     }
@@ -610,39 +321,7 @@ public class MutationConsumer {
     /**
      * @mutation
      */
-    public void StartGameError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void GetGameHeaderPending() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void GetGameHeaderSuccess() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void GetGameHeaderError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void GetGameStatePending() {
+    public void GetGameSuccess() {
         this.startMutation("");
     }
 
@@ -658,22 +337,6 @@ public class MutationConsumer {
     /**
      * @mutation
      */
-    public void GetGameStateError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void SendRollDicePending() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
     public void SendRollDiceSuccess() {
         this.startMutation("");
     }
@@ -682,31 +345,7 @@ public class MutationConsumer {
     /**
      * @mutation
      */
-    public void SendRollDiceError() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void MovePiecePending() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
     public void MovePieceSuccess() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void MovePieceError() {
         this.startMutation("");
     }
 
@@ -719,4 +358,44 @@ public class MutationConsumer {
         Logger.log(Logger.Level.INFO, "Mutation -> " + methodName);
     }
 
+
+    /**
+     * Display pending toast
+     *
+     * @param message info
+     */
+    private void toastPending(String message) {
+        int toastMsgTime = 1500;
+        int fadeInTime = 100;
+        int fadeOutTime= 100;
+        Toast.makeText(mPrimaryStage, message, toastMsgTime, fadeInTime, fadeOutTime, Color.color((float)0x62/0xff, (float)0x00/0xff, (float)0xEE/0xff));
+    }
+
+    /**
+     * Display pending toast
+     *
+     * @param message info
+     */
+    private void toastError(String message) {
+        int toastMsgTime = 1500;
+        int fadeInTime = 100;
+        int fadeOutTime= 100;
+        Toast.makeText(mPrimaryStage, message, toastMsgTime, fadeInTime, fadeOutTime, Color.color((float)0xB0 / 0xff, (float)0x00/0xff, (float)0x20/0xff));
+    }
+
+    private void runConsumeMutations() {
+        mCommitListener.execute(() -> {
+            boolean running = true;
+            while (running) {
+                try {
+                    Mutation mutation = mIncommingMutations.take();
+                    mutation.run(MutationConsumer.this);
+                    mCommitedState = State.deepCopy(mIntermediateState);
+                } catch (InterruptedException e) {
+                    running = false;
+                    Logger.log(Level.ERROR, "InterruptedException when commiting mutation to MutationConsumer: " + e.getCause());
+                }
+            }
+        });
+    }
 }

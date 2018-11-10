@@ -14,9 +14,21 @@ import java.io.IOException;
  * Holds all state of client
  */
 public class State {
-     public String mToken = "";
+     public String token = "";
 
      private static final String filename = "client-cache.json";
+
+    /**
+     * Deep copy of state
+     *
+     * @param state to be copied
+     * @return copy
+     */
+     public static State deepCopy(State state) {
+         var copy = new State();
+         copy.token = state.token;
+         return copy;
+     }
 
     /**
      * Load state object from client-cache.json
@@ -30,12 +42,13 @@ public class State {
 
         try (var reader = new FileReader(State.filename)) {
             json = new JSONObject(reader.read());
-            state.mToken = json.get("token").toString();
+
+            state.token = json.getString("token");
 
         } catch (IOException e) {
             Logger.log(Logger.Level.INFO, "Failed to load" + State.filename);
         } catch (JSONException e) {
-            Logger.log(Logger.Level.INFO, "Missing token not found in" + State.filename);
+            Logger.log(Logger.Level.INFO, "Missing token in" + State.filename);
         }
         return state;
     }
@@ -48,14 +61,12 @@ public class State {
     static void dump(State state) {
 
         var json = new JSONObject();
-        json.put("token", state.mToken);
+        json.put("token", state.token);
 
         try(var writer = new FileWriter(State.filename)) {
             writer.write(json.toString());
-        }catch (IOException e) {
+        } catch (IOException e) {
             Logger.log(Logger.Level.INFO, "Failed to write to "  + State.filename);
         }
     }
-
-
 }
