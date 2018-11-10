@@ -2,14 +2,16 @@ package no.ntnu.imt3281.ludo.client;
 
 
 import java.io.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
-import java.net.Socket;
-import javax.net.SocketFactory;
 
+import no.ntnu.imt3281.ludo.common.Logger;
+import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.MutationConsumer;
 
 
@@ -24,53 +26,62 @@ public class Client extends Application {
 
     private final String mAddress = "localhost";
     private final int mPort = 9010;
-    private Socket mSocket;
-    private OutputStream mRequestOutputStream;
-    private InputStream mResponseInputStream;
-    private ExecutorService mLongRunningConsumers = Executors.newFixedThreadPool(3);
+    private ExecutorService mExecutorService = Executors.newFixedThreadPool(1);
     private final ActionConsumer mActionConsumer = new ActionConsumer();
     private final MutationConsumer mMutationConsumer = new MutationConsumer();
-    private final ResponseConsumer mResponseConsumer = new ResponseConsumer();
+    private final MessageConsumer mMessageConsumer = new MessageConsumer();
+    private SocketManager mSocketManager;
 
     /**
      * Client entry point
      * @param args command line arguments
      */
     public static void main(String[] args) {
+        Logger.setLogLevel(Level.DEBUG);
         launch(args);
     }
 
     /**
      * FXML entry point
      * @param primaryStage fxml window context
-     * @throws Exception
      */
     @Override
-    public void start(Stage primaryStage) throws Exception {
+    public void start(Stage primaryStage)  {
 
         // Set up Socket
-        mSocket = SocketFactory.getDefault().createSocket(mAddress, mPort);
-        mRequestOutputStream = mSocket.getOutputStream();
-        mResponseInputStream = mSocket.getInputStream();
+        try {
+            mSocketManager = new SocketManager(InetAddress.getByName(mAddress), mPort);
+        } catch (UnknownHostException e) {
+            Logger.log(Level.ERROR, "UnknownHostException on new SocketManager: " + e.toString());
+        }
+        try {
+            mSocketManager.start();
+        } catch (IOException e) {
+            Logger.log(Level.ERROR, "IOException on SocketMAnager.start()): " + e.toString());
+        }
 
         // Bind consumer dependencies
-        mActionConsumer.bind(mMutationConsumer, mRequestOutputStream);
-        mResponseConsumer.bind(mMutationConsumer, mResponseInputStream);
+        mActionConsumer.bind(mMutationConsumer, mSocketManager);
+        mMessageConsumer.bind(mMutationConsumer, mSocketManager);
         mMutationConsumer.bind(mActionConsumer);
 
-        // Run all consumers
-        mLongRunningConsumers.execute(mActionConsumer);
-        mLongRunningConsumers.execute(mResponseConsumer);
+        // Action consumer runs in its own thread
+        mExecutorService.execute(mActionConsumer);
+
+        // Mutation consumer runs on the FXML thread
         mMutationConsumer.run(primaryStage);
     }
 
     /**
      * FXML exit point
-     * @throws IOException
      */
     @Override
-    public void stop() throws IOException {
-        mLongRunningConsumers.shutdownNow();
-        mSocket.close();
+    public void stop() {
+        mExecutorService.shutdownNow();
+        try {
+            mSocketManager.stop();
+        } catch (InterruptedException e) {
+            Logger.log(Level.ERROR, "InterruptedException when trying to stop mSocketManager: " + e.toString());
+        }
     }
 }

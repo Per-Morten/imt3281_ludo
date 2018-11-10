@@ -14,19 +14,23 @@ public class EchoServer {
 
     public static void main(String[] args) throws IOException {
 
-        try (ServerSocket serverSocket = new ServerSocket(9010);
-             Socket clientSocket = serverSocket.accept();
-             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));) {
-             System.out.println("Client connected on port " + 9010 +". Servicing requests.");
-             String inputLine;
-             while ((inputLine = in.readLine()) != null) {
-                 System.out.println("Received message: " + inputLine + " from " + clientSocket.toString());
-                 out.println(inputLine);
-             }
-        } catch (IOException e) {
-             System.out.println("Exception caught when trying to listen on port "
-                    + 9010 + " or listening for a connection");
+        boolean running = true;
+        while (running) {
+            try (ServerSocket serverSocket = new ServerSocket(9010);
+                 Socket clientSocket = serverSocket.accept();
+                 PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                 BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));) {
+                System.out.println("Client connected on port " + 9010 + ". Servicing requests.");
+                String inputLine;
+                while ((inputLine = in.readLine()) != null) {
+                    System.out.println("Received message: " + inputLine + " from " + clientSocket.toString());
+                    out.println(inputLine);
+                }
+            } catch (IOException e) {
+                System.out.println("Exception caught when trying to listen on port "
+                        + 9010 + " or listening for a connection");
+                running = false;
+            }
         }
     }
 }
