@@ -27,6 +27,7 @@ public class ActionConsumer implements Runnable {
             try {
                 this.consume();
             } catch (InterruptedException e) {
+                running = false;
                 Logger.log(Level.ERROR, "InterruptedException when consuming action: " + e.toString());
             }
         }

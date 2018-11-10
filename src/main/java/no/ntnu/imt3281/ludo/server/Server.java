@@ -31,15 +31,18 @@ public class Server {
                     System.out.println(String.format("Connected from %s on port %d", remote, remotePort));
                     bw.write(String.format("Hello %s on port %d, please say something!%n", remote, remotePort));
                     bw.flush(); // Remember to flush!
-                    String fromRemote = br.readLine(); // This is a blocking method, will not return until a line is
-                    // available.
-                    System.out.println(String.format("Remote said: %s", fromRemote));
-                    if (fromRemote.equals("STOP")) {
-                        stopping = true;
-                        System.out.println("Server is stopping");
+                    String fromRemote;
+
+                    while((fromRemote = br.readLine()) != null) {// This is a blocking method, will not return until a line is
+                        // available.
+                        System.out.println(String.format("Remote said: %s", fromRemote));
+                        if (fromRemote.equals("STOP")) {
+                            stopping = true;
+                            System.out.println("Server is stopping");
+                        }
+                        bw.write(String.format("'%s' right back at you.%n", fromRemote));
+                        bw.flush();
                     }
-                    bw.write(String.format("'%s' right back at you.%n", fromRemote));
-                    bw.flush();
                 } catch (IOException ioe) {
                     ioe.printStackTrace();
                 }

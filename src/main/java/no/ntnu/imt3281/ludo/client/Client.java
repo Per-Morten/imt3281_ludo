@@ -54,16 +54,18 @@ public class Client extends Application {
         } catch (UnknownHostException e) {
             Logger.log(Level.ERROR, "UnknownHostException on new SocketManager: " + e.toString());
         }
-        try {
-            mSocketManager.start();
-        } catch (IOException e) {
-            Logger.log(Level.ERROR, "IOException on SocketMAnager.start()): " + e.toString());
-        }
 
         // Bind consumer dependencies
         mActionConsumer.bind(mMutationConsumer, mSocketManager);
         mMessageConsumer.bind(mMutationConsumer, mSocketManager);
         mMutationConsumer.bind(mActionConsumer);
+
+        // Start socket
+        try {
+            mSocketManager.start();
+        } catch (IOException e) {
+            Logger.log(Level.ERROR, "IOException on SocketMAnager.start()): " + e.toString());
+        }
 
         // Action consumer runs in its own thread
         mExecutorService.execute(mActionConsumer);

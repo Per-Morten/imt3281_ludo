@@ -15,6 +15,8 @@ import java.util.concurrent.Executors;
 
 import javafx.concurrent.Task;
 import no.ntnu.imt3281.ludo.common.Logger;
+import no.ntnu.imt3281.ludo.common.Logger.Level;
+
 
 /**
  * Controls FXML Controllers
@@ -25,7 +27,6 @@ public class MutationConsumer {
     private FXMLLoader mLoginFile;
     private FXMLLoader mLudoFile;
     private FXMLLoader mGameBoardFile;
-    private ExecutorService mAnimations = Executors.newCachedThreadPool();
     private ExecutorService mCommitListener = Executors.newSingleThreadExecutor();
 
     /**
@@ -68,8 +69,7 @@ public class MutationConsumer {
                     mutation.run(MutationConsumer.this);
                 } catch (InterruptedException e) {
                     running = false;
-                    Platform.exit();
-                    // TODO LOG ERROR
+                    Logger.log(Level.ERROR, "InterruptedException when commiting mutation to MutationConsumer: " + e.getCause());
                 }
             }
         });
@@ -82,11 +82,7 @@ public class MutationConsumer {
     public void commit(Mutation mutation) {
         try {
             mIncommingMutations.put(mutation);
-            System.out.println("Mutation incomming");
-            // TODO LOG INFO
         } catch (InterruptedException e) {
-            Platform.exit();
-            // TODO LOG ERROR
         }
     }
 
@@ -111,26 +107,18 @@ public class MutationConsumer {
      */
     public void loginPending() {
         this.startMutation("loginPending");
-
-        mAnimations.shutdownNow();
         LoginController loginController = mLoginFile.getController();
 
-        mAnimations.execute(() -> {
-            boolean running = true;
-            int i = 0;
-            int step = 8;
-            while (running) {
-                int time = i;
-                try {
-                    Platform.runLater(() -> loginController.mRectangle.setRotate(time));
+        for (int i = 0; i < 360; ++i) {
+            int time = i;
+            try {
+                Platform.runLater(() -> loginController.mRectangle.setRotate(time));
 
-                    Thread.sleep(33);
-                } catch (InterruptedException e) {
-                    running = false;
-                }
-                i += step;
+                Thread.sleep(2);
+            } catch (InterruptedException e) {
+                break;
             }
-        });
+        }
     }
 
     /**
@@ -145,7 +133,7 @@ public class MutationConsumer {
      * @mutation
      */
     public void loginError() {
-        this.startMutation("");
+        this.startMutation("loginError");
     }
 
 
@@ -730,8 +718,7 @@ public class MutationConsumer {
      * @param methodName name of callee
      */
     private void startMutation(String methodName) {
-        Logger.log(Logger.Level.INFO, "Action -> " + methodName);
-        mAnimations.shutdownNow();
+        Logger.log(Logger.Level.INFO, "Mutation -> " + methodName);
     }
 
 }
