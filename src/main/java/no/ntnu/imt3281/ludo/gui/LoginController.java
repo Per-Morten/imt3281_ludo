@@ -4,35 +4,39 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.event.ActionEvent;
+import javafx.scene.shape.Rectangle;
+
 import no.ntnu.imt3281.ludo.client.ActionConsumer;
 
 public class LoginController {
 
-    private ActionConsumer mActionConsumer;
+    ActionConsumer mActionConsumer;
 
     @FXML
-    private TextField inputUsername;
+    TextField mInputUsername;
 
     @FXML
-    private TextField inputPassword;
+    TextField mInputPassword;
 
     @FXML
-    private Button buttonLogin;
+    Button mButtonLogin;
+
+    @FXML
+    Rectangle mRectangle;
 
     @FXML
     void onClickLogin(ActionEvent event) {
-
-        var username = inputUsername.getText();
-        var password = inputPassword.getText();
-        mActionConsumer.dispatch(() -> mActionConsumer.login(username, password));
+        var username = mInputUsername.getText();
+        var password = mInputPassword.getText();
+        mActionConsumer.dispatch(a -> a.login(username, password));
     }
 
     @FXML
     void initialize() {
-        assert inputUsername != null : "fx:id=\"inputUsername\" was not injected: check your FXML file 'Login.fxml'.";
-        assert inputPassword != null : "fx:id=\"inputPassword\" was not injected: check your FXML file 'Login.fxml'.";
-        assert buttonLogin != null : "fx:id=\"buttonLogin\" was not injected: check your FXML file 'Login.fxml'.";
-
+        assert mInputUsername != null : "fx:id=\"inputUsername\" was not injected: check your FXML file 'Login.fxml'.";
+        assert mInputPassword != null : "fx:id=\"inputPassword\" was not injected: check your FXML file 'Login.fxml'.";
+        assert mButtonLogin != null : "fx:id=\"buttonLogin\" was not injected: check your FXML file 'Login.fxml'.";
+        assert mRectangle != null : "fx:id=\"mTriangle\" was not injected: check your FXML file 'Login.fxml'.";
     }
 
     public void bind(ActionConsumer actionConsumer) {

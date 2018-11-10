@@ -4,53 +4,54 @@ import javafx.application.Platform;
 
 import java.io.*;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import no.ntnu.imt3281.ludo.gui.MutationConsumer;
 
 public class ActionConsumer implements Runnable {
 
-    private final static Logger LOGGER = Logger.getLogger(ActionConsumer.class.getName());
-    private final ArrayBlockingQueue<Runnable> incommingActions = new ArrayBlockingQueue<Runnable>(100);
+    private final ArrayBlockingQueue<Action> mIncommingActions = new ArrayBlockingQueue<Action>(100);
     private PrintWriter mRequestWriter;
     private MutationConsumer mMutationConsumer;
-
-    @Override
-    public void run() {
-        LOGGER.setLevel(Level.ALL);
-        System.out.println("Hello from a ActionConsumer thread!");
-
-        boolean running = true;
-        while(running) {
-            try {
-                Runnable action = this.incommingActions.take();
-                action.run();
-            } catch (InterruptedException ie) {
-                running = false;
-                Thread.currentThread().interrupt();
-            }
-        }
-        System.out.println("Byebye from a ActionConsumer thread!");
-    }
 
     void bind(MutationConsumer mutationConsumer, OutputStream requestStream) {
         mMutationConsumer = mutationConsumer;
         mRequestWriter = new PrintWriter(requestStream);
     }
 
-    public void dispatch(Runnable action) {
+    public void dispatch(Action action) {
         try {
-            this.incommingActions.put(action);
+            this.mIncommingActions.put(action);
             System.out.println("Action incomming");
+            // TODO LOG INFO
         } catch (InterruptedException e) {
             e.printStackTrace();
             Platform.exit();
+            // TODO LOG ERROR
         }
     }
-    
+
+    @Override
+    public void run() {
+        System.out.println("Hello from a ActionConsumer thread!");
+
+        boolean running = true;
+        while(running) {
+            try {
+                Action action = this.mIncommingActions.take();
+                action.run(this);
+            } catch (InterruptedException ie) {
+                running = false;
+                Thread.currentThread().interrupt();
+                // TODO LOG ERROR
+            }
+        }
+        System.out.println("Byebye from a ActionConsumer thread!");
+    }
+
     public void login(String username, String password) {
         mRequestWriter.println(username + password);
         mRequestWriter.flush();
-        mMutationConsumer.commit(() -> mMutationConsumer.loginPending());
+        mMutationConsumer.commit(MutationConsumer::loginPending);
     }
 
     void Logout() {
@@ -156,6 +157,5 @@ public class ActionConsumer implements Runnable {
     void logAction() {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
         var element = stackTraceElements[1];
-        LOGGER.info("Action : " + element.getMethodName());
     }
 }

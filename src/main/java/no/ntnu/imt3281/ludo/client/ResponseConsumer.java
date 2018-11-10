@@ -1,10 +1,11 @@
 package no.ntnu.imt3281.ludo.client;
 
 import javafx.application.Platform;
+import no.ntnu.imt3281.ludo.gui.MutationConsumer;
 
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.logging.Level;
+
+
 
 public class ResponseConsumer implements Runnable {
 
@@ -20,7 +21,8 @@ public class ResponseConsumer implements Runnable {
                 Thread.sleep(2000);
             } catch (InterruptedException ie) {
                 running = false;
-                Thread.currentThread().interrupt();
+                Platform.exit();
+                // TODO LOG ERROR
             }
         }
         System.out.println("Byebye from a ResponseConsumer thread!");

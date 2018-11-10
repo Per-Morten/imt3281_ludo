@@ -14,42 +14,42 @@ import javafx.scene.image.ImageView;
 public class GameBoardController {
 
     @FXML
-    private Label player1Name;
+    Label player1Name;
 
     @FXML
-    private ImageView player1Active;
+    ImageView player1Active;
 
     @FXML
-    private Label player2Name;
+    Label player2Name;
 
     @FXML
-    private ImageView player2Active;
+    ImageView player2Active;
 
     @FXML
-    private Label player3Name;
+    Label player3Name;
     
     @FXML
-    private ImageView player3Active;
+    ImageView player3Active;
 
     @FXML
-    private Label player4Name;
+    Label player4Name;
 
     @FXML
-    private ImageView player4Active;
+    ImageView player4Active;
     
     @FXML
-    private ImageView diceThrown;
+    ImageView diceThrown;
     
     @FXML
-    private Button throwTheDice;
+    Button throwTheDice;
 
     @FXML
-    private TextArea chatArea;
+    TextArea chatArea;
 
     @FXML
-    private TextField textToSay;
+    TextField textToSay;
 
     @FXML
-    private Button sendTextButton;
+    Button sendTextButton;
 
 }
