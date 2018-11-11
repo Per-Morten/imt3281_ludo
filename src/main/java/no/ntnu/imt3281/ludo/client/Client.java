@@ -26,7 +26,7 @@ public class Client extends Application {
 
     private final String mAddress = "localhost";
     private final int mPort = 9010;
-    private ExecutorService mExecutorService = Executors.newFixedThreadPool(1);
+    private ExecutorService mExecutorService = Executors.newFixedThreadPool(2);
     private final ActionConsumer mActionConsumer = new ActionConsumer();
     private final MutationConsumer mMutationConsumer = new MutationConsumer();
     private final MessageConsumer mMessageConsumer = new MessageConsumer();
@@ -55,10 +55,12 @@ public class Client extends Application {
             Logger.log(Level.ERROR, "UnknownHostException on new SocketManager: " + e.getCause());
         }
 
+        mState = State.load();
+
         // Bind consumer dependencies
         mActionConsumer.bind(mMutationConsumer, mSocketManager);
         mMessageConsumer.bind(mMutationConsumer, mSocketManager);
-        mMutationConsumer.bind(primaryStage, mActionConsumer);
+        mMutationConsumer.bind(primaryStage, mActionConsumer, mState);
 
         // Start socket
         try {
@@ -69,10 +71,7 @@ public class Client extends Application {
 
         // Action consumer runs in its own thread
         mExecutorService.execute(mActionConsumer);
-
-
-        mState = State.load();
-        mMutationConsumer.run(mState);
+        mExecutorService.execute(mMutationConsumer);
     }
 
     /**

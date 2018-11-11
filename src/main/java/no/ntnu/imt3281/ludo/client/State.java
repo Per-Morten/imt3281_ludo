@@ -1,7 +1,5 @@
 package no.ntnu.imt3281.ludo.client;
 
-import no.ntnu.imt3281.ludo.api.Request;
-import no.ntnu.imt3281.ludo.api.Response;
 import no.ntnu.imt3281.ludo.common.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;

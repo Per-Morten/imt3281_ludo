@@ -1,19 +1,23 @@
 package no.ntnu.imt3281.ludo.client;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import no.ntnu.imt3281.ludo.api.RequestFactory;
+import no.ntnu.imt3281.ludo.api.RequestType;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
-import no.ntnu.imt3281.ludo.gui.Mutation;
 import no.ntnu.imt3281.ludo.gui.MutationConsumer;
+import org.json.JSONObject;
 
 public class ActionConsumer implements Runnable {
 
     private final ArrayBlockingQueue<Action> mIncommingActions = new ArrayBlockingQueue<Action>(100);
+    private final RequestFactory mRequestFactory = new RequestFactory();
     private MutationConsumer mMutationConsumer;
     private SocketManager mSocketManager;
-    private int mAutoincrementer = 0;
+    private State mCurrentState = new State();
     /**
      * Thread entry point
      */
@@ -24,7 +28,9 @@ public class ActionConsumer implements Runnable {
         boolean running = true;
         while(running) {
             try {
-                this.consume();
+                Action action = this.mIncommingActions.take();
+                mCurrentState = mMutationConsumer.getCurrentState();
+                action.run(this);
             } catch (InterruptedException e) {
                 Logger.log(Level.INFO, "InterruptedException when consuming action: " + e.toString());
                 running = false;
@@ -34,7 +40,7 @@ public class ActionConsumer implements Runnable {
     }
 
     /**
-     * Dispatch action to the ActionConsumer thread
+     * Feed action from other thread
      *
      * @param action action to consume
      * */
@@ -49,26 +55,49 @@ public class ActionConsumer implements Runnable {
     /**
      * login user with username and password
      *
-     * @param username existing username
-     * @param password existing password
+     * @param email valid email
+     * @param password valid password
      */
-    public void login(String username, String password) {
+    public void login(String email, String password) {
         this.startAction("login");
-        this.send(username + password);
-        mMutationConsumer.feed(MutationConsumer::loginPending);
-        mMutationConsumer.feed(MutationConsumer::loginSuccess);
+
+        var payload = new ArrayList<JSONObject>();
+        {
+            var item = mRequestFactory.makeItem();
+            item.put("email", email);
+            item.put("password", password);
+            payload.add(item);
+        }
+
+        var request = mRequestFactory.makeRequest(RequestType.LoginRequest, this.token(), payload);
+        {
+            this.send(request.toString());
+        }
     }
 
     /**
      * login user with username and password
      *
-     * @param username existing username
-     * @param password existing password
+     * @param email valid email
+     * @param username valid username
+     * @param password valid password
      */
-    public void createUser(String username, String password) {
+    public void createUser(String email, String password, String username) {
         this.startAction("createUser");
-        this.send(username + password);
-        mMutationConsumer.feed(MutationConsumer::createUserPending);
+
+        var payload = new ArrayList<JSONObject>();
+        {
+            var item = mRequestFactory.makeItem();
+            item.put("email", email);
+            item.put("password", password);
+            item.put("username", username);
+            payload.add(item);
+        }
+
+        var request = mRequestFactory.makeRequest(RequestType.LoginRequest, this.token(), payload);
+        {
+            this.send(request.toString());
+        }
     }
 
 
@@ -246,16 +275,6 @@ public class ActionConsumer implements Runnable {
     }
 
     /**
-     * Consume first action in the incommingActions buffer
-     *
-     * @throws InterruptedException if incommingActions buffer is interrupted
-     */
-    private void consume() throws InterruptedException {
-        Action action = this.mIncommingActions.take();
-        action.run(this);
-    }
-
-    /**
      * Log action level info
      *
      * @param methodName name of callee
@@ -276,5 +295,11 @@ public class ActionConsumer implements Runnable {
         } catch (IOException e) {
             Logger.log(Level.ERROR, "IOException when trying to send message to socket:" +e.toString());
         }
+    }
+
+
+
+    private String token() {
+        return mCurrentState.token;
     }
 }

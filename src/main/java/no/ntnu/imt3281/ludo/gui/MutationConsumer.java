@@ -24,7 +24,7 @@ import no.ntnu.imt3281.ludo.common.Logger.Level;
 /**
  * Controls FXML Controllers
  */
-public class MutationConsumer {
+public class MutationConsumer implements Runnable {
     private final ArrayBlockingQueue<Mutation> mIncommingMutations = new ArrayBlockingQueue<Mutation>(100);
     private ActionConsumer mActionConsumer;
     private ExecutorService mCommitListener = Executors.newSingleThreadExecutor();
@@ -35,7 +35,7 @@ public class MutationConsumer {
     private HashMap<String, IGUIController> mControllers = new HashMap<>();
 
     /**
-     * Make a synchronized copy of the current state
+     * Make a synchronized copy of the current commited state
      *
      * @return current state
      */
@@ -48,19 +48,18 @@ public class MutationConsumer {
      * Bind dependencies
      * @param actionConsumer
      */
-    public void bind(Stage primaryStage, ActionConsumer actionConsumer) {
+    public void bind(Stage primaryStage, ActionConsumer actionConsumer, State initialState) {
         mPrimaryStage = primaryStage;
         mActionConsumer = actionConsumer;
+        mCommitedState = initialState;
+        mIntermediateState = initialState;
     }
 
     /**
-     * Setup initial state, then listen for mutations
-     *
-     * @param initialState2
+     * Implement the runnable interface
      */
-    public void run(State initialState) {
-        mCommitedState = initialState;
-        mIntermediateState = initialState;
+    @Override
+    public void run() {
 
         // Handle close window
         mPrimaryStage.setOnCloseRequest((WindowEvent e) -> {
@@ -70,15 +69,27 @@ public class MutationConsumer {
         // Set initial scene root
         AnchorPane loginPane = this.loadFXML("Login.fxml");
 
-        var root = new Scene(loginPane);
-        mPrimaryStage.setScene(root);
-        mPrimaryStage.show();
+        Platform.runLater(() -> {
+            var root = new Scene(loginPane);
+            mPrimaryStage.setScene(root);
+            mPrimaryStage.show();
+        });
 
-        this.runConsumeMutations();
+        boolean running = true;
+        while (running) {
+            try {
+                Mutation mutation = mIncommingMutations.take();
+                mutation.run(MutationConsumer.this);
+                mCommitedState = State.deepCopy(mIntermediateState);
+            } catch (InterruptedException e) {
+                running = false;
+                Logger.log(Level.ERROR, "InterruptedException when commiting mutation to MutationConsumer: " + e.getCause());
+            }
+        }
     }
 
     /**
-     * Feed new mutations to consumer
+     * Feed mutation to consumer from other threads
      *
      * @param mutation to be executed
      */
@@ -87,26 +98,6 @@ public class MutationConsumer {
             mIncommingMutations.put(mutation);
         } catch (InterruptedException e) {
             Logger.log(Level.INFO, "Commit interrupted");
-        }
-    }
-
-    /**
-     * Display logging in...
-     */
-    public void loginPending() {
-        this.startMutation("loginPending");
-
-        this.toastPending("Logging in..."); // TODO i18n
-        var loginController = (LoginController)mControllers.get("Login.fxml");
-
-        for (int i = 0; i < 360; ++i) {
-            int time = i;
-            Platform.runLater(() -> loginController.mRectangle.setRotate(time));
-            try {
-                Thread.sleep(2);
-            } catch (InterruptedException e) {
-                break;
-            }
         }
     }
 
@@ -145,13 +136,6 @@ public class MutationConsumer {
     public void logoutError() {
         this.startMutation("logoutError");
         this.toastError("Could not log out successfully. Try restarting the app");
-    }
-
-    /**
-     * Register user
-     */
-    public void createUserPending() {
-        this.startMutation("createUserPending");
     }
 
     /**
@@ -364,22 +348,6 @@ public class MutationConsumer {
         int fadeInTime = 100;
         int fadeOutTime= 100;
         Toast.makeText(mPrimaryStage, message, toastMsgTime, fadeInTime, fadeOutTime, Color.color((float)0xB0 / 0xff, (float)0x00/0xff, (float)0x20/0xff));
-    }
-
-    private void runConsumeMutations() {
-        mCommitListener.execute(() -> {
-            boolean running = true;
-            while (running) {
-                try {
-                    Mutation mutation = mIncommingMutations.take();
-                    mutation.run(MutationConsumer.this);
-                    mCommitedState = State.deepCopy(mIntermediateState);
-                } catch (InterruptedException e) {
-                    running = false;
-                    Logger.log(Level.ERROR, "InterruptedException when commiting mutation to MutationConsumer: " + e.getCause());
-                }
-            }
-        });
     }
 
     private AnchorPane loadFXML(String filename) {

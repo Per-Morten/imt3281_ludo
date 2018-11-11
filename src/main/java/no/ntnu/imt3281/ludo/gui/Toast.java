@@ -63,7 +63,6 @@ public final class Toast
                 }).start();
             });
             fadeInTimeline.play();
-
         });
     }
 }
