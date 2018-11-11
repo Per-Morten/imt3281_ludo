@@ -46,7 +46,7 @@ Any variables that is not the 'type', 'token' or inside the 'payload' are not co
 `payload[].id` indentifies a unique item within the payload
 `auth_token` an optional parameter. Used if the request requires authentication.
 
-```json
+```
 {
     "id": <id>,
     "type": <type>_request,
@@ -60,7 +60,7 @@ Any variables that is not the 'type', 'token' or inside the 'payload' are not co
 ```
 
 **Example**
-```json
+```
 {
     "id": 0,
     "type": "create_user_request",

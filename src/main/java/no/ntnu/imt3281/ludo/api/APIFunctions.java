@@ -3,7 +3,7 @@ package no.ntnu.imt3281.ludo.api;
 /**
  * Functions shared between enums
  */
-public class EnumFunction {
+public class APIFunctions {
 
     /**
      * Converts any enum's name to snake_case.
