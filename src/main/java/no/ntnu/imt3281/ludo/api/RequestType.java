@@ -22,7 +22,7 @@ public enum RequestType {
     SendGameInviteRequest,
     DeclineGameInviteRequest,
     StartGameRequest,
-    GetGameHeaderRequest,
+    GetGameRequest,
     GetGameStateRequest,
     SendRollDiceRequest,
     MovePieceRequest,

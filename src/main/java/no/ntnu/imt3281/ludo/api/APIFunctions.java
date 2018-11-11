@@ -1,8 +1,12 @@
 package no.ntnu.imt3281.ludo.api;
 
 import no.ntnu.imt3281.ludo.common.Logger;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Functions shared between enums
@@ -71,8 +75,22 @@ public class APIFunctions {
 
         res.id = json.getInt("id");
         res.type = APIFunctions.fromSnakeCase(json.getString("type"));
-        res.success = json.getJSONArray("success");
-        res.error= json.getJSONArray("error");
+
+        var successList = new ArrayList<JSONObject>();
+        JSONArray successArray = json.getJSONArray("success");
+        for (int i = 0; i < successArray.length(); ++i) {
+            JSONObject o = successArray.getJSONObject(i);
+            successList.add(o);
+        }
+        res.success = successList;
+
+        var errorList = new ArrayList<JSONObject>();
+        JSONArray errorArray = json.getJSONArray("success");
+        for (int i = 0; i < errorArray.length(); ++i) {
+            JSONObject o = errorArray.getJSONObject(i);
+            errorList.add(o);
+        }
+        res.error = errorList;
 
         return res;
     }

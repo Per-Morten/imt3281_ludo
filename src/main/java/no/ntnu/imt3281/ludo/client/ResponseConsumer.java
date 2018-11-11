@@ -46,88 +46,141 @@ public class ResponseConsumer {
         } catch (IllegalArgumentException e) {
             Logger.log(Level.WARN, "Response type is invalid" + e.toString());
             return;
+        } catch (ClassCastException e) {
+            Logger.log(Level.WARN, "Woot" + e.toString());
+            return;
         } catch (Exception e) {
-            Logger.log(Level.WARN, e.toString());
+            Logger.log(Level.WARN,  e.toString());
             return;
         }
 
 
         switch (response.type) {
             case LoginResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.loginSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Login error")));
+            } break;
 
-            }break;
             case LogoutResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.logoutSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Logout error")));
+            } break;
 
-            }break;
             case GetUserResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.getUserSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Get user error")));
+            } break;
 
-            }break;
             case CreateUserResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.createUserSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Create user error")));
+            } break;
 
-            }break;
             case UpdateUserResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.updateUserSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Update user error")));
+            } break;
 
-            }break;
             case DeleteUserResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.deleteUserSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Delete user error")));
+            } break;
 
-            }break;
             case GetFriendResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.getFriendSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Get friend error")));
+            } break;
 
-            }break;
             case FriendResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.friendSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Friend error")));
+            } break;
 
-            }break;
             case UnfriendResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.unfriendSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Unfriend error")));
+            } break;
 
-            }break;
             case JoinChatResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.joinChatSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Join chat error")));
+            } break;
 
-            }break;
             case LeaveChatResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.leaveChatSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Leave Chat error")));
+            } break;
 
-            }break;
             case GetChatResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.getChatSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Get Chat error")));
+            } break;
 
-            }break;
             case CreateChatResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.createChatSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Creat Chat error")));
+            } break;
 
-            }break;
             case SendChatMessageResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.sendChatMessageSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Send Chat Message error")));
+            } break;
 
-            }break;
             case SendChatInviteResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.sendChatInviteSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Send Chat Invite error")));
+            } break;
 
-            }break;
             case CreateGameResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.createGameSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Create Game error")));
+            } break;
 
-            }break;
             case JoinGameResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.joinGameSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Join Game error")));
+            } break;
 
-            }break;
             case LeaveGameResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.leaveGameSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Leave Game error")));
+            } break;
 
-            }break;
             case SendGameInviteResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.sendGameInviteSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Send Game Invite error")));
+            } break;
 
-            }break;
             case DeclineGameInviteResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.declineGameInviteSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Decline Game Invite error")));
+            } break;
 
-            }break;
             case StartGameResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.startGameSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Start Game error")));
+            } break;
 
-            }break;
-            case GetGameHeaderResponse: {
+            case GetGameResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.getGameSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Get Game error")));
+            } break;
 
-            }break;
             case GetGameStateResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.getGameStateSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Get Game State error")));
+            } break;
 
-            }break;
             case SendRollDiceResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.sendRollDiceSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Send Roll Dice error")));
+            } break;
 
-            }break;
             case MovePieceResponse: {
+                response.success.forEach(success -> mMutationConsumer.feed(m -> m.movePieceSuccess()));
+                response.error.forEach(error -> mMutationConsumer.feed(m -> m.error("Move Piece error")));
+            } break;
 
-            }break;
             default: {
                 Logger.log(Level.WARN, "Unknown type. Response not handled: " + message);
             }

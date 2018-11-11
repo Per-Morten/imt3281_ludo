@@ -104,6 +104,17 @@ public class MutationConsumer implements Runnable {
     }
 
     /**
+     * General error
+     *
+     * @param message error information
+     */
+    public void error(String message) {
+        this.startMutation("error");
+        this.toastError(message);
+    }
+
+
+    /**
      * Log in user, display main windows
      */
     public void loginSuccess() {
@@ -131,18 +142,18 @@ public class MutationConsumer implements Runnable {
         this.redirect(loginPane);
     }
 
-
     /**
-     * Logout failed display error
-     */
-    public void logoutError() {
-        this.startMutation("logoutError");
-        this.toastError("Could not log out successfully. Try restarting the app");
+     * Create user which can be used to log in.
+     **/
+    public void createUserSuccess() {
+        this.startMutation("createUserSuccess");
     }
 
+
     /**
+     * @mutation
      */
-    public void CreateUserSuccess() {
+    public void getUserSuccess() {
         this.startMutation("");
     }
 
@@ -150,15 +161,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void GetUserSuccess() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void UpdateUserSuccess() {
+    public void updateUserSuccess() {
         this.startMutation("");
     }
 
@@ -167,7 +170,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void DeleteUserSuccess() {
+    public void deleteUserSuccess() {
         this.startMutation("");
     }
 
@@ -176,7 +179,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void GetFriendSuccess() {
+    public void getFriendSuccess() {
         this.startMutation("");
     }
 
@@ -184,7 +187,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void FriendSuccess() {
+    public void friendSuccess() {
         this.startMutation("");
     }
 
@@ -192,24 +195,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void UnfriendSuccess() {
-        this.startMutation("");
-    }
-
-
-
-    /**
-     * @mutation
-     */
-    public void JoinChatSuccess() {
-        this.startMutation("");
-    }
-
-
-    /**
-     * @mutation
-     */
-    public void LeaveChatSuccess() {
+    public void unfriendSuccess() {
         this.startMutation("");
     }
 
@@ -218,7 +204,15 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void GetChatSuccess() {
+    public void joinChatSuccess() {
+        this.startMutation("");
+    }
+
+
+    /**
+     * @mutation
+     */
+    public void leaveChatSuccess() {
         this.startMutation("");
     }
 
@@ -227,7 +221,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void CreateChatSuccess() {
+    public void getChatSuccess() {
         this.startMutation("");
     }
 
@@ -236,7 +230,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void SendChatMessageSuccess() {
+    public void createChatSuccess() {
         this.startMutation("");
     }
 
@@ -245,7 +239,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void SendChatInviteSuccess() {
+    public void sendChatMessageSuccess() {
         this.startMutation("");
     }
 
@@ -254,7 +248,16 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void CreateGameSuccess() {
+    public void sendChatInviteSuccess() {
+        this.startMutation("");
+    }
+
+
+
+    /**
+     * @mutation
+     */
+    public void createGameSuccess() {
         this.startMutation("");
     }
 
@@ -265,7 +268,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void JoinGameSuccess() {
+    public void joinGameSuccess() {
         this.startMutation("");
     }
 
@@ -273,7 +276,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void LeaveGameSuccess() {
+    public void leaveGameSuccess() {
         this.startMutation("");
     }
 
@@ -281,7 +284,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void SendGameInviteSuccess() {
+    public void sendGameInviteSuccess() {
         this.startMutation("");
     }
 
@@ -289,7 +292,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void DeclineGameInviteSuccess() {
+    public void declineGameInviteSuccess() {
         this.startMutation("");
     }
 
@@ -297,7 +300,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void StartGameSuccess() {
+    public void startGameSuccess() {
         this.startMutation("");
     }
 
@@ -305,7 +308,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void GetGameSuccess() {
+    public void getGameSuccess() {
         this.startMutation("");
     }
 
@@ -313,7 +316,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void GetGameStateSuccess() {
+    public void getGameStateSuccess() {
         this.startMutation("");
     }
 
@@ -321,7 +324,7 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void SendRollDiceSuccess() {
+    public void sendRollDiceSuccess() {
         this.startMutation("");
     }
 
@@ -329,9 +332,10 @@ public class MutationConsumer implements Runnable {
     /**
      * @mutation
      */
-    public void MovePieceSuccess() {
+    public void movePieceSuccess() {
         this.startMutation("");
     }
+
 
     private void startMutation(String methodName) {
         Logger.log(Logger.Level.INFO, "Mutation -> " + methodName);

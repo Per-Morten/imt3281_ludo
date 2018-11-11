@@ -22,7 +22,7 @@ public enum ResponseType {
     SendGameInviteResponse,
     DeclineGameInviteResponse,
     StartGameResponse,
-    GetGameHeaderResponse,
+    GetGameResponse,
     GetGameStateResponse,
     SendRollDiceResponse,
     MovePieceResponse,

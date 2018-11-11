@@ -50,10 +50,19 @@ public class EchoServer {
                             res.put("id", req.getString("id"));
                             res.put("type", req.getString("type").replace("request", "response"));
 
+
+                            var successItem = new JSONObject();
+                            successItem.put("id", 0);
+
                             var success = new JSONArray();
-                            success.put(0, 1);
+                            success.put(0, successItem);
+
+                            var errorItem = new JSONObject();
+                            errorItem.put("id", 1);
+
                             var error = new JSONArray();
-                            error.put(0, 1);
+                            error.put(0, errorItem);
+
                             res.put("success", success);
                             res.put("error", error);
                             try {
