@@ -58,8 +58,10 @@ public class Client extends Application {
 
         // Bind consumer dependencies
         mActionConsumer.bind(mMutationConsumer, mResponseConsumer, mSocketManager);
-        mResponseConsumer.bind(mMutationConsumer, mSocketManager);
+        mResponseConsumer.bind(mMutationConsumer);
         mMutationConsumer.bind(primaryStage, mActionConsumer, mState);
+
+        mSocketManager.setOnReceiveCallback(message -> mResponseConsumer.feedMessage(message));
 
         // Start socket
         try {

@@ -1,11 +1,10 @@
 package no.ntnu.imt3281.ludo.client;
 
+import no.ntnu.imt3281.ludo.api.APIFunctions;
 import no.ntnu.imt3281.ludo.api.Response;
-import no.ntnu.imt3281.ludo.api.ResponseFactory;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.MutationConsumer;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -16,36 +15,42 @@ public class ResponseConsumer {
 
     private MutationConsumer mMutationConsumer;
     private final ArrayBlockingQueue<JSONObject> mIncommingRequests = new ArrayBlockingQueue<JSONObject>(1);
-    private final ResponseFactory mResponseFactory = new ResponseFactory();
 
-    void bind(MutationConsumer mutationConsumer, SocketManager socketManager) {
+    void bind(MutationConsumer mutationConsumer) {
         mMutationConsumer = mutationConsumer;
-        socketManager.setOnReceiveCallback(this::feedMessage);
     }
 
     public void feedRequest(JSONObject request) {
         try {
             mIncommingRequests.put(request);
         } catch (InterruptedException e) {
-            Logger.log(Logger.Level.INFO, "InterruptedException when feeding request");
+            Logger.log(Logger.Level.INFO, "InterruptedException when feeding request" + e.toString());
         }
     }
 
     public void feedMessage(String message) {
-        Logger.log(Level.DEBUG, message);
-
-        Response response = new Response();
-        try {
-            response = mResponseFactory.makeResponse(message);
-        } catch (JSONException e) {
-            Logger.log(Level.WARN, "JSONException Response not JSON: " );
-            return;
-        }
+        Logger.log(Level.INFO, "Got a response: " + message);
 
         JSONObject request = mIncommingRequests.poll();
         if (request == null) {
-            Logger.log(Level.ERROR, "No request found when processing response in ResponseConsumer");
+            Logger.log(Level.WARN, "No request found when processing response in ResponseConsumer");
+            return;
         }
+
+        var response = new Response();
+        try {
+            response = APIFunctions.makeResponse(message);
+        } catch (JSONException e) {
+            Logger.log(Level.WARN, "Exception when parsing JSON" + e.toString());
+            return;
+        } catch (IllegalArgumentException e) {
+            Logger.log(Level.WARN, "Response type is invalid" + e.toString());
+            return;
+        } catch (Exception e) {
+            Logger.log(Level.WARN, e.toString());
+            return;
+        }
+
 
         switch (response.type) {
             case LoginResponse: {

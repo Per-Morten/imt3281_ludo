@@ -74,7 +74,7 @@ public class ActionConsumer implements Runnable {
      * @param password valid password
      */
     public void login(String email, String password) {
-        this.startAction("login");
+        this.logAction("login");
 
         var payload = new ArrayList<JSONObject>();
         {
@@ -98,7 +98,7 @@ public class ActionConsumer implements Runnable {
      * @param password valid password
      */
     public void createUser(String email, String password, String username) {
-        this.startAction("createUser");
+        this.logAction("createUser");
 
         var payload = new ArrayList<JSONObject>();
         {
@@ -120,7 +120,7 @@ public class ActionConsumer implements Runnable {
      *
      */
     public void logout() {
-        this.startAction("logout");
+        this.logAction("logout");
         mMutationConsumer.feed(MutationConsumer::logoutSuccess);
     }
 
@@ -128,154 +128,154 @@ public class ActionConsumer implements Runnable {
      *
      */
     public void getUser() {
-        this.startAction("getUser");
+        this.logAction("getUser");
     }
 
     /**
      *
      */
     public void updateUser() {
-        this.startAction("updateUser");
+        this.logAction("updateUser");
     }
 
     /**
      *
      */
     public void deleteUser() {
-        this.startAction("deleteUser");
+        this.logAction("deleteUser");
     }
 
     /**
      *
      */
     public void getFriend() {
-        this.startAction("getFriend");
+        this.logAction("getFriend");
     }
 
     /**
      *
      */
     public void friend() {
-        this.startAction("friend");
+        this.logAction("friend");
     }
 
     /**
      *
      */
     public void unfriend() {
-        this.startAction("unfriend");
+        this.logAction("unfriend");
     }
 
     /**
      *
      */
     public void joinChat() {
-        this.startAction("joinChat");
+        this.logAction("joinChat");
     }
 
     /**
      *
      */
     public void leaveChat() {
-        this.startAction("leaveChat");
+        this.logAction("leaveChat");
     }
 
     /**
      *
      */
     public void getChat() {
-        this.startAction("login");
+        this.logAction("login");
     }
 
     /**
      *
      */
     public void createChat() {
-        this.startAction("createChat");
+        this.logAction("createChat");
     }
 
     /**
      *
      */
     public void sendChatMessage() {
-        this.startAction("sendChatMessage");
+        this.logAction("sendChatMessage");
     }
 
     /**
      *
      */
     public void sendChatInvite() {
-        this.startAction("sendChatInvite");
+        this.logAction("sendChatInvite");
     }
 
     /**
      *
      */
     public void createGame() {
-        this.startAction("createGame");
+        this.logAction("createGame");
     }
 
     /**
      *
      */
     public void joinGame() {
-        this.startAction("joinGame");
+        this.logAction("joinGame");
     }
 
     /**
      *
      */
     public void leaveGame() {
-        this.startAction("leaveGame");
+        this.logAction("leaveGame");
     }
 
     /**
      *
      */
     public void sendGameInvite() {
-        this.startAction("sendGameInvite");
+        this.logAction("sendGameInvite");
     }
 
     /**
      *
      */
     public void declineGameInvite() {
-        this.startAction("declineGameInvite");
+        this.logAction("declineGameInvite");
     }
 
     /**
      *
      */
     public void startGame() {
-        this.startAction("startGame");
+        this.logAction("startGame");
     }
 
     /**
      *
      */
     public void getGame() {
-        this.startAction("getGame");
+        this.logAction("getGame");
     }
 
     /**
      *
      */
     public void getGameState() {
-        this.startAction("getGameState");
+        this.logAction("getGameState");
     }
 
     /**
      *
      */
     public void sendRollDice() {
-        this.startAction("sendRollDice");
+        this.logAction("sendRollDice");
     }
 
     /**
      *
      */
     public void movePiece() {
-        this.startAction("movePiece");
+        this.logAction("movePiece");
     }
 
 
@@ -284,7 +284,7 @@ public class ActionConsumer implements Runnable {
      *
      * @param methodName name of callee
      */
-    private void startAction(String methodName) {
+    private void logAction(String methodName) {
         Logger.log(Level.INFO, "Action -> " + methodName);
     }
 
