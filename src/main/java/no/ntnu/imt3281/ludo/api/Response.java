@@ -1,12 +1,10 @@
 package no.ntnu.imt3281.ludo.api;
 
-import java.util.ArrayList;
-
-import org.json.JSONObject;
+import org.json.JSONArray;
 
 public class Response {
-    public String id;
-    public String type;
-    public ArrayList<JSONObject> success;
-    public ArrayList<JSONObject> error;
+    public int id;
+    public ResponseType type;
+    public JSONArray success;
+    public JSONArray error;
 }

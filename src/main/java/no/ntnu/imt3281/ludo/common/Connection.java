@@ -77,7 +77,7 @@ public class Connection {
             mSocket.close();
         } catch (IOException e) {
             Logger.log(Logger.Level.WARN, String.format("Could not close Connection socket, exception: %s, trace: %s",
-                    e.getClass().getName(), e.getStackTrace()));
+                    e.getClass().getName(), e.getCause().toString()));
         }
 
         mThread.join();

@@ -4,15 +4,20 @@ import no.ntnu.imt3281.ludo.common.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 
 /**
  * Holds all state of client
  */
 public class State {
      public String token = "";
+     public String username = "";
+     public String email = "";
 
      private static final String filename = "client-cache.json";
 
@@ -35,18 +40,20 @@ public class State {
      */
      static State load() {
 
-        var json = new JSONObject();
         var state = new State();
 
-        try (var reader = new FileReader(State.filename)) {
-            json = new JSONObject(reader.read());
-
-            state.token = json.getString("token");
-
+        try  {
+            String text = new String(Files.readAllBytes(Paths.get(State.filename)), StandardCharsets.UTF_8);
+            var json = new JSONObject(text);
+            try {
+                state.token = json.getString("token");
+                state.username = json.getString("username");
+                state.email = json.getString("email");
+            } catch (JSONException e) {
+                Logger.log(Logger.Level.WARN, "Missing key in " + State.filename);
+            }
         } catch (IOException e) {
-            Logger.log(Logger.Level.INFO, "Failed to load" + State.filename);
-        } catch (JSONException e) {
-            Logger.log(Logger.Level.INFO, "Missing token in" + State.filename);
+            Logger.log(Logger.Level.INFO, "Failed to load " + State.filename);
         }
         return state;
     }
@@ -60,11 +67,13 @@ public class State {
 
         var json = new JSONObject();
         json.put("token", state.token);
+        json.put("username", state.username);
+        json.put("email", state.email);
 
         try(var writer = new FileWriter(State.filename)) {
             writer.write(json.toString());
         } catch (IOException e) {
-            Logger.log(Logger.Level.INFO, "Failed to write to "  + State.filename);
+            Logger.log(Logger.Level.WARN, "Failed to write to "  + State.filename +  " : " + e.getCause().toString());
         }
     }
 }

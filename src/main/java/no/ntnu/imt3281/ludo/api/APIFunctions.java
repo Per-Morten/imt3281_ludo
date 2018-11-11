@@ -3,29 +3,54 @@ package no.ntnu.imt3281.ludo.api;
 /**
  * Functions shared between enums
  */
-public class APIFunctions {
+class APIFunctions {
 
     /**
-     * Converts any enum's name to snake_case.
+     * Converts RequestType enum to snake case
      * Example: 'LoginRequest' -> 'login_request'
      * 
-     * @param _enum any enum
+     * @param type enum to be converted
      * @return snake cased string
      */
-    public static <E extends Enum<E>> String toSnakeCase(E _enum) {
-        final String JavaName = _enum.name();
-        String json_name = "";
+    static String toSnakeCase(RequestType type) {
+        final String RequestName = type.name();
+        StringBuilder request_name = new StringBuilder();
 
-        for (int i = 0; i < JavaName.length(); ++i) {
-            char ch = JavaName.charAt(i);
+        for (int i = 0; i < RequestName.length(); ++i) {
+            char ch = RequestName.charAt(i);
             if (Character.isUpperCase(ch)) {
                 if (i > 0) {
-                    json_name += "_";
+                    request_name.append("_");
                     // ...not the first character AND upperCase
                 }
             }
-            json_name += Character.toLowerCase(ch);
+            request_name.append(Character.toLowerCase(ch));
         }
-        return json_name;
+        return request_name.toString();
     }
-}
+
+    /**
+     * Convert snake_cased string to ResponseType enum
+     *
+     * @param response_name snake_cased
+     * @return responseType enum
+     */
+    static ResponseType fromSnakeCase(String response_name) {
+        StringBuilder ResponseName = new StringBuilder();
+
+        ResponseName.append(String.valueOf(response_name.charAt(0)).toUpperCase());
+
+        for (int i = 0; i < response_name.length(); ++i) {
+
+            if (response_name.charAt(i) == '_') {
+                ++i;
+                ResponseName.append(String.valueOf(response_name.charAt(i)).toUpperCase());
+                continue;
+            }
+
+            ResponseName.append(response_name.charAt(i));
+
+        }
+        return ResponseType.valueOf(ResponseName.toString());
+    }
+ }

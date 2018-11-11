@@ -16,8 +16,23 @@ public class ActionConsumer implements Runnable {
     private final ArrayBlockingQueue<Action> mIncommingActions = new ArrayBlockingQueue<Action>(100);
     private final RequestFactory mRequestFactory = new RequestFactory();
     private MutationConsumer mMutationConsumer;
+    private ResponseConsumer mResponseConsumer;
     private SocketManager mSocketManager;
     private State mCurrentState = new State();
+
+    /**
+     * Bind dependencies of ActionConsumer
+     *
+     * @param mutationConsumer to feed mutations
+     * @param responseConsumer to push requests
+     * @param socketManager to send messages
+     */
+    void bind(MutationConsumer mutationConsumer, ResponseConsumer responseConsumer, SocketManager socketManager) {
+        mMutationConsumer = mutationConsumer;
+        mSocketManager = socketManager;
+        mResponseConsumer = responseConsumer;
+    }
+
     /**
      * Thread entry point
      */
@@ -32,7 +47,7 @@ public class ActionConsumer implements Runnable {
                 mCurrentState = mMutationConsumer.getCurrentState();
                 action.run(this);
             } catch (InterruptedException e) {
-                Logger.log(Level.INFO, "InterruptedException when consuming action: " + e.toString());
+                Logger.log(Level.INFO, "InterruptedException when consuming action");
                 running = false;
             }
         }
@@ -48,7 +63,7 @@ public class ActionConsumer implements Runnable {
         try {
             this.mIncommingActions.put(action);
         } catch (InterruptedException e) {
-            Logger.log(Level.ERROR, "InterruptedException when dispatching action to ActionConsumer");
+            Logger.log(Level.INFO, "InterruptedException when feeding action");
         }
     }
 
@@ -71,7 +86,7 @@ public class ActionConsumer implements Runnable {
 
         var request = mRequestFactory.makeRequest(RequestType.LoginRequest, this.token(), payload);
         {
-            this.send(request.toString());
+            this.send(request);
         }
     }
 
@@ -94,9 +109,9 @@ public class ActionConsumer implements Runnable {
             payload.add(item);
         }
 
-        var request = mRequestFactory.makeRequest(RequestType.LoginRequest, this.token(), payload);
+        var request = mRequestFactory.makeRequest(RequestType.CreateUserRequest, this.token(), payload);
         {
-            this.send(request.toString());
+            this.send(request);
         }
     }
 
@@ -263,16 +278,6 @@ public class ActionConsumer implements Runnable {
         this.startAction("movePiece");
     }
 
-    /**
-     * Bind dependencies of ActionConsumer
-     *
-     * @param mutationConsumer to commit mutations
-     * @param socketManager to send messages
-     */
-    void bind(MutationConsumer mutationConsumer, SocketManager socketManager) {
-        mMutationConsumer = mutationConsumer;
-        mSocketManager = socketManager;
-    }
 
     /**
      * Log action level info
@@ -287,14 +292,18 @@ public class ActionConsumer implements Runnable {
     /**
      * Send message to socket
      *
-     * @param message message to send
+     * @param request to be sent
      */
-    private void send(String message) {
+    private void send(JSONObject request) {
+
+        mResponseConsumer.feedRequest(request);
+
         try {
-            mSocketManager.send(message);
+            mSocketManager.send(request.toString());
         } catch (IOException e) {
             Logger.log(Level.ERROR, "IOException when trying to send message to socket:" +e.toString());
         }
+
     }
 
 

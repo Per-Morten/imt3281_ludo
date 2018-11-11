@@ -24,12 +24,10 @@ import no.ntnu.imt3281.ludo.gui.MutationConsumer;
  */
 public class Client extends Application {
 
-    private final String mAddress = "localhost";
-    private final int mPort = 9010;
     private ExecutorService mExecutorService = Executors.newFixedThreadPool(2);
     private final ActionConsumer mActionConsumer = new ActionConsumer();
     private final MutationConsumer mMutationConsumer = new MutationConsumer();
-    private final MessageConsumer mMessageConsumer = new MessageConsumer();
+    private final ResponseConsumer mResponseConsumer = new ResponseConsumer();
     private SocketManager mSocketManager;
     private State mState;
     /**
@@ -47,26 +45,27 @@ public class Client extends Application {
      */
     @Override
     public void start(Stage primaryStage)  {
+        Logger.log(Level.INFO, "Starting FXML context");
 
         // Set up Socket
         try {
-            mSocketManager = new SocketManager(InetAddress.getByName(mAddress), mPort);
+            mSocketManager = new SocketManager(InetAddress.getByName("localhost"), 9010);
         } catch (UnknownHostException e) {
-            Logger.log(Level.ERROR, "UnknownHostException on new SocketManager: " + e.getCause());
+            Logger.log(Level.ERROR, "UnknownHostException on new SocketManager: " + e.getCause().toString());
         }
 
         mState = State.load();
 
         // Bind consumer dependencies
-        mActionConsumer.bind(mMutationConsumer, mSocketManager);
-        mMessageConsumer.bind(mMutationConsumer, mSocketManager);
+        mActionConsumer.bind(mMutationConsumer, mResponseConsumer, mSocketManager);
+        mResponseConsumer.bind(mMutationConsumer, mSocketManager);
         mMutationConsumer.bind(primaryStage, mActionConsumer, mState);
 
         // Start socket
         try {
             mSocketManager.start();
         } catch (IOException e) {
-            Logger.log(Level.ERROR, "IOException on SocketMAnager.start()): " + e.getCause());
+            Logger.log(Level.ERROR, "IOException on SocketMAnager.start()): " + e.getCause().toString());
         }
 
         // Action consumer runs in its own thread
@@ -79,12 +78,14 @@ public class Client extends Application {
      */
     @Override
     public void stop() {
+        Logger.log(Level.INFO, "Stopping FXML context");
+
         mExecutorService.shutdownNow();
 
         try {
             mSocketManager.stop();
         } catch (InterruptedException e) {
-            Logger.log(Level.ERROR, "InterruptedException when trying to stop mSocketManager: " + e.toString());
+            Logger.log(Level.WARN, "InterruptedException when trying to stop mSocketManager");
         }
         State.dump(mState);
     }

@@ -2,6 +2,7 @@ package no.ntnu.imt3281.ludo.api;
 
 import java.util.ArrayList;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class RequestFactory {

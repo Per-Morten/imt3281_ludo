@@ -60,6 +60,7 @@ public class MutationConsumer implements Runnable {
      */
     @Override
     public void run() {
+        Logger.log(Level.INFO, "Hello from a MutationConsumer thread!");
 
         // Handle close window
         mPrimaryStage.setOnCloseRequest((WindowEvent e) -> {
@@ -83,9 +84,10 @@ public class MutationConsumer implements Runnable {
                 mCommitedState = State.deepCopy(mIntermediateState);
             } catch (InterruptedException e) {
                 running = false;
-                Logger.log(Level.ERROR, "InterruptedException when commiting mutation to MutationConsumer: " + e.getCause());
+                Logger.log(Level.INFO, "InterruptedException when consuming mutation");
             }
         }
+        Logger.log(Level.INFO, "Byebye from a MutationConsumer thread!");
     }
 
     /**
@@ -97,7 +99,7 @@ public class MutationConsumer implements Runnable {
         try {
             mIncommingMutations.put(mutation);
         } catch (InterruptedException e) {
-            Logger.log(Level.INFO, "Commit interrupted");
+            Logger.log(Level.INFO, "InterruptedException when feeding mutation");
         }
     }
 
