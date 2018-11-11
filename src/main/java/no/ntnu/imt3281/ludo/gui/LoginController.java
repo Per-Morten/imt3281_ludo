@@ -8,7 +8,7 @@ import javafx.scene.shape.Rectangle;
 
 import no.ntnu.imt3281.ludo.client.ActionConsumer;
 
-public class LoginController {
+public class LoginController implements IGUIController {
 
     ActionConsumer mActionConsumer;
 
@@ -49,7 +49,7 @@ public class LoginController {
         assert mRectangle != null : "fx:id=\"mTriangle\" was not injected: check your FXML file 'Login.fxml'.";
     }
 
-    public void bind(ActionConsumer actionConsumer) {
-        mActionConsumer = actionConsumer;
+    public void bind(ActionConsumer a) {
+        mActionConsumer = a;
     }
 }

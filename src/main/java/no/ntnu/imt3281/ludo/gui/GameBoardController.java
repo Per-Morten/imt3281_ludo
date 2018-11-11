@@ -1,7 +1,7 @@
 package no.ntnu.imt3281.ludo.gui;
 
 /**
- * Sample Skeleton for 'GameBoard.fxml' Controller Class
+ * Sample Skeleton for 'GameBoard.fxml' IGUIController Class
  */
 
 import javafx.fxml.FXML;
@@ -10,8 +10,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
+import no.ntnu.imt3281.ludo.client.ActionConsumer;
 
-public class GameBoardController {
+public class GameBoardController implements IGUIController {
 
     @FXML
     Label player1Name;
@@ -52,4 +53,9 @@ public class GameBoardController {
     @FXML
     Button sendTextButton;
 
+    private ActionConsumer mActionConsumer;
+
+    public void bind(ActionConsumer a) {
+        mActionConsumer = a;
+    }
 }

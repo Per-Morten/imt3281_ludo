@@ -56,6 +56,7 @@ public class ActionConsumer implements Runnable {
         this.startAction("login");
         this.send(username + password);
         mMutationConsumer.feed(MutationConsumer::loginPending);
+        mMutationConsumer.feed(MutationConsumer::loginSuccess);
     }
 
     /**
@@ -76,6 +77,7 @@ public class ActionConsumer implements Runnable {
      */
     public void logout() {
         this.startAction("logout");
+        mMutationConsumer.feed(MutationConsumer::logoutSuccess);
     }
 
     /**

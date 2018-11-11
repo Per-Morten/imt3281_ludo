@@ -10,6 +10,8 @@ import javafx.stage.WindowEvent;
 import no.ntnu.imt3281.ludo.client.ActionConsumer;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,13 +27,12 @@ import no.ntnu.imt3281.ludo.common.Logger.Level;
 public class MutationConsumer {
     private final ArrayBlockingQueue<Mutation> mIncommingMutations = new ArrayBlockingQueue<Mutation>(100);
     private ActionConsumer mActionConsumer;
-    private FXMLLoader mLoginFile;
-    private FXMLLoader mLudoFile;
-    private FXMLLoader mGameBoardFile;
     private ExecutorService mCommitListener = Executors.newSingleThreadExecutor();
     private State mIntermediateState;
     private State mCommitedState;
     private Stage mPrimaryStage;
+
+    private HashMap<String, IGUIController> mControllers = new HashMap<>();
 
     /**
      * Make a synchronized copy of the current state
@@ -55,15 +56,11 @@ public class MutationConsumer {
     /**
      * Setup initial state, then listen for mutations
      *
-     * @param initialState
+     * @param initialState2
      */
     public void run(State initialState) {
         mCommitedState = initialState;
         mIntermediateState = initialState;
-
-        mLoginFile = new FXMLLoader(getClass().getResource("../gui/Login.fxml"));
-        mLudoFile = new FXMLLoader(getClass().getResource("../gui/Ludo.fxml"));
-        mGameBoardFile = new FXMLLoader(getClass().getResource("../gui/GameBoard.fxml"));
 
         // Handle close window
         mPrimaryStage.setOnCloseRequest((WindowEvent e) -> {
@@ -71,18 +68,11 @@ public class MutationConsumer {
         });
 
         // Set initial scene root
-        AnchorPane loginPane = new AnchorPane();
-        try {
-            loginPane = mLoginFile.load();
-        } catch (IOException e) {
-            Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.getCause());
-        }
+        AnchorPane loginPane = this.loadFXML("Login.fxml");
+
         var root = new Scene(loginPane);
         mPrimaryStage.setScene(root);
         mPrimaryStage.show();
-
-        LoginController loginController = mLoginFile.getController();
-        loginController.bind(mActionConsumer);
 
         this.runConsumeMutations();
     }
@@ -107,7 +97,7 @@ public class MutationConsumer {
         this.startMutation("loginPending");
 
         this.toastPending("Logging in..."); // TODO i18n
-        LoginController loginController = mLoginFile.getController();
+        var loginController = (LoginController)mControllers.get("Login.fxml");
 
         for (int i = 0; i < 360; ++i) {
             int time = i;
@@ -126,18 +116,35 @@ public class MutationConsumer {
     public void loginSuccess() {
         this.startMutation("loginSuccess");
 
-        /*
-            // Set initial scene root
-            AnchorPane ludoPane = new AnchorPane();
-            try {
-                ludoPane = mLudoFile.load();
-            } catch (IOException e) {
-                Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.getCause());
-            }
-            var root = new Scene(ludoPane);
-            mPrimaryStage.setScene(root);
-            mPrimaryStage.show();
-           */
+        var ludoPane = this.loadFXML("Ludo.fxml");
+        this.redirect(ludoPane);
+    }
+
+    /**
+     * Login failed display error
+     */
+    public void loginError() {
+        this.startMutation("loginError");
+        this.toastError("Username or password is wrong");
+    }
+
+    /**
+     * Logout user and send back to login screen
+     */
+    public void logoutSuccess() {
+        this.startMutation("logoutSuccess");
+
+        var loginPane = this.loadFXML("Login.fxml");
+        this.redirect(loginPane);
+    }
+
+
+    /**
+     * Logout failed display error
+     */
+    public void logoutError() {
+        this.startMutation("logoutError");
+        this.toastError("Could not log out successfully. Try restarting the app");
     }
 
     /**
@@ -145,7 +152,6 @@ public class MutationConsumer {
      */
     public void createUserPending() {
         this.startMutation("createUserPending");
-
     }
 
     /**
@@ -153,14 +159,6 @@ public class MutationConsumer {
     public void CreateUserSuccess() {
         this.startMutation("");
     }
-
-    /**
-     * @mutation
-     */
-    public void LogoutSuccess() {
-        this.startMutation("");
-    }
-
 
 
     /**
@@ -349,21 +347,11 @@ public class MutationConsumer {
         this.startMutation("");
     }
 
-    /**
-     * Log action level info
-     *
-     * @param methodName name of callee
-     */
     private void startMutation(String methodName) {
         Logger.log(Logger.Level.INFO, "Mutation -> " + methodName);
     }
 
 
-    /**
-     * Display pending toast
-     *
-     * @param message info
-     */
     private void toastPending(String message) {
         int toastMsgTime = 1500;
         int fadeInTime = 100;
@@ -371,11 +359,6 @@ public class MutationConsumer {
         Toast.makeText(mPrimaryStage, message, toastMsgTime, fadeInTime, fadeOutTime, Color.color((float)0x62/0xff, (float)0x00/0xff, (float)0xEE/0xff));
     }
 
-    /**
-     * Display pending toast
-     *
-     * @param message info
-     */
     private void toastError(String message) {
         int toastMsgTime = 1500;
         int fadeInTime = 100;
@@ -396,6 +379,28 @@ public class MutationConsumer {
                     Logger.log(Level.ERROR, "InterruptedException when commiting mutation to MutationConsumer: " + e.getCause());
                 }
             }
+        });
+    }
+
+    private AnchorPane loadFXML(String filename) {
+        var root = new AnchorPane();
+        var fxmlLoader = new FXMLLoader(getClass().getResource(filename));
+        try {
+            root = fxmlLoader.load();
+            IGUIController guiController = fxmlLoader.getController();
+            guiController.bind(mActionConsumer);
+            mControllers.put(filename, guiController);
+        } catch (IOException e) {
+            Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.getStackTrace());
+        }
+        return root;
+    }
+
+    private void redirect(AnchorPane rootPane) {
+        var root = new Scene(rootPane);
+        Platform.runLater(() -> {
+            mPrimaryStage.setScene(root);
+            mPrimaryStage.show();
         });
     }
 }
