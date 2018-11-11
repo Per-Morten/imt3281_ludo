@@ -15,9 +15,9 @@
          <children>
             <AnchorPane prefHeight="93.0" prefWidth="1280.0">
                <children>
-                  <Label layoutY="47.0" maxWidth="1.7976931348623157E308" prefHeight="44.0" prefWidth="265.0" text="Ludo" textFill="#4970a7">
+                  <Label layoutY="32.0" maxWidth="1.7976931348623157E308" prefHeight="82.0" prefWidth="616.0" text="Ludo - The Game" textFill="#4970a7">
                      <font>
-                        <Font size="35.0" />
+                        <Font size="52.0" />
                      </font>
                   </Label>
                </children>
@@ -33,7 +33,7 @@
                   <TextField fx:id="mLoginEmail" maxWidth="-Infinity" prefWidth="200.0" />
                   <Label text="Password" />
                   <PasswordField fx:id="mLoginPassword" maxWidth="-Infinity" prefWidth="200.0" />
-                  <Button fx:id="mButtonLogin" mnemonicParsing="false" onAction="#onClickLogin" text="Login" />
+                  <Button fx:id="mButtonLogin" mnemonicParsing="false" onAction="#onClickLogin" prefWidth="200.0" text="Login" />
                </children>
             </VBox>
             <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="300.0" spacing="10.0">
@@ -52,7 +52,7 @@
                   <PasswordField fx:id="mCreatePassword" maxWidth="-Infinity" prefWidth="200.0" />
                   <Label text="Username" />
                   <TextField fx:id="mCreateUsername" maxWidth="-Infinity" prefWidth="200.0" />
-                  <Button fx:id="mButtonCreate" mnemonicParsing="false" onAction="#onClickCreate" text="Create" />
+                  <Button fx:id="mButtonCreate" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onClickCreate" prefHeight="26.0" prefWidth="199.0" text="Create" />
                </children>
             </VBox>
          </children>
