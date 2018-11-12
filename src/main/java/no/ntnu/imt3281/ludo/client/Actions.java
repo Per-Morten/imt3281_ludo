@@ -2,33 +2,37 @@ package no.ntnu.imt3281.ludo.client;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import no.ntnu.imt3281.ludo.api.RequestFactory;
 import no.ntnu.imt3281.ludo.api.RequestType;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
-import no.ntnu.imt3281.ludo.gui.MutationConsumer;
+import no.ntnu.imt3281.ludo.gui.IGUIController;
+import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONObject;
 
 public class ActionConsumer implements Runnable {
 
     private final ArrayBlockingQueue<Action> mIncommingActions = new ArrayBlockingQueue<Action>(100);
     private final RequestFactory mRequestFactory = new RequestFactory();
-    private MutationConsumer mMutationConsumer;
+    private Transitions mTransitions;
     private ResponseConsumer mResponseConsumer;
     private SocketManager mSocketManager;
     private State mCurrentState = new State();
 
+    private HashMap<String, IGUIController> mControllers = new HashMap<>();
+
     /**
      * Bind dependencies of ActionConsumer
      *
-     * @param mutationConsumer to feed mutations
+     * @param transitions to feed mutations
      * @param responseConsumer to push requests
      * @param socketManager to send messages
      */
-    void bind(MutationConsumer mutationConsumer, ResponseConsumer responseConsumer, SocketManager socketManager) {
-        mMutationConsumer = mutationConsumer;
+    void bind(Transitions transitions, ResponseConsumer responseConsumer, SocketManager socketManager) {
+        mTransitions = transitions;
         mSocketManager = socketManager;
         mResponseConsumer = responseConsumer;
     }
@@ -44,7 +48,7 @@ public class ActionConsumer implements Runnable {
         while(running) {
             try {
                 Action action = this.mIncommingActions.take();
-                mCurrentState = mMutationConsumer.getCurrentState();
+                mCurrentState = mTransitions.getCurrentState();
                 action.run(this);
             } catch (InterruptedException e) {
                 Logger.log(Level.INFO, "InterruptedException when consuming action");
@@ -121,7 +125,7 @@ public class ActionConsumer implements Runnable {
      */
     public void logout() {
         this.logAction("logout");
-        mMutationConsumer.feed(MutationConsumer::logoutSuccess);
+        mTransitions.feed(Transitions::logoutSuccess);
     }
 
     /**
