@@ -7,11 +7,11 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 
 /**
- * 
- * This is the main class for the client. 
- * **Note, change this to extend other classes if desired.**
- * 
- * @author 
+ *
+ * This is the main class for the client. **Note, change this to extend other
+ * classes if desired.**
+ *
+ * @author
  *
  */
 public class Client extends Application {
