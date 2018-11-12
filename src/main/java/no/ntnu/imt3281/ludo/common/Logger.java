@@ -61,5 +61,24 @@ public class Logger {
         }
     }
 
+    public static void logException(Level level, Exception exception) {
+        logException(level, exception, "");
+    }
+
+    public static void logException(Level level, Exception exception, String string) {
+        if (level.ordinal() < sLogLevel.ordinal()) {
+            return;
+        }
+
+        var out = (level == Level.ERROR || level == Level.WARN) ? System.err : System.out;
+        out.println(String.format("%s: %s, Exception Encountered: %s, trace:%n", level.toString(), string, exception.getClass()));
+        exception.printStackTrace(out);
+        out.flush();
+
+        if (level == Level.ERROR) {
+            System.exit(0);
+        }
+    }
+
     private static Level sLogLevel = Level.INFO;
 }
