@@ -20,7 +20,7 @@ import no.ntnu.imt3281.ludo.common.Logger.Level;
  */
 public class Transitions  {
 
-    private HashMap<String, IGUIController> mControllers = new HashMap<>();
+    private HashMap<String, IController> mControllers = new HashMap<>();
     private Stage mStage;
     private Actions mActions;
 
@@ -60,7 +60,7 @@ public class Transitions  {
         var fxmlLoader = new FXMLLoader(getClass().getResource(filename));
         try {
             root = fxmlLoader.load();
-            IGUIController guiController = fxmlLoader.getController();
+            IController guiController = fxmlLoader.getController();
             guiController.bind(mActions);
             mControllers.put(filename, guiController);
         } catch (IOException e) {

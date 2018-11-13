@@ -1,18 +1,10 @@
 package no.ntnu.imt3281.ludo.client;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import javafx.fxml.FXMLLoader;
-import javafx.scene.layout.AnchorPane;
 import no.ntnu.imt3281.ludo.api.API;
 import no.ntnu.imt3281.ludo.api.Request;
 import no.ntnu.imt3281.ludo.api.RequestFactory;
-import no.ntnu.imt3281.ludo.api.RequestType;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
-import no.ntnu.imt3281.ludo.gui.IGUIController;
 import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONObject;
 

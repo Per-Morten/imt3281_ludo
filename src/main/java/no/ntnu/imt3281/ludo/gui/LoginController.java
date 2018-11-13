@@ -8,7 +8,7 @@ import javafx.event.ActionEvent;
 
 import no.ntnu.imt3281.ludo.client.Actions;
 
-public class LoginController implements IGUIController {
+public class LoginController implements IController {
 
     Actions mActions;
 

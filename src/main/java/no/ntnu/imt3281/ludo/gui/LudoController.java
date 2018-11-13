@@ -9,7 +9,7 @@ import javafx.scene.control.TabPane;
 
 import no.ntnu.imt3281.ludo.client.*;
 
-public class LudoController implements IGUIController {
+public class LudoController implements IController {
 
     Actions mActions;
 
