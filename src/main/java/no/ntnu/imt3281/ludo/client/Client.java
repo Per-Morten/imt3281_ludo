@@ -8,11 +8,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.stage.Stage;
 
+import javafx.stage.WindowEvent;
+import no.ntnu.imt3281.ludo.api.API;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
-import no.ntnu.imt3281.ludo.gui.MutationConsumer;
+import no.ntnu.imt3281.ludo.gui.Transitions;
 
 
 /**
@@ -25,11 +28,13 @@ import no.ntnu.imt3281.ludo.gui.MutationConsumer;
 public class Client extends Application {
 
     private ExecutorService mExecutorService = Executors.newFixedThreadPool(2);
-    private final ActionConsumer mActionConsumer = new ActionConsumer();
-    private final MutationConsumer mMutationConsumer = new MutationConsumer();
-    private final ResponseConsumer mResponseConsumer = new ResponseConsumer();
+    private StateManager mStateManager;
     private SocketManager mSocketManager;
-    private State mState;
+
+    final Transitions mTransitions = new Transitions();
+    final API mApi = new API();
+    final Actions mActions = new Actions();
+
     /**
      * Client entry point
      * @param args command line arguments
@@ -47,6 +52,7 @@ public class Client extends Application {
     public void start(Stage primaryStage)  {
         Logger.log(Level.INFO, "Starting FXML context");
 
+
         // Set up Socket
         try {
             mSocketManager = new SocketManager(InetAddress.getByName("localhost"), 9010);
@@ -54,14 +60,12 @@ public class Client extends Application {
             Logger.log(Level.ERROR, "UnknownHostException on new SocketManager: " + e.getCause().toString());
         }
 
-        mState = State.load();
-
-        // Bind consumer dependencies
-        mActionConsumer.bind(mMutationConsumer, mResponseConsumer, mSocketManager);
-        mResponseConsumer.bind(mMutationConsumer);
-        mMutationConsumer.bind(primaryStage, mActionConsumer, mState);
-
-        mSocketManager.setOnReceiveCallback(message -> mResponseConsumer.feedMessage(message));
+        // Bind dependencies between important systems.
+        State initialState = State.load();
+        mStateManager = new StateManager(initialState);
+        mApi.bind(mSocketManager);
+        mActions.bind(mTransitions, mApi, mStateManager);
+        mTransitions.bind(primaryStage, mActions);
 
         // Start socket
         try {
@@ -70,9 +74,12 @@ public class Client extends Application {
             Logger.log(Level.ERROR, "IOException on SocketMAnager.start()): " + e.getCause().toString());
         }
 
-        // Action consumer runs in its own thread
-        mExecutorService.execute(mActionConsumer);
-        mExecutorService.execute(mMutationConsumer);
+        // Handle close window
+        primaryStage.setOnCloseRequest((WindowEvent e) -> {
+            Platform.exit();
+        });
+
+        mTransitions.redirect("Login.fxml");
     }
 
     /**
@@ -86,9 +93,9 @@ public class Client extends Application {
 
         try {
             mSocketManager.stop();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException e ) {
             Logger.log(Level.WARN, "InterruptedException when trying to stop mSocketManager");
         }
-        State.dump(mState);
+        State.dump(mStateManager.copy());
     }
 }

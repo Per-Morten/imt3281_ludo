@@ -1,7 +1,7 @@
 package no.ntnu.imt3281.ludo.gui;
 
-import no.ntnu.imt3281.ludo.client.ActionConsumer;
+import no.ntnu.imt3281.ludo.client.Actions;
 
-interface IGUIController {
-    void bind(ActionConsumer a);
+public interface IGUIController {
+    void bind(Actions a);
 }

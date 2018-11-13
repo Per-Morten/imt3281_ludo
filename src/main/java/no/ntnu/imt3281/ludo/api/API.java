@@ -1,73 +1,148 @@
 package no.ntnu.imt3281.ludo.api;
 
-import no.ntnu.imt3281.ludo.api.APIFunctions;
-import no.ntnu.imt3281.ludo.api.RequestFactory;
-import no.ntnu.imt3281.ludo.api.RequestType;
-import no.ntnu.imt3281.ludo.api.Response;
+import no.ntnu.imt3281.ludo.client.SocketManager;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
-import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 
 
-public class Messages {
-    private final RequestFactory mRequestFactory = new RequestFactory();
+public class API {
+    private final ArrayBlockingQueue<Request> mPendingRequests = new ArrayBlockingQueue<Request>(1);
+    private SocketManager mSocketManager;
 
-    private Transitions mTransitions;
-    private final ArrayBlockingQueue<JSONObject> mPendingRequests = new ArrayBlockingQueue<JSONObject>(1);
-
-    void bind(Transitions transitions) {
-        mTransitions = transitions;
+    /**
+     * Bind API dependencies
+     *
+     * @param socketManager need to do networking
+     */
+    public void bind(SocketManager socketManager) {
+        mSocketManager = socketManager;
+        mSocketManager.setOnReceiveCallback(this::read);
     }
 
-    public void feedRequest(JSONObject request) {
+    /**
+     * Send request to server and block as long as there is a request pending.
+     *
+     * @param request to be sent to server
+     */
+    public void send(Request request) {
+
         try {
-            mIncommingRequests.put(request);
+            mPendingRequests.put(request);
         } catch (InterruptedException e) {
-            Logger.log(Logger.Level.INFO, "InterruptedException when feeding request" + e.toString());
+            Logger.log(Logger.Level.INFO, "API.sendRequest interrupted" + e.toString());
+            return;
+        }
+
+        try {
+            mSocketManager.send(request.toJSON().toString());
+        } catch (IOException e) {
+            Logger.log(Level.WARN, "IOException when trying to sending request: " + e.toString());
+            try {
+                mPendingRequests.take();
+                // ... Request failed, so we throw it away, to avoid blocking new attempts.
+            } catch (InterruptedException e2) {
+                Logger.log(Logger.Level.INFO, "API.sendRequest interrupted" + e.toString());
+            }
         }
     }
-    public void sendRequest(RequestType type, ArrayList<JSONObject> payload) {
-        this.sendRequest(type, payload, "");
-    }
 
-    public void sendRequest(RequestType type, ArrayList<JSONObject> payload, String token) {
+    /**
+     * Read a message from socket. Determine if the message is a responseType or eventType message.
+     * Parse message to json.
+     *
+     * @param message string from socket
+     */
+    private void read(String message) {
 
-        var request = mRequestFactory.makeRequest(RequestType.LoginRequest, token, payload);
-        {
+        Logger.log(Level.DEBUG, "Got a response: " + message);
 
+        var jsonResponse = new JSONObject();
+        try {
+            jsonResponse = new JSONObject(message);
+        } catch (JSONException e) {
+            Logger.log(Level.WARN, "Exception when parsing JSON" + e.toString());
+            return;
+        }
+
+        String snake_case_message_type = new String();
+        try {
+            snake_case_message_type = jsonResponse.getString("type");
+        } catch (JSONException e) {
+            Logger.log(Level.ERROR, "JSONException when parsing message type" + e.toString());
+        }
+
+        String PascalCasedMessageType = APIFunctions.fromSnakeCase(snake_case_message_type);
+
+        if (APIFunctions.isResponseType(PascalCasedMessageType)) {
+            this.handleResponse(jsonResponse);
+        } else if (APIFunctions.isEventType(PascalCasedMessageType)) {
+            this.handleEvent(jsonResponse);
+        } else {
+            Logger.log(Level.WARN, "Unkown message type " + PascalCasedMessageType + " from " + message);
         }
     }
 
-    public void feedMessage(String message) {
-        Logger.log(Level.INFO, "Got a response: " + message);
+    /**
+     * Handle responseType json
+     *
+     * @param jsonResponse response as json
+     */
+    private void handleResponse(JSONObject jsonResponse) {
 
-        JSONObject request = mIncommingRequests.poll();
+        Request request = mPendingRequests.poll();
+
         if (request == null) {
-            Logger.log(Level.WARN, "No request found when processing response in Messages");
+            Logger.log(Level.ERROR, "No request found when handling response");
             return;
         }
 
         var response = new Response();
         try {
-            response = APIFunctions.makeResponse(message);
+            response = APIFunctions.makeResponse(jsonResponse);
         } catch (JSONException e) {
-            Logger.log(Level.WARN, "Exception when parsing JSON" + e.toString());
-            return;
-        } catch (IllegalArgumentException e) {
-            Logger.log(Level.WARN, "Response type is invalid" + e.toString());
-            return;
-        } catch (ClassCastException e) {
-            Logger.log(Level.WARN, "Woot" + e.toString());
-            return;
-        } catch (Exception e) {
-            Logger.log(Level.WARN,  e.toString());
-            return;
+            Logger.log(Level.ERROR, "JSONException when parsing response" + e.toString());
         }
 
+        if (request.id != response.id) {
+            Logger.log(Level.ERROR, "requestId != responseId Request id and response id should match");
+        }
+
+        response.success.forEach(successItem -> {
+
+            var requestItem = new JSONObject();
+            for (int i = 0; i < request.payload.size(); ++i) {
+                var reqItem = request.payload.get(i);
+                if (reqItem.getInt("id") == successItem.getInt("id")) {
+                    requestItem = reqItem;
+                    break;
+                }
+            };
+            request.onSuccess.run(requestItem, successItem);
+        });
+
+        response.error.forEach(errorItem -> {
+
+            var requestItem = new JSONObject();
+            for (int i = 0; i < request.payload.size(); ++i) {
+                var reqItem = request.payload.get(i);
+                if (reqItem.getInt("id") == errorItem.getInt("id")) {
+                    requestItem = reqItem;
+                    break;
+                }
+            };
+            request.onError.run(requestItem, errorItem);
+        });
     }
+
+    /**
+     * Handle evenType json
+     *
+     * @param event event as json
+     */
+    private void handleEvent(JSONObject event) {}
 }

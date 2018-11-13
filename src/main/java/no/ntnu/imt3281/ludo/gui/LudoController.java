@@ -11,7 +11,7 @@ import no.ntnu.imt3281.ludo.client.*;
 
 public class LudoController implements IGUIController {
 
-    ActionConsumer mActionConsumer;
+    Actions mActions;
 
     @FXML
     ResourceBundle resources;
@@ -48,8 +48,8 @@ public class LudoController implements IGUIController {
     }
 
 
-    public void bind(ActionConsumer actionConsumer) {
-        mActionConsumer = actionConsumer;
+    public void bind(Actions actions) {
+        mActions = actions;
     }
 
 
@@ -61,7 +61,7 @@ public class LudoController implements IGUIController {
 
     @FXML
     void onLogout(ActionEvent e) {
-        mActionConsumer.feed(ActionConsumer::logout);
+        mActions.logout();
     }
 
     /*

@@ -47,18 +47,18 @@ public class EchoServer {
                             JSONObject req = new JSONObject(fromRemote);
 
                             JSONObject res = new JSONObject();
-                            res.put("id", req.getString("id"));
+                            res.put("id", req.getInt("id"));
                             res.put("type", req.getString("type").replace("request", "response"));
 
 
                             var successItem = new JSONObject();
-                            successItem.put("id", 0);
+                            successItem.put("id", 1);
 
                             var success = new JSONArray();
                             success.put(0, successItem);
 
                             var errorItem = new JSONObject();
-                            errorItem.put("id", 1);
+                            errorItem.put("id", 2);
 
                             var error = new JSONArray();
                             error.put(0, errorItem);
@@ -70,11 +70,11 @@ public class EchoServer {
                                 bw.write(res.toString() + '\n');
                                 bw.flush();
                             }catch (IOException e) {
-                                Logger.log(Logger.Level.WARN, "Writing exception");
+                                Logger.log(Logger.Level.WARN, "Writing exception " + e.toString());
                             }
 
                         } catch (JSONException e) {
-                            Logger.log(Logger.Level.WARN, "Request not correct JSON");
+                            Logger.log(Logger.Level.WARN, "Request not correct JSON " + e.toString());
                         }
                     }
                 }

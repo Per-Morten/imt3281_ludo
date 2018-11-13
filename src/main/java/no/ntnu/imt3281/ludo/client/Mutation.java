@@ -1,4 +1,6 @@
 package no.ntnu.imt3281.ludo.client;
 
-public class Mutation {
+@FunctionalInterface
+interface Mutation {
+    void run(State s);
 }

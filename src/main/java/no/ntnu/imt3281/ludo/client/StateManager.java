@@ -11,6 +11,14 @@ public class StateManager {
 
     private ArrayBlockingQueue<State> mState = new ArrayBlockingQueue<State>(1);
 
+    public StateManager(State initialState) {
+        try {
+            mState.put(initialState);
+        } catch(InterruptedException e) {
+            Platform.exit();
+        }
+    }
+
     /**
      * Full deep copy of the current state. Blocking in case ongoing mutation
      *
@@ -29,7 +37,8 @@ public class StateManager {
     }
 
     /**
-     * Mutate the state with provided mutation
+     * Mutate the state with provided mutation.
+     * Block all incomming copies until mutation is completed.
      *
      * @param mutation which should be applied on state
      */

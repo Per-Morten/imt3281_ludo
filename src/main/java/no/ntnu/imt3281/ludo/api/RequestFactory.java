@@ -2,52 +2,87 @@ package no.ntnu.imt3281.ludo.api;
 
 import java.util.ArrayList;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
+/**
+ * Makes requests in accordance to the message protocol
+ * Makes sure every request has a unique id
+ * Makes sure every item in payload has a unique id
+ */
 public class RequestFactory {
-    /**
-     * Create a request in format specified in client-server-communication.md
-     *
-     * @param type type of request
-     * @param token authentication token
-     * @param payload content of the request
-     *
-     * @return valid request object ready to be sent to server
-     */
-    public JSONObject makeRequest(RequestType type, String token, ArrayList<JSONObject> payload) {
 
-        var json = new JSONObject();
+    public Request make(RequestType _type, ArrayList<JSONObject> _payload, RequestCallback _onSuccess, RequestCallback _onError) {
 
-        json.put("id", String.valueOf(this.nextItemId()));
-        json.put("type", APIFunctions.toSnakeCase(type));
-        json.put("token", token);
-        json.put("payload", payload);
+        var req = new Request();
+        req.id = this.nextRequestId();
+        req.type = _type;
+        req.onSuccess = _onSuccess;
+        req.onError = _onError;
 
-        return json;
+        _payload.forEach(item -> item.put("id", this.nextItemId()));
+
+        req.payload = _payload;
+        return req;
     }
 
-    /**
-     * Make payload item
-     *
-     * @return payload item
-     */
-    public JSONObject makeItem() {
-        var item = new JSONObject();
-        item.put("id", String.valueOf(this.nextRequestId()));
-        return item;
+    public Request make(RequestType _type, ArrayList<JSONObject> _payload, RequestCallback _onSuccess, RequestCallback _onError, String _token) {
+
+        var req = new Request();
+        req.id = this.nextRequestId();
+        req.type = _type;
+        req.token = _token;
+        req.onSuccess = _onSuccess;
+        req.onError = _onError;
+
+        _payload.forEach(item -> item.put("id", this.nextItemId()));
+
+        req.payload = _payload;
+        return req;
+    }
+
+    public Request make(RequestType _type, JSONObject _payload, RequestCallback _onSuccess, RequestCallback _onError) {
+
+        var req = new Request();
+        req.id = this.nextRequestId();
+        req.type = _type;
+        req.onSuccess = _onSuccess;
+        req.onError = _onError;
+
+        var array = new ArrayList<JSONObject>();
+        _payload.put("id", this.nextItemId());
+        array.add(_payload);
+        req.payload = array;
+        return req;
+
+    }
+
+    public Request make(RequestType _type, JSONObject _payload, String _token, RequestCallback _onSuccess, RequestCallback _onError) {
+
+        var req = new Request();
+        req.id = this.nextRequestId();
+        req.type = _type;
+        req.token = _token;
+        req.onSuccess = _onSuccess;
+        req.onError = _onError;
+
+        var array = new ArrayList<JSONObject>();
+        _payload.put("id", this.nextItemId());
+        array.add(_payload);
+        req.payload = array;
+        return req;
     }
 
     private int mItemIncrementer = 0;
     private int mRequestIncrementer = 0;
 
-    private int nextItemId() {
+    synchronized private int nextItemId() {
         mItemIncrementer += 1;
         return mItemIncrementer;
     }
 
-    private int nextRequestId() {
+    synchronized private int nextRequestId() {
         mRequestIncrementer += 1;
         return mRequestIncrementer;
     }
+
 }

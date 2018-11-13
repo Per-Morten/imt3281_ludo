@@ -25,13 +25,13 @@
 
 # Message protocol
 
-The aim of the protocol is to be as consistent as possible. Therefore all messages follow a standard pattern of 'type' and 'payload'. Where the type describes the type of the message and is always interpreted the same, and the payload is an array of objects that are interpreted differently based on the 'type' value.
+The aim of the protocol is to be as consistent as possible. Therefore all API follow a standard pattern of 'type' and 'payload'. Where the type describes the type of the message and is always interpreted the same, and the payload is an array of objects that are interpreted differently based on the 'type' value.
 Messages can also contain a 'token' variable used for authentication if authentication is needed. This is only the case when clients are talking to the server.
 Any variables that is not the 'type', 'token' or inside the 'payload' are not considered part of the API, and can be removed without notice.
 
 * Communication either happens through 'one-way' data transfers, or 'two-way' transactions in the form of a request-response pair.
 * Data is structured as valid JSON.
-* Three different kinds of messages:
+* Three different kinds of API:
     * Request
     * Response
     * Event

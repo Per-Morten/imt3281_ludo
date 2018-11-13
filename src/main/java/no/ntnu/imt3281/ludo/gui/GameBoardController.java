@@ -10,7 +10,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
-import no.ntnu.imt3281.ludo.client.ActionConsumer;
+import no.ntnu.imt3281.ludo.client.Actions;
 
 public class GameBoardController implements IGUIController {
 
@@ -53,9 +53,9 @@ public class GameBoardController implements IGUIController {
     @FXML
     Button sendTextButton;
 
-    private ActionConsumer mActionConsumer;
+    private Actions mActions;
 
-    public void bind(ActionConsumer a) {
-        mActionConsumer = a;
+    public void bind(Actions a) {
+        mActions = a;
     }
 }

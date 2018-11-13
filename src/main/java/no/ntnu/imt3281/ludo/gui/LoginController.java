@@ -5,13 +5,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.event.ActionEvent;
-import javafx.scene.shape.Rectangle;
 
-import no.ntnu.imt3281.ludo.client.ActionConsumer;
+import no.ntnu.imt3281.ludo.client.Actions;
 
 public class LoginController implements IGUIController {
 
-    ActionConsumer mActionConsumer;
+    Actions mActions;
 
     @FXML
     private TextField mLoginEmail;
@@ -39,7 +38,7 @@ public class LoginController implements IGUIController {
     void onClickLogin(ActionEvent event) {
         var email = mLoginEmail.getText();
         var password = mLoginPassword.getText();
-        mActionConsumer.feed(action -> action.login(email, password));
+        mActions.login(email, password);
     }
 
     @FXML
@@ -47,7 +46,7 @@ public class LoginController implements IGUIController {
         var email = mCreateEmail.getText();
         var password = mCreatePassword.getText();
         var username = mCreateUsername.getText();
-        mActionConsumer.feed(action -> action.createUser(email, password, username));
+        mActions.createUser(email, password, username);
     }
 
     @FXML
@@ -61,7 +60,7 @@ public class LoginController implements IGUIController {
         assert mButtonCreate != null : "fx:id=\"mButtonCreate\" was not injected: check your FXML file 'Login.fxml'.";
     }
 
-    public void bind(ActionConsumer a) {
-        mActionConsumer = a;
+    public void bind(Actions a) {
+        mActions = a;
     }
 }

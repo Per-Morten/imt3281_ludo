@@ -1,6 +1,5 @@
 package no.ntnu.imt3281.ludo.api;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.List;
