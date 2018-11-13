@@ -159,6 +159,7 @@
             <artifactId>json</artifactId>
             <version>20180813</version>
         </dependency>
+<<<<<<< HEAD
 
         <dependency>
             <groupId>org.apache.derby</groupId>
@@ -166,5 +167,33 @@
             <version>10.14.2.0</version>
         </dependency>
 
+=======
+        <!-- https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
+		<dependency>
+    		<groupId>org.xerial</groupId>
+    		<artifactId>sqlite-jdbc</artifactId>
+    		<version>3.25.2</version>
+		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.openjfx/javafx-media -->
+        <!-- Uncomment below depency if used -->
+		<!-- <dependency>
+		    <groupId>org.openjfx</groupId>
+		    <artifactId>javafx-media</artifactId>
+		    <version>11</version>
+		</dependency> -->
+		<!-- https://mvnrepository.com/artifact/org.openjfx/javafx-web -->
+        <!-- Uncomment below depency if used -->
+		<!-- <dependency>
+		    <groupId>org.openjfx</groupId>
+		    <artifactId>javafx-web</artifactId>
+		    <version>11</version>
+		</dependency>  -->
+      <dependency>
+    	<groupId>org.apache.derby</groupId>
+    	<artifactId>derby</artifactId>
+    	<version>10.14.2.0</version>
+    </dependency>
+>>>>>>> 96fe68f9488c7e5ae9c2c5316e39a3aa238e9dd5
   </dependencies>
 </project>

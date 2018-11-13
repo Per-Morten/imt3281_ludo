@@ -1,6 +1,5 @@
 package no.ntnu.imt3281.ludo.client;
 
-
 import java.io.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -20,10 +19,6 @@ import no.ntnu.imt3281.ludo.gui.Transitions;
 
 /**
  * Main class for the client.
- * **Note, change this to extend other classes if desired.**
- *
- * @author
- *
  */
 public class Client extends Application {
 
