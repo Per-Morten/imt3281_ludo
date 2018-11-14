@@ -15,7 +15,7 @@ import java.util.List;
 public class APIFunctions {
 
     /**
-     * Converts RequestType enum to snake case
+     * Converts RequestType enum to snake_case
      * Example: 'LoginRequest' -> 'login_request'
      * 
      * @param type enum to be converted
@@ -39,7 +39,7 @@ public class APIFunctions {
     }
 
     /**
-     * Convert snake_cased string to ResponseType enum
+     * Convert snake_cased string to PascalCased enum
      *
      * @param response_name snake_cased
      * @return string which could be responseType or eventType
