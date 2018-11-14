@@ -1,10 +1,10 @@
 package no.ntnu.imt3281.ludo.client;
 
-import no.ntnu.imt3281.ludo.api.APIFunctions;
-import no.ntnu.imt3281.ludo.api.RequestType;
+import java.util.ArrayList;
+
 import org.json.JSONObject;
 
-import java.util.ArrayList;
+import no.ntnu.imt3281.ludo.api.RequestType;
 
 /**
  * POD object
