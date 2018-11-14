@@ -54,7 +54,7 @@ public class Actions {
                     });
                     mTransitions.render("Ludo.fxml");
                 },
-                (req, error) -> Logger.log(Level.DEBUG, "Action -> LoginError: " + error.toString()));
+                (req, error) -> Logger.log(Level.WARN, "Action -> LoginError: " + error.toString()));
 
         mAPI.send(request);
     }
@@ -88,11 +88,9 @@ public class Actions {
                     });
                     mTransitions.render("Login.fxml");
                 },
-                (req, error) -> Logger.log(Level.DEBUG, "Action -> CreateUserError"));
+                (req, error) -> Logger.log(Level.WARN, "Action -> CreateUserError"));
 
         mAPI.send(request);
-        mTransitions.render("Login.fxml");
-        // TODO Autocomplete with response
     }
 
     /**
@@ -105,18 +103,20 @@ public class Actions {
         item.put("user_id", mLocalState.userId);
 
         Request request = mRequestFactory.make(LOGOUT_REQUEST, item, mLocalState.authToken,
-                (req, success) -> Logger.log(Level.DEBUG, "Action -> logout"),
-                (req, error) -> Logger.log(Level.DEBUG, "Action -> logout"));
+                (req, success) -> {
+                    Logger.log(Level.DEBUG, "Action -> LogoutSucces");
+
+                    mStateManager.commit(state -> {
+                        state.userId = -1;
+                        state.email = "";
+                        state.authToken = "";
+                        state.username = "";
+                    });
+                    mTransitions.render("Login.fxml");
+                },
+                (req, error) -> Logger.log(Level.WARN, "Action -> LogoutError"));
 
         mAPI.send(request);
-
-        mStateManager.commit(state -> {
-            state.userId = -1;
-            state.email = "";
-            state.authToken = "";
-            state.username = "";
-        });
-        mTransitions.render("Login.fxml");
     }
 
     /**
