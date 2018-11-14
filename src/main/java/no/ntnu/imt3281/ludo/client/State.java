@@ -14,9 +14,10 @@ import java.nio.file.Paths;
  * Holds all state of client
  */
 public class State {
-    public String token = "";
+    public String authToken = "";
     public String username = "";
     public String email = "";
+    public int userId = -1;
 
     private static final String filename = "client-cache.json";
 
@@ -28,7 +29,10 @@ public class State {
      */
     public static State deepCopy(State state) {
         var copy = new State();
-        copy.token = state.token;
+        copy.authToken = state.authToken;
+        copy.username = state.username;
+        copy.email = state.email;
+        copy.userId = state.userId;
         return copy;
     }
 
@@ -45,9 +49,10 @@ public class State {
             String text = new String(Files.readAllBytes(Paths.get(State.filename)), StandardCharsets.UTF_8);
             var json = new JSONObject(text);
             try {
-                state.token = json.getString("token");
+                state.authToken = json.getString("token");
                 state.username = json.getString("username");
                 state.email = json.getString("email");
+                state.userId = json.getInt("user_id");
             } catch (JSONException e) {
                 Logger.log(Logger.Level.WARN, "Missing key in " + State.filename);
             }
@@ -65,10 +70,10 @@ public class State {
     static void dump(State state) {
 
         var json = new JSONObject();
-        json.put("token", state.token);
+        json.put("token", state.authToken);
         json.put("username", state.username);
         json.put("email", state.email);
-
+        json.put("user_id", state.userId);
         try (var writer = new FileWriter(State.filename)) {
             writer.write(json.toString());
         } catch (IOException e) {
