@@ -77,7 +77,7 @@ public class Connection {
             mSocket.close();
         } catch (IOException e) {
             Logger.log(Logger.Level.WARN, String.format("Could not close Connection socket, exception: %s, trace: %s",
-                    e.getClass().getName(), e.getStackTrace()));
+                    e.getClass().getName(), e.getCause().toString()));
         }
 
         mThread.join();
@@ -115,7 +115,7 @@ public class Connection {
         } catch (Exception e) {
             if (mRunning.get()) {
                 Logger.log(Logger.Level.WARN, String.format("Connection closed unexpectedly, exception: %s, trace: %s",
-                        e.getClass().toString(), e.getStackTrace()));
+                        e.getClass().toString(), e.getCause().toString()));
                 mRunning.set(false);
             }
         }

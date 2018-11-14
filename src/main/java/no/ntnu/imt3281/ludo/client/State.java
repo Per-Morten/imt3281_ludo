@@ -1,0 +1,83 @@
+package no.ntnu.imt3281.ludo.client;
+
+import no.ntnu.imt3281.ludo.common.Logger;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+/**
+ * Holds all state of client
+ */
+public class State {
+    public String authToken = "";
+    public String username = "";
+    public String email = "";
+    public int userId = -1;
+
+    private static final String filename = "client-cache.json";
+
+    /**
+     * Deep copy of state
+     *
+     * @param state to be copied
+     * @return copy
+     */
+    public static State deepCopy(State state) {
+        var copy = new State();
+        copy.authToken = state.authToken;
+        copy.username = state.username;
+        copy.email = state.email;
+        copy.userId = state.userId;
+        return copy;
+    }
+
+    /**
+     * Load state object from client-cache.json
+     *
+     * @return created state
+     */
+    static State load() {
+
+        var state = new State();
+
+        try {
+            String text = new String(Files.readAllBytes(Paths.get(State.filename)), StandardCharsets.UTF_8);
+            var json = new JSONObject(text);
+            try {
+                state.authToken = json.getString("auth_token");
+                state.username = json.getString("username");
+                state.email = json.getString("email");
+                state.userId = json.getInt("user_id");
+            } catch (JSONException e) {
+                Logger.log(Logger.Level.WARN, "Missing key in " + State.filename);
+            }
+        } catch (IOException e) {
+            Logger.log(Logger.Level.INFO, "Failed to load " + State.filename);
+        }
+        return state;
+    }
+
+    /**
+     * Dump state object into a client-cache.json file
+     *
+     * @param state
+     */
+    static void dump(State state) {
+
+        var json = new JSONObject();
+        json.put("auth_token", state.authToken);
+        json.put("username", state.username);
+        json.put("email", state.email);
+        json.put("user_id", state.userId);
+        try (var writer = new FileWriter(State.filename)) {
+            writer.write(json.toString());
+        } catch (IOException e) {
+            Logger.log(Logger.Level.WARN, "Failed to write to " + State.filename + " : " + e.getCause().toString());
+        }
+    }
+}

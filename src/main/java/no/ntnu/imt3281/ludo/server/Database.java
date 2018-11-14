@@ -96,6 +96,9 @@ public class Database implements AutoCloseable {
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Email, email))
             throw new NotUniqueValueException(UserFields.Email);
 
+        if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Username, username))
+            throw new NotUniqueValueException(UserFields.Username);
+
         try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s) VALUES (?, ?, ?)",
                 UserFields.DBName, UserFields.Username, UserFields.Email, UserFields.Password))) {
             statement.setString(1, username);
@@ -132,6 +135,9 @@ public class Database implements AutoCloseable {
             throws SQLException {
         if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Email, email))
             throw new NotUniqueValueException(UserFields.Email);
+
+        if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Username, username))
+            throw new NotUniqueValueException(UserFields.Username);
 
         try (var statement = mConnection.prepareStatement(String.format(
                 "UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ? WHERE %s=?", UserFields.DBName, UserFields.Username,

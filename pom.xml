@@ -116,20 +116,20 @@
     </plugins>
   </build>
   <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.12</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- https://mvnrepository.com/artifact/org.mockito/mockito-all -->
-	<dependency>
-	    <groupId>org.mockito</groupId>
-	    <artifactId>mockito-all</artifactId>
-	    <version>1.10.19</version>
-        <scope>test</scope>
-	</dependency>
-        <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-base -->
+        <dependency>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+          <version>4.12</version>
+          <scope>test</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.mockito/mockito-all -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.10.19</version>
+            <scope>test</scope>
+        </dependency>
+            <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-base -->
 	    <dependency>
 	        <groupId>org.openjfx</groupId>
 	        <artifactId>javafx-base</artifactId>
@@ -153,36 +153,23 @@
 		    <artifactId>javafx-graphics</artifactId>
 		    <version>11</version>
 		</dependency>
-		<dependency>
+
+        <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20180813</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
-		<dependency>
-    		<groupId>org.xerial</groupId>
-    		<artifactId>sqlite-jdbc</artifactId>
-    		<version>3.25.2</version>
-		</dependency>
-		
-		<!-- https://mvnrepository.com/artifact/org.openjfx/javafx-media -->
-        <!-- Uncomment below depency if used -->
-		<!-- <dependency>
-		    <groupId>org.openjfx</groupId>
-		    <artifactId>javafx-media</artifactId>
-		    <version>11</version>
-		</dependency> -->
-		<!-- https://mvnrepository.com/artifact/org.openjfx/javafx-web -->
-        <!-- Uncomment below depency if used -->
-		<!-- <dependency>
-		    <groupId>org.openjfx</groupId>
-		    <artifactId>javafx-web</artifactId>
-		    <version>11</version>
-		</dependency>  -->
+
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derby</artifactId>
+            <version>10.14.2.0</version>
+        </dependency>
+      <!-- https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
       <dependency>
-    	<groupId>org.apache.derby</groupId>
-    	<artifactId>derby</artifactId>
-    	<version>10.14.2.0</version>
-    </dependency>
+          <groupId>org.xerial</groupId>
+          <artifactId>sqlite-jdbc</artifactId>
+          <version>3.25.2</version>
+      </dependency>
   </dependencies>
 </project>

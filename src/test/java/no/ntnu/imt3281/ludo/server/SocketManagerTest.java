@@ -26,7 +26,8 @@ public class SocketManagerTest {
         final AtomicBoolean running = new AtomicBoolean(true);
 
         var server = new SocketManager(NetworkConfig.LISTENING_PORT);
-        server.setOnReceiveCallback((id, val) -> {
+        server.setOnReceiveCallback((msg) -> {
+            var val = msg.message;
             var json = new JSONObject(val);
             var msgID = json.getLong("id");
             assertEquals(msgID, 0);
@@ -49,7 +50,7 @@ public class SocketManagerTest {
             response.put("success", success);
             response.put("error", new JSONArray());
 
-            server.send(id, response.toString());
+            server.send(msg.socketID, response.toString());
         });
         server.start();
 

@@ -6,7 +6,7 @@ import java.net.SocketException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import no.ntnu.imt3281.ludo.common.Connection;
 import no.ntnu.imt3281.ludo.common.Logger;
@@ -25,10 +25,16 @@ import no.ntnu.imt3281.ludo.common.Logger;
  * manually.
  */
 public class SocketManager {
+    public static class Message {
+        public Long socketID; // This is a problem if the client sends more messages before it has gotten an
+        // ID. However, that should not happen, as we get to find out what the ID is when we log the user in.
+        public String message;
+    }
+
 
     // Need specific callback for logging in and creating user, so we can map user
     // id to socket.
-    private BiConsumer<Long, String> mOnReceiveCallback;
+    private Consumer<Message> mOnReceiveCallback;
     private Thread mThread;
     private AtomicBoolean mRunning;
     private int mListeningPort;
@@ -63,7 +69,7 @@ public class SocketManager {
      *                          received. This function must be safe to call in a
      *                          concurrent setting.
      */
-    public void setOnReceiveCallback(BiConsumer<Long, String> onReceiveCallback) {
+    public void setOnReceiveCallback(Consumer<Message> onReceiveCallback) {
         mOnReceiveCallback = onReceiveCallback;
     }
 
@@ -76,18 +82,14 @@ public class SocketManager {
         try {
             mServerSocket = new ServerSocket(mListeningPort);
         } catch (IOException e) {
-            Logger.log(Logger.Level.ERROR,
-                    String.format("Could not open ServerSocket in SocketManager, exception: %s, trace: %s",
-                            e.getClass().getName(), e.getStackTrace()));
+            Logger.logException(Logger.Level.ERROR, e, "Could not open ServerSocket in SocketManager");
         }
         mRunning.set(true);
         mThread = new Thread(() -> {
             try {
                 run();
             } catch (IOException e) {
-                Logger.log(Logger.Level.ERROR,
-                        String.format("Could not start SocketManagerThread, exception: %s, trace: %s",
-                                e.getClass().getName(), e.getStackTrace()));
+                Logger.logException(Logger.Level.ERROR,e , "Could not start SocketManagerThread");
             }
         });
         mThread.start();
@@ -103,9 +105,7 @@ public class SocketManager {
         try {
             mServerSocket.close();
         } catch (Exception e) {
-            Logger.log(Logger.Level.ERROR,
-                    String.format("Could not close SocketManager socket, exception: %s, trace: %s",
-                            e.getClass().getName(), e.getStackTrace()));
+            Logger.logException(Logger.Level.ERROR, e, "Could not close SocketManager socket");
         }
 
         // Need to close all sockets, as that will also stop any potential blocking
@@ -116,8 +116,7 @@ public class SocketManager {
             try {
                 s.stop();
             } catch (Exception e) {
-                Logger.log(Logger.Level.WARN, String.format("Exception Encountered when closing client sockets, %s, %s",
-                        e.getClass().getName(), e.getStackTrace()));
+                Logger.logException(Logger.Level.WARN,e , "Exception Encountered when closing client sockets");
             }
         }
 
@@ -140,8 +139,7 @@ public class SocketManager {
         try {
             socket.send(message);
         } catch (Exception e) {
-            Logger.log(Logger.Level.WARN, String.format("Exception Encountered when sending message, %s, %s",
-                    e.getClass().getName(), e.getStackTrace()));
+            Logger.logException(Logger.Level.WARN, e, "Exception Encountered when sending message");
         }
     }
 
@@ -195,22 +193,21 @@ public class SocketManager {
                     final var newSocketId = mUnknownId.decrementAndGet();
                     var connection = new Connection(socket);
                     connection.setOnReceiveCallback((value) -> {
-                        mOnReceiveCallback.accept(newSocketId, value);
+                        var msg = new Message();
+                        msg.message = value;
+                        msg.socketID = newSocketId;
+                        mOnReceiveCallback.accept(msg);
                     });
 
                     connection.start();
                     mSockets.put(newSocketId, connection);
                 } catch (Exception e) {
-                    Logger.log(Logger.Level.WARN,
-                            String.format("Exception encountered when creating new connection: %s, %s",
-                                    e.getClass().getName(), e.getStackTrace()));
+                    Logger.logException(Logger.Level.WARN, e, "Exception encountered when creating new connection");
                 }
             }
         } catch (SocketException e) {
             if (mRunning.get()) {
-                Logger.log(Logger.Level.ERROR,
-                        String.format("SocketManager Socket closed unexpectedly, exception: %s, trace: %s",
-                                e.getClass().toString(), e.getStackTrace()));
+                Logger.logException(Logger.Level.ERROR, e, "SocketManager Socket closed unexpectedly");
             }
         } finally {
             if (!mServerSocket.isClosed()) {
