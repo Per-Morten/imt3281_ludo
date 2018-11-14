@@ -11,7 +11,17 @@ import no.ntnu.imt3281.ludo.client.*;
 
 public class LudoController implements IController {
 
-    Actions mActions;
+    private Actions mActions;
+    private StateManager mState;
+
+    /**
+     * IController
+     */
+    public void bind(Actions a, StateManager s) {
+
+        mActions = a;
+        mState = s;
+    }
 
     @FXML
     ResourceBundle resources;
@@ -77,5 +87,6 @@ public class LudoController implements IController {
      * (IOException e1) { // TODO Auto-generated catch block e1.printStackTrace(); }
      * }
      */
+
 
 }

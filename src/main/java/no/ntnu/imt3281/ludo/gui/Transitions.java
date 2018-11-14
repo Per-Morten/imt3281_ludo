@@ -11,6 +11,7 @@ import java.util.HashMap;
 
 import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.client.Actions;
+import no.ntnu.imt3281.ludo.client.StateManager;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 
@@ -22,13 +23,15 @@ public class Transitions {
     private HashMap<String, IController> mControllers = new HashMap<>();
     private Stage mStage;
     private Actions mActions;
+    private StateManager mStateManager;
 
-    public void bind(Stage stage, Actions actions) {
+    public void bind(Stage stage, Actions actions, StateManager sm) {
         mStage = stage;
         mActions = actions;
+        mStateManager = sm;
     }
 
-    public void redirect(String filename) {
+    public void render(String filename) {
 
         var rootPane = this.loadFXML(filename);
         var root = new Scene(rootPane);
@@ -60,7 +63,7 @@ public class Transitions {
         try {
             root = fxmlLoader.load();
             IController guiController = fxmlLoader.getController();
-            guiController.bind(mActions);
+            guiController.bind(mActions, mStateManager);
             mControllers.put(filename, guiController);
         } catch (IOException e) {
             Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.toString());

@@ -11,8 +11,20 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import no.ntnu.imt3281.ludo.client.Actions;
+import no.ntnu.imt3281.ludo.client.StateManager;
 
 public class GameBoardController implements IController {
+
+    private Actions mActions;
+    private StateManager mState;
+
+    /**
+     * IController
+     */
+    public void bind(Actions a, StateManager s) {
+        mActions = a;
+        mState = s;
+    }
 
     @FXML
     Label player1Name;
@@ -53,9 +65,5 @@ public class GameBoardController implements IController {
     @FXML
     Button sendTextButton;
 
-    private Actions mActions;
 
-    public void bind(Actions a) {
-        mActions = a;
-    }
 }
