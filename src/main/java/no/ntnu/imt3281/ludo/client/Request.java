@@ -1,5 +1,7 @@
-package no.ntnu.imt3281.ludo.api;
+package no.ntnu.imt3281.ludo.client;
 
+import no.ntnu.imt3281.ludo.api.APIFunctions;
+import no.ntnu.imt3281.ludo.api.RequestType;
 import org.json.JSONObject;
 
 import java.util.ArrayList;

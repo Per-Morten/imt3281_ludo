@@ -21,7 +21,7 @@ public class APIFunctions {
      * @param type enum to be converted
      * @return snake cased string
      */
-    static String toSnakeCase(RequestType type) {
+    static public String toSnakeCase(RequestType type) {
         final String RequestName = type.name();
         StringBuilder request_name = new StringBuilder();
 
@@ -44,7 +44,7 @@ public class APIFunctions {
      * @param response_name snake_cased
      * @return string which could be responseType or eventType
      */
-    static String fromSnakeCase(String response_name) {
+    static public String fromSnakeCase(String response_name) {
         StringBuilder ResponseName = new StringBuilder();
 
         ResponseName.append(String.valueOf(response_name.charAt(0)).toUpperCase());

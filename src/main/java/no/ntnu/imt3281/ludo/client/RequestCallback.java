@@ -1,4 +1,4 @@
-package no.ntnu.imt3281.ludo.api;
+package no.ntnu.imt3281.ludo.client;
 
 import org.json.JSONArray;
 import org.json.JSONObject;

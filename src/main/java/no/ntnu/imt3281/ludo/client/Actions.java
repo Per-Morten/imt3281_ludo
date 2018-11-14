@@ -1,8 +1,5 @@
 package no.ntnu.imt3281.ludo.client;
 
-import no.ntnu.imt3281.ludo.api.API;
-import no.ntnu.imt3281.ludo.api.Request;
-import no.ntnu.imt3281.ludo.api.RequestFactory;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.Transitions;

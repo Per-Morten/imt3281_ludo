@@ -1,6 +1,7 @@
-package no.ntnu.imt3281.ludo.api;
+package no.ntnu.imt3281.ludo.client;
 
-import no.ntnu.imt3281.ludo.client.SocketManager;
+import no.ntnu.imt3281.ludo.api.APIFunctions;
+import no.ntnu.imt3281.ludo.api.Response;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import org.json.JSONException;

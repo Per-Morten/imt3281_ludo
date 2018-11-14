@@ -11,7 +11,6 @@ import javafx.application.Platform;
 import javafx.stage.Stage;
 
 import javafx.stage.WindowEvent;
-import no.ntnu.imt3281.ludo.api.API;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.Transitions;

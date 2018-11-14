@@ -1,7 +1,10 @@
-package no.ntnu.imt3281.ludo.api;
+package no.ntnu.imt3281.ludo.client;
 
 import java.util.ArrayList;
 
+import no.ntnu.imt3281.ludo.api.RequestType;
+import no.ntnu.imt3281.ludo.client.Request;
+import no.ntnu.imt3281.ludo.client.RequestCallback;
 import org.json.JSONObject;
 
 /**
