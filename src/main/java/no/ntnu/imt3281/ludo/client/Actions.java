@@ -19,12 +19,11 @@ public class Actions {
     private State mState = new State();
     private final RequestFactory mRequestFactory = new RequestFactory();
 
-
     /**
      * Bind dependencies of Actions
      *
      * @param transitions to feed mutations
-     * @param API to push requests
+     * @param API         to push requests
      */
     void bind(Transitions transitions, API API, StateManager stateManager) {
         mTransitions = transitions;
@@ -35,7 +34,7 @@ public class Actions {
     /**
      * login user with username and password
      *
-     * @param email valid email
+     * @param email    valid email
      * @param password valid password
      */
     public void login(String email, String password) {
@@ -45,9 +44,7 @@ public class Actions {
         item.put("email", email);
         item.put("password", password);
 
-        Request request = mRequestFactory.make(
-                LOGIN_REQUEST,
-                item,
+        Request request = mRequestFactory.make(LOGIN_REQUEST, item,
                 (req, success) -> Logger.log(Level.INFO, "Action -> LoginSuccess: " + success.toString()),
                 (req, error) -> Logger.log(Level.INFO, "Action -> LoginError: " + error.toString()));
 
@@ -57,7 +54,7 @@ public class Actions {
     /**
      * login user with username and password
      *
-     * @param email valid email
+     * @param email    valid email
      * @param username valid username
      * @param password valid password
      */
@@ -69,15 +66,12 @@ public class Actions {
         item.put("password", password);
         item.put("username", username);
 
-        Request request = mRequestFactory.make(
-                CREATE_USER_REQUEST,
-                item,
+        Request request = mRequestFactory.make(CREATE_USER_REQUEST, item,
                 (req, success) -> Logger.log(Level.INFO, "Action -> CreateUserSuccess"),
                 (req, error) -> Logger.log(Level.INFO, "Action -> CreateUserError"));
 
         mAPI.send(request);
     }
-
 
     /**
      *
@@ -239,7 +233,6 @@ public class Actions {
     public void movePiece() {
         this.logAction("movePiece");
     }
-
 
     /**
      * Log action level info

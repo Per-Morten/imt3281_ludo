@@ -33,7 +33,6 @@ public class LoginController implements IController {
     @FXML
     private Button mButtonCreate;
 
-
     @FXML
     void onClickLogin(ActionEvent event) {
         var email = mLoginEmail.getText();

@@ -26,7 +26,7 @@ public class EchoServer {
     public static void main(String[] args) {
         try (ServerSocket server = new ServerSocket(9010)) {
 
-            try (final Socket s = server.accept()){
+            try (final Socket s = server.accept()) {
 
                 final BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
                 final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
@@ -37,8 +37,9 @@ public class EchoServer {
 
                 String fromRemote;
                 boolean stopping = false;
-                while(!stopping) {
-                    while ((fromRemote = br.readLine()) != null) {// This is a blocking method, will not return until a line is
+                while (!stopping) {
+                    while ((fromRemote = br.readLine()) != null) {// This is a blocking method, will not return until a
+                                                                  // line is
                         Logger.log(Logger.Level.DEBUG, "Reading line...");
                         // available.
                         System.out.println(String.format("Remote said: %s", fromRemote));
@@ -49,7 +50,6 @@ public class EchoServer {
                             JSONObject res = new JSONObject();
                             res.put("id", req.getInt("id"));
                             res.put("type", req.getString("type").replace("request", "response"));
-
 
                             var successItem = new JSONObject();
                             successItem.put("id", 1);
@@ -69,7 +69,7 @@ public class EchoServer {
                                 Logger.log(Logger.Level.INFO, "Response: " + res.toString());
                                 bw.write(res.toString() + '\n');
                                 bw.flush();
-                            }catch (IOException e) {
+                            } catch (IOException e) {
                                 Logger.log(Logger.Level.WARN, "Writing exception " + e.toString());
                             }
 

@@ -16,7 +16,6 @@ import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.Transitions;
 
-
 /**
  * Main class for the client.
  */
@@ -32,6 +31,7 @@ public class Client extends Application {
 
     /**
      * Client entry point
+     * 
      * @param args command line arguments
      */
     public static void main(String[] args) {
@@ -41,12 +41,12 @@ public class Client extends Application {
 
     /**
      * FXML entry point
+     * 
      * @param primaryStage fxml window context
      */
     @Override
-    public void start(Stage primaryStage)  {
+    public void start(Stage primaryStage) {
         Logger.log(Level.INFO, "Starting FXML context");
-
 
         // Set up Socket
         try {
@@ -88,7 +88,7 @@ public class Client extends Application {
 
         try {
             mSocketManager.stop();
-        } catch (InterruptedException e ) {
+        } catch (InterruptedException e) {
             Logger.log(Level.WARN, "InterruptedException when trying to stop mSocketManager");
         }
         State.dump(mStateManager.copy());

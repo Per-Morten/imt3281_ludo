@@ -28,7 +28,7 @@ public class GameBoardController implements IController {
 
     @FXML
     Label player3Name;
-    
+
     @FXML
     ImageView player3Active;
 
@@ -37,10 +37,10 @@ public class GameBoardController implements IController {
 
     @FXML
     ImageView player4Active;
-    
+
     @FXML
     ImageView diceThrown;
-    
+
     @FXML
     Button throwTheDice;
 

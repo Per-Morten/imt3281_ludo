@@ -10,16 +10,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-
 /**
  * Holds all state of client
  */
 public class State {
-     public String token = "";
-     public String username = "";
-     public String email = "";
+    public String token = "";
+    public String username = "";
+    public String email = "";
 
-     private static final String filename = "client-cache.json";
+    private static final String filename = "client-cache.json";
 
     /**
      * Deep copy of state
@@ -27,22 +26,22 @@ public class State {
      * @param state to be copied
      * @return copy
      */
-     public static State deepCopy(State state) {
-         var copy = new State();
-         copy.token = state.token;
-         return copy;
-     }
+    public static State deepCopy(State state) {
+        var copy = new State();
+        copy.token = state.token;
+        return copy;
+    }
 
     /**
      * Load state object from client-cache.json
      *
      * @return created state
      */
-     static State load() {
+    static State load() {
 
         var state = new State();
 
-        try  {
+        try {
             String text = new String(Files.readAllBytes(Paths.get(State.filename)), StandardCharsets.UTF_8);
             var json = new JSONObject(text);
             try {
@@ -70,10 +69,10 @@ public class State {
         json.put("username", state.username);
         json.put("email", state.email);
 
-        try(var writer = new FileWriter(State.filename)) {
+        try (var writer = new FileWriter(State.filename)) {
             writer.write(json.toString());
         } catch (IOException e) {
-            Logger.log(Logger.Level.WARN, "Failed to write to "  + State.filename +  " : " + e.getCause().toString());
+            Logger.log(Logger.Level.WARN, "Failed to write to " + State.filename + " : " + e.getCause().toString());
         }
     }
 }

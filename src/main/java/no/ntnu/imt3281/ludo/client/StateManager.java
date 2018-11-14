@@ -14,7 +14,7 @@ public class StateManager {
     public StateManager(State initialState) {
         try {
             mState.put(initialState);
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             Platform.exit();
         }
     }
@@ -24,21 +24,21 @@ public class StateManager {
      *
      * @return state object
      */
-    public State copy()  {
+    public State copy() {
         State copy = new State();
         try {
             State state = mState.take();
             copy = State.deepCopy(state);
             mState.put(state);
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             Platform.exit();
         }
         return copy;
     }
 
     /**
-     * Mutate the state with provided mutation.
-     * Block all incomming copies until mutation is completed.
+     * Mutate the state with provided mutation. Block all incomming copies until
+     * mutation is completed.
      *
      * @param mutation which should be applied on state
      */
