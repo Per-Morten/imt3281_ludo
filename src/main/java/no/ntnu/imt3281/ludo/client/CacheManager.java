@@ -7,13 +7,13 @@ import java.util.concurrent.ArrayBlockingQueue;
 /**
  * Manage state in a thread safe manner.
  */
-public class StateManager {
+public class CacheManager {
 
-    private ArrayBlockingQueue<State> mState = new ArrayBlockingQueue<State>(1);
+    private ArrayBlockingQueue<Cache> mCache = new ArrayBlockingQueue<Cache>(1);
 
-    public StateManager(State initialState) {
+    public CacheManager(Cache initialCache) {
         try {
-            mState.put(initialState);
+            mCache.put(initialCache);
         } catch (InterruptedException e) {
             Platform.exit();
         }
@@ -24,12 +24,12 @@ public class StateManager {
      *
      * @return state object
      */
-    public State copy() {
-        State copy = new State();
+    public Cache copy() {
+        Cache copy = new Cache();
         try {
-            State state = mState.take();
-            copy = State.deepCopy(state);
-            mState.put(state);
+            Cache cache = mCache.take();
+            copy = Cache.deepCopy(cache);
+            mCache.put(cache);
         } catch (InterruptedException e) {
             Platform.exit();
         }
@@ -44,9 +44,9 @@ public class StateManager {
      */
     public void commit(Mutation mutation) {
         try {
-            State state = mState.take();
-            mutation.run(state);
-            mState.put(State.deepCopy(state));
+            Cache cache = mCache.take();
+            mutation.run(cache);
+            mCache.put(Cache.deepCopy(cache));
         } catch (InterruptedException e) {
             Platform.exit();
         }

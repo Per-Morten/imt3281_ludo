@@ -35,7 +35,7 @@ public class FieldNames {
    public static final String PLAYER_ID = "player_id";
    public static final String PENDING_ID = "pending_id";
 
-   // Game State Related
+   // Game Cache Related
    public static final String PLAYER_ORDER = "player_order";
    public static final String CURRENT_PLAYER_ID = "current_player_id";
    public static final String NEXT_ACTION = "next_action";

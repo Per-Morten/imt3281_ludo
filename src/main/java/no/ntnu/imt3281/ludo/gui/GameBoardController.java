@@ -11,17 +11,17 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import no.ntnu.imt3281.ludo.client.Actions;
-import no.ntnu.imt3281.ludo.client.StateManager;
+import no.ntnu.imt3281.ludo.client.CacheManager;
 
 public class GameBoardController implements IController {
 
     private Actions mActions;
-    private StateManager mState;
+    private CacheManager mState;
 
     /**
      * IController
      */
-    public void bind(Actions a, StateManager s) {
+    public void bind(Actions a, CacheManager s) {
         mActions = a;
         mState = s;
     }

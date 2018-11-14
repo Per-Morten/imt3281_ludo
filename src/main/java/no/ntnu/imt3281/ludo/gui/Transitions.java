@@ -8,12 +8,11 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.ResourceBundle;
 
 import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.client.Actions;
-import no.ntnu.imt3281.ludo.client.StateManager;
+import no.ntnu.imt3281.ludo.client.CacheManager;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 
@@ -24,17 +23,17 @@ public class Transitions {
 
     private Stage mStage;
     private Actions mActions;
-    private StateManager mStateManager;
+    private CacheManager mCacheManager;
 
     public class FXMLDocument {
         public AnchorPane root;
         public IController controller;
     }
 
-    public void bind(Stage stage, Actions actions, StateManager sm) {
+    public void bind(Stage stage, Actions actions, CacheManager sm) {
         mStage = stage;
         mActions = actions;
-        mStateManager = sm;
+        mCacheManager = sm;
     }
 
     public void renderLogin() {
@@ -50,21 +49,22 @@ public class Transitions {
     public void renderLudo() {
         var ludo = this.loadFXML("Ludo.fxml");
         var ludoController = (LudoController)ludo.controller;
-        var state = mStateManager.copy();
 
-        state.gameId.forEach(id -> {
-
-            Logger.log(Level.DEBUG, "NOEN SKJER!");
-            var gameBoard = this.loadFXML("GameBoard.fxml");
-            Tab tab = new Tab("Game" + id);
-            tab.setContent(gameBoard.root);
-            ludoController.mTabbedPane.getTabs().add(tab);
-        });
-        mStage.setScene(new Scene(ludo.root));
-        mStage.show();
         Platform.runLater(()-> {
 
+            var state = mCacheManager.copy();
 
+            Logger.log(Level.DEBUG, "NOEN SKJER!" + state.gameId.size());
+
+            state.gameId.forEach(id -> {
+
+                var gameBoard = this.loadFXML("GameBoard.fxml");
+                Tab tab = new Tab("Game" + id);
+                tab.setContent(gameBoard.root);
+                ludoController.mTabGame.getTabs().add(tab);
+            });
+            mStage.setScene(new Scene(ludo.root));
+            mStage.show();
         });
     }
 
@@ -95,7 +95,7 @@ public class Transitions {
         try {
             fxmlDocument.root = fxmlLoader.load();
             fxmlDocument.controller = fxmlLoader.getController();
-            fxmlDocument.controller.bind(mActions, mStateManager);
+            fxmlDocument.controller.bind(mActions, mCacheManager);
         } catch (IOException e) {
             Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.toString());
         }

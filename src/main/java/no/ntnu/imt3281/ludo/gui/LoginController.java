@@ -8,21 +8,21 @@ import javafx.scene.control.TextField;
 import javafx.event.ActionEvent;
 
 import no.ntnu.imt3281.ludo.client.Actions;
-import no.ntnu.imt3281.ludo.client.State;
-import no.ntnu.imt3281.ludo.client.StateManager;
+import no.ntnu.imt3281.ludo.client.Cache;
+import no.ntnu.imt3281.ludo.client.CacheManager;
 
 public class LoginController implements IController {
 
     private Actions mActions;
-    private StateManager mState;
+    private CacheManager mCache;
 
     /**
      * IController
      */
-    public void bind(Actions a, StateManager s) {
+    public void bind(Actions a, CacheManager c) {
 
         mActions = a;
-        mState = s;
+        mCache = c;
     }
 
     @FXML
@@ -72,8 +72,8 @@ public class LoginController implements IController {
         assert mButtonCreate != null : "fx:id=\"mButtonCreate\" was not injected: check your FXML file 'Login.fxml'.";
 
         Platform.runLater(() -> {
-            State localState = mState.copy();
-            mLoginEmail.setText(localState.email);
+            Cache localCache = mCache.copy();
+            mLoginEmail.setText(localCache.email);
         });
     }
 }

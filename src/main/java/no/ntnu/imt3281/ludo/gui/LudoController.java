@@ -12,64 +12,89 @@ import no.ntnu.imt3281.ludo.client.*;
 public class LudoController implements IController {
 
     private Actions mActions;
-    private StateManager mState;
+    private CacheManager mCache;
 
     /**
      * IController
      */
-    public void bind(Actions a, StateManager s) {
+    public void bind(Actions a, CacheManager c) {
 
         mActions = a;
-        mState = s;
+        mCache = c;
     }
 
     @FXML
-    ResourceBundle resources;
+    public Button mBtnUser;
 
     @FXML
-    TabPane mTabbedPane;
+    public Button mBtnGames;
 
     @FXML
-    Button mBtnLogout;
+    public Button mBtnFriends;
 
     @FXML
-    void onChallangePlayers(ActionEvent event) {
+    public Button mBtnChats;
+
+    @FXML
+    public Button mBtnLogout;
+
+    @FXML
+    public Button mBtnNewGame;
+
+    @FXML
+    public TabPane mTabGame;
+
+    @FXML
+    public Button mBtnNewChat;
+
+    @FXML
+    public TabPane mTabChat;
+
+    @FXML
+    void onClickChats(ActionEvent event) {
 
     }
 
     @FXML
-    void onChatInviteList(ActionEvent event) {
+    void onClickFriends(ActionEvent event) {
 
     }
 
     @FXML
-    void onRoomList(ActionEvent event) {
+    void onClickGames(ActionEvent event) {
 
     }
 
     @FXML
-    void onUserFriendList(ActionEvent event) {
+    void onClickLogout(ActionEvent event) {
 
     }
 
     @FXML
-    void onUserProfile(ActionEvent event) {
+    void onClickUser(ActionEvent event) {
 
     }
 
-    public void bind(Actions actions) {
-        mActions = actions;
+    @FXML
+    void onNewChat(ActionEvent event) {
+
+    }
+
+    @FXML
+    void onNewGame(ActionEvent event) {
+
     }
 
     @FXML
     void initialize() {
-        assert mTabbedPane != null : "fx:id=\"mTabbedPane\" was not injected: check your FXML file 'Ludo.fxml'.";
+        assert mBtnUser != null : "fx:id=\"mBtnUser\" was not injected: check your FXML file 'Ludo.fxml'.";
+        assert mBtnGames != null : "fx:id=\"mBtnGames\" was not injected: check your FXML file 'Ludo.fxml'.";
+        assert mBtnFriends != null : "fx:id=\"mBtnFriends\" was not injected: check your FXML file 'Ludo.fxml'.";
+        assert mBtnChats != null : "fx:id=\"mBtnChats\" was not injected: check your FXML file 'Ludo.fxml'.";
         assert mBtnLogout != null : "fx:id=\"mBtnLogout\" was not injected: check your FXML file 'Ludo.fxml'.";
+        assert mBtnNewGame != null : "fx:id=\"mBtnNewGame\" was not injected: check your FXML file 'Ludo.fxml'.";
+        assert mTabGame != null : "fx:id=\"mTabGame\" was not injected: check your FXML file 'Ludo.fxml'.";
+        assert mBtnNewChat != null : "fx:id=\"mBtnNewChat\" was not injected: check your FXML file 'Ludo.fxml'.";
+        assert mTabChat != null : "fx:id=\"mTabChat\" was not injected: check your FXML file 'Ludo.fxml'.";
     }
-
-    @FXML
-    void onLogout(ActionEvent e) {
-        mActions.logout();
-    }
-
 }

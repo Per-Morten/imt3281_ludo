@@ -14,12 +14,14 @@ import java.util.ArrayList;
 /**
  * Holds all state of client
  */
-public class State {
+public class Cache {
+    // Persistent cache
     public String authToken = "";
     public String username = "";
     public String email = "";
     public int userId = -1;
 
+    // In memory cache
     public ArrayList<Integer> gameId = new ArrayList<Integer>();
     public ArrayList<Integer> clientId = new ArrayList<Integer>();
     public ArrayList<Integer> friendId = new ArrayList<Integer>();
@@ -27,17 +29,21 @@ public class State {
     private static final String filename = "client-cache.json";
 
     /**
-     * Deep copy of state
+     * Deep copy of cache
      *
-     * @param state to be copied
+     * @param cache to be copied
      * @return copy
      */
-    public static State deepCopy(State state) {
-        var copy = new State();
-        copy.authToken = state.authToken;
-        copy.username = state.username;
-        copy.email = state.email;
-        copy.userId = state.userId;
+    public static Cache deepCopy(Cache cache) {
+        var copy = new Cache();
+        copy.authToken = cache.authToken;
+        copy.username = cache.username;
+        copy.email = cache.email;
+        copy.userId = cache.userId;
+
+        copy.gameId.addAll(cache.gameId);
+        copy.clientId.addAll(cache.clientId);
+        copy.friendId.addAll(cache.friendId);
         return copy;
     }
 
@@ -46,12 +52,12 @@ public class State {
      *
      * @return created state
      */
-    static State load() {
+    static Cache load() {
 
-        var state = new State();
+        var state = new Cache();
 
         try {
-            String text = new String(Files.readAllBytes(Paths.get(State.filename)), StandardCharsets.UTF_8);
+            String text = new String(Files.readAllBytes(Paths.get(Cache.filename)), StandardCharsets.UTF_8);
             var json = new JSONObject(text);
             try {
                 state.authToken = json.getString("auth_token");
@@ -59,30 +65,30 @@ public class State {
                 state.email = json.getString("email");
                 state.userId = json.getInt("user_id");
             } catch (JSONException e) {
-                Logger.log(Logger.Level.WARN, "Missing key in " + State.filename);
+                Logger.log(Logger.Level.WARN, "Missing key in " + Cache.filename);
             }
         } catch (IOException e) {
-            Logger.log(Logger.Level.INFO, "Failed to load " + State.filename);
+            Logger.log(Logger.Level.INFO, "Failed to load " + Cache.filename);
         }
         return state;
     }
 
     /**
-     * Dump state object into a client-cache.json file
+     * Dump cache object into a client-cache.json file
      *
-     * @param state
+     * @param cache
      */
-    static void dump(State state) {
+    static void dump(Cache cache) {
 
         var json = new JSONObject();
-        json.put("auth_token", state.authToken);
-        json.put("username", state.username);
-        json.put("email", state.email);
-        json.put("user_id", state.userId);
-        try (var writer = new FileWriter(State.filename)) {
+        json.put("auth_token", cache.authToken);
+        json.put("username", cache.username);
+        json.put("email", cache.email);
+        json.put("user_id", cache.userId);
+        try (var writer = new FileWriter(Cache.filename)) {
             writer.write(json.toString());
         } catch (IOException e) {
-            Logger.log(Logger.Level.WARN, "Failed to write to " + State.filename + " : " + e.getCause().toString());
+            Logger.log(Logger.Level.WARN, "Failed to write to " + Cache.filename + " : " + e.getCause().toString());
         }
     }
 }
