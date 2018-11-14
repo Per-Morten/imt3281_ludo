@@ -31,22 +31,21 @@ public class API {
      */
     public void send(Request request) {
 
-        try {
-            mPendingRequests.put(request);
-        } catch (InterruptedException e) {
-            Logger.log(Logger.Level.INFO, "API.sendRequest interrupted" + e.toString());
+        boolean success = mPendingRequests.offer(request);
+        if (!success) {
+            Logger.log(Logger.Level.WARN, "Still waiting for the previous request. Cannot send more than 1 request at a time");
             return;
         }
 
         try {
             mSocketManager.send(request.toJSON().toString());
-        } catch (IOException e) {
-            Logger.log(Level.WARN, "IOException when trying to sending request: " + e.toString());
+        } catch (Exception e) {
+            Logger.log(Level.WARN, "Could not talk to server: " + e.toString());
             try {
                 mPendingRequests.take();
                 // ... Request failed, so we throw it away, to avoid blocking new attempts.
             } catch (InterruptedException e2) {
-                Logger.log(Logger.Level.INFO, "API.sendRequest interrupted" + e.toString());
+                Logger.log(Logger.Level.INFO, "mPendingRequests.take() interrupted" + e.toString());
             }
         }
     }
