@@ -1,5 +1,6 @@
 package no.ntnu.imt3281.ludo.gui;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
@@ -7,6 +8,7 @@ import javafx.scene.control.TextField;
 import javafx.event.ActionEvent;
 
 import no.ntnu.imt3281.ludo.client.Actions;
+import no.ntnu.imt3281.ludo.client.State;
 
 public class LoginController implements IController {
 
@@ -57,9 +59,10 @@ public class LoginController implements IController {
         assert mCreatePassword != null : "fx:id=\"mCreatePassword\" was not injected: check your FXML file 'Login.fxml'.";
         assert mCreateUsername != null : "fx:id=\"mCreateUsername\" was not injected: check your FXML file 'Login.fxml'.";
         assert mButtonCreate != null : "fx:id=\"mButtonCreate\" was not injected: check your FXML file 'Login.fxml'.";
-    }
 
-    public void bind(Actions a) {
-        mActions = a;
+        Platform.runLater(() -> {
+            State localState = mState.copy();
+            mLoginEmail.setText(localState.email);
+        });
     }
 }

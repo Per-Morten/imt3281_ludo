@@ -14,51 +14,6 @@ import org.json.JSONObject;
  */
 public class RequestFactory {
 
-    public Request make(RequestType _type, ArrayList<JSONObject> _payload, RequestCallback _onSuccess, RequestCallback _onError) {
-
-        var req = new Request();
-        req.id = this.nextRequestId();
-        req.type = _type;
-        req.onSuccess = _onSuccess;
-        req.onError = _onError;
-
-        _payload.forEach(item -> item.put("id", this.nextItemId()));
-
-        req.payload = _payload;
-        return req;
-    }
-
-    public Request make(RequestType _type, ArrayList<JSONObject> _payload, RequestCallback _onSuccess, RequestCallback _onError, String _token) {
-
-        var req = new Request();
-        req.id = this.nextRequestId();
-        req.type = _type;
-        req.token = _token;
-        req.onSuccess = _onSuccess;
-        req.onError = _onError;
-
-        _payload.forEach(item -> item.put("id", this.nextItemId()));
-
-        req.payload = _payload;
-        return req;
-    }
-
-    public Request make(RequestType _type, JSONObject _payload, RequestCallback _onSuccess, RequestCallback _onError) {
-
-        var req = new Request();
-        req.id = this.nextRequestId();
-        req.type = _type;
-        req.onSuccess = _onSuccess;
-        req.onError = _onError;
-
-        var array = new ArrayList<JSONObject>();
-        _payload.put("id", this.nextItemId());
-        array.add(_payload);
-        req.payload = array;
-        return req;
-
-    }
-
     public Request make(RequestType _type, JSONObject _payload, String _token, RequestCallback _onSuccess, RequestCallback _onError) {
 
         var req = new Request();
@@ -75,6 +30,21 @@ public class RequestFactory {
         return req;
     }
 
+    public Request make(RequestType _type,  ArrayList<JSONObject> _payload, String _token, RequestCallback _onSuccess, RequestCallback _onError) {
+
+        var req = new Request();
+        req.id = this.nextRequestId();
+        req.type = _type;
+        req.token = _token;
+        req.onSuccess = _onSuccess;
+        req.onError = _onError;
+
+        _payload.forEach(item -> item.put("id", this.nextItemId()));
+
+        req.payload = _payload;
+        return req;
+    }
+
     private int mItemIncrementer = 0;
     private int mRequestIncrementer = 0;
 
@@ -87,5 +57,4 @@ public class RequestFactory {
         mRequestIncrementer += 1;
         return mRequestIncrementer;
     }
-
 }

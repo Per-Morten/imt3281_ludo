@@ -13,7 +13,7 @@ public class Actions {
     private Transitions mTransitions;
     private API mAPI;
     private StateManager mStateManager;
-    private State mState = new State();
+    private State mLocalState = new State();
     private final RequestFactory mRequestFactory = new RequestFactory();
 
     /**
@@ -41,12 +41,21 @@ public class Actions {
         item.put("email", email);
         item.put("password", password);
 
-        Request request = mRequestFactory.make(LOGIN_REQUEST, item,
-                (req, success) -> Logger.log(Level.INFO, "Action -> LoginSuccess: " + success.toString()),
-                (req, error) -> Logger.log(Level.INFO, "Action -> LoginError: " + error.toString()));
+        Request request = mRequestFactory.make(LOGIN_REQUEST, item, mLocalState.authToken,
+                (req, success) -> {
+                    Logger.log(Level.DEBUG, "Action -> LoginSuccess: " + success.toString());
+
+                    mStateManager.commit(state -> {
+                        // @DUMMY
+                        state.authToken = "afaa254";
+                        // @DUMMY
+                        state.userId = 2;
+                    });
+                    mTransitions.render("Ludo.fxml");
+                },
+                (req, error) -> Logger.log(Level.DEBUG, "Action -> LoginError: " + error.toString()));
 
         mAPI.send(request);
-
     }
 
     /**
@@ -64,9 +73,21 @@ public class Actions {
         item.put("password", password);
         item.put("username", username);
 
-        Request request = mRequestFactory.make(CREATE_USER_REQUEST, item,
-                (req, success) -> Logger.log(Level.INFO, "Action -> CreateUserSuccess"),
-                (req, error) -> Logger.log(Level.INFO, "Action -> CreateUserError"));
+        Request request = mRequestFactory.make(CREATE_USER_REQUEST, item, mLocalState.authToken,
+                (req, success) -> {
+                    Logger.log(Level.DEBUG, "Action -> CreateUserSuccess");
+
+                    mStateManager.commit(state -> {
+                        // @DUMMY
+                        state.userId = 2;
+                        // @DUMMY
+                        state.email = "jonas.solsvik@gmail.com";
+                        // @DUMMY
+                        state.username = "jonasjso";
+                    });
+                    mTransitions.render("Login.fxml");
+                },
+                (req, error) -> Logger.log(Level.DEBUG, "Action -> CreateUserError"));
 
         mAPI.send(request);
     }
@@ -75,7 +96,24 @@ public class Actions {
      *
      */
     public void logout() {
-        this.logAction("logout");
+        this.startAction("logout");
+
+        var item = new JSONObject();
+        item.put("user_id", mLocalState.userId);
+
+        Request request = mRequestFactory.make(LOGOUT_REQUEST, item, mLocalState.authToken,
+                (req, success) -> Logger.log(Level.DEBUG, "Action -> logout"),
+                (req, error) -> Logger.log(Level.DEBUG, "Action -> logout"));
+
+        mAPI.send(request);
+
+        mStateManager.commit(state -> {
+            state.userId = -1;
+            state.email = "";
+            state.authToken = "";
+            state.username = "";
+        });
+        mTransitions.render("Login.fxml");
     }
 
     /**
