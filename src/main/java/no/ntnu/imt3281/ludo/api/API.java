@@ -39,8 +39,8 @@ public class API {
 
         try {
             mSocketManager.send(request.toJSON().toString());
-        } catch (Exception e) {
-            Logger.log(Level.WARN, "Could not talk to server: " + e.toString());
+        } catch (NullPointerException|IOException e) {
+            Logger.log(Level.WARN, "No connection with server: " + e.toString());
             try {
                 mPendingRequests.take();
                 // ... Request failed, so we throw it away, to avoid blocking new attempts.

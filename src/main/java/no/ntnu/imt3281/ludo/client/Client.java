@@ -88,8 +88,8 @@ public class Client extends Application {
 
         try {
             mSocketManager.stop();
-        } catch (InterruptedException e) {
-            Logger.log(Level.WARN, "InterruptedException when trying to stop mSocketManager");
+        } catch (InterruptedException|NullPointerException e) {
+            Logger.log(Level.WARN, "Trying to stop non-existing connection: " + e.toString());
         }
         State.dump(mStateManager.copy());
     }
