@@ -1,5 +1,6 @@
 package no.ntnu.imt3281.ludo.api;
 
+import no.ntnu.imt3281.ludo.common.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -23,15 +24,18 @@ public class JSONValidator {
         try {
             json = new JSONObject(message);
         } catch (JSONException e) {
+            Logger.log(Logger.Level.DEBUG, "JSON object threw exception upon parsing");
             return false;
         }
 
-        if (!hasInt(FieldNames.ID, json) || !hasJSONArray(FieldNames.PAYLOAD, json) || !hasString(FieldNames.TYPE, json)) {
+        if (!hasInt(FieldNames.ID, json) || !hasString(FieldNames.TYPE, json)) {
+            Logger.log(Logger.Level.DEBUG, String.format("Object missing: %s or %s", FieldNames.ID, FieldNames.TYPE));
             return false;
         }
 
         var type = json.getString(FieldNames.TYPE);
         if (RequestType.fromString(type) != null) {
+            Logger.log(Logger.Level.DEBUG, String.format("Object RequestType Invalid, %s", type));
             return verifyRequest(json);
         }
 
@@ -97,32 +101,40 @@ public class JSONValidator {
 
     // This can be generalized to handle all message types if make it generic and send in the array.
     private static boolean verifyRequest(JSONObject json) {
-        if (!hasJSONArray(FieldNames.PAYLOAD, json))
+        if (!hasJSONArray(FieldNames.PAYLOAD, json)) {
+            Logger.log(Logger.Level.DEBUG, String.format("Object didn't contain %s", FieldNames.PAYLOAD));
             return false;
+        }
 
         var type = RequestType.fromString(json.getString(FieldNames.TYPE));
         var payload = json.getJSONArray(FieldNames.PAYLOAD);
 
         for (int i = 0; i < payload.length(); i++) {
             if (!hasJSONObject(i, payload)) {
+                Logger.log(Logger.Level.DEBUG, String.format("Object didn't contain JSONObject in payload", FieldNames.PAYLOAD));
                 return false;
             }
 
             var item = payload.getJSONObject(i); // Must validate that this is a json object
             if (!hasInt(FieldNames.ID, item)) {
+                Logger.log(Logger.Level.DEBUG, String.format("JSONObject in payload doesn't have field", FieldNames.ID));
                 return false;
             }
 
             for (var field : sRequestTypes) {
                 if (field.messageType.contains(type)) {
-                    if (field.type == FieldType.INTEGER && !hasInt(field.fieldName, json))
+                    if (field.type == FieldType.INTEGER && !hasInt(field.fieldName, json)) {
                         return false;
-                    if (field.type == FieldType.STRING && !hasString(field.fieldName, json))
+                    }
+                    if (field.type == FieldType.STRING && !hasString(field.fieldName, json)) {
                         return false;
-                    if (field.type == FieldType.JSON_ARRAY && !hasJSONArray(field.fieldName, json))
+                    }
+                    if (field.type == FieldType.JSON_ARRAY && !hasJSONArray(field.fieldName, json)) {
                         return false;
-                    if (field.type == FieldType.JSON_OBJECT && !hasJSONObject(field.fieldName, json))
+                    }
+                    if (field.type == FieldType.JSON_OBJECT && !hasJSONObject(field.fieldName, json)) {
                         return false;
+                    }
                 }
             }
         }
