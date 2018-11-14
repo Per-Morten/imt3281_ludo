@@ -27,8 +27,9 @@ public enum RequestType {
     START_GAME_REQUEST,
     GET_GAME_REQUEST,
     GET_GAME_STATE_REQUEST,
-    SEND_ROLL_DICE_REQUEST,
+    ROLL_DICE_REQUEST,
     MOVE_PIECE_REQUEST,
+    GET_GAME_RANGE_REQUEST,
     ;
 
     public static RequestType fromString(String value) {

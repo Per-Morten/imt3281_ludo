@@ -11,6 +11,7 @@ public class FieldNames {
    public static final String ERROR = "error";
 
    // User Related
+   public static final String USER = "user";
    public static final String USER_ID = "user_id";
    public static final String USERNAME = "username";
    public static final String EMAIL = "email";
