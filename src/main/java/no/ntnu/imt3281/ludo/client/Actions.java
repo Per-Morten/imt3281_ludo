@@ -8,8 +8,8 @@ import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONObject;
 
-import static no.ntnu.imt3281.ludo.api.RequestType.CreateUserRequest;
-import static no.ntnu.imt3281.ludo.api.RequestType.LoginRequest;
+import static no.ntnu.imt3281.ludo.api.RequestType.CREATE_USER_REQUEST;
+import static no.ntnu.imt3281.ludo.api.RequestType.LOGIN_REQUEST;
 
 public class Actions {
 
@@ -46,7 +46,7 @@ public class Actions {
         item.put("password", password);
 
         Request request = mRequestFactory.make(
-                LoginRequest,
+                LOGIN_REQUEST,
                 item,
                 (req, success) -> Logger.log(Level.INFO, "Action -> LoginSuccess: " + success.toString()),
                 (req, error) -> Logger.log(Level.INFO, "Action -> LoginError: " + error.toString()));
@@ -70,7 +70,7 @@ public class Actions {
         item.put("username", username);
 
         Request request = mRequestFactory.make(
-                CreateUserRequest,
+                CREATE_USER_REQUEST,
                 item,
                 (req, success) -> Logger.log(Level.INFO, "Action -> CreateUserSuccess"),
                 (req, error) -> Logger.log(Level.INFO, "Action -> CreateUserError"));
