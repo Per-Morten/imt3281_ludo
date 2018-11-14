@@ -1,5 +1,7 @@
 package no.ntnu.imt3281.ludo.api;
 
+import no.ntnu.imt3281.ludo.common.Logger;
+
 public enum ResponseType {
     LOGIN_RESPONSE,
     LOGOUT_RESPONSE,

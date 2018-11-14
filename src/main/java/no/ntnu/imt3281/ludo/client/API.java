@@ -1,7 +1,6 @@
 package no.ntnu.imt3281.ludo.client;
 
-import no.ntnu.imt3281.ludo.api.APIFunctions;
-import no.ntnu.imt3281.ludo.api.Response;
+import no.ntnu.imt3281.ludo.api.*;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import org.json.JSONException;
@@ -59,32 +58,37 @@ public class API {
      */
     private void read(String message) {
 
-        Logger.log(Level.DEBUG, "Got a response: " + message);
+        Logger.log(Level.DEBUG, "Got a message: " + message);
 
         var jsonResponse = new JSONObject();
         try {
             jsonResponse = new JSONObject(message);
         } catch (JSONException e) {
-            Logger.log(Level.WARN, "Exception when parsing JSON" + e.toString());
+            Logger.log(Level.WARN, "JSONException when jsonifying message" + e.toString());
             return;
         }
 
-        String snake_case_message_type = new String();
+        String messageType = new String();
         try {
-            snake_case_message_type = jsonResponse.getString("type");
+            messageType = jsonResponse.getString("type");
         } catch (JSONException e) {
-            Logger.log(Level.ERROR, "JSONException when parsing message type" + e.toString());
+            Logger.log(Level.WARN, "JSONException when parsing 'type':" + e.toString());
+            return;
         }
 
-        String PascalCasedMessageType = APIFunctions.fromSnakeCase(snake_case_message_type);
-
-        if (APIFunctions.isResponseType(PascalCasedMessageType)) {
+        ResponseType reqType = ResponseType.fromString(messageType);
+        if (reqType != null) {
             this.handleResponse(jsonResponse);
-        } else if (APIFunctions.isEventType(PascalCasedMessageType)) {
-            this.handleEvent(jsonResponse);
-        } else {
-            Logger.log(Level.WARN, "Unkown message type " + PascalCasedMessageType + " from " + message);
+            return;
         }
+
+        EventType eventType = EventType.fromString(messageType);
+        if (eventType != null) {
+            this.handleEvent(jsonResponse);
+            return;
+        }
+
+        Logger.log(Level.WARN, "Unkown message type: " + messageType);
     }
 
     /**
@@ -97,15 +101,15 @@ public class API {
         Request request = mPendingRequests.poll();
 
         if (request == null) {
-            Logger.log(Level.ERROR, "No request found when handling response");
-            return;
+            Logger.log(Level.ERROR, "No matching request found when handling response");
         }
 
         var response = new Response();
         try {
-            response = APIFunctions.makeResponse(jsonResponse);
+            response = Response.fromJSON(jsonResponse);
         } catch (JSONException e) {
-            Logger.log(Level.ERROR, "JSONException when parsing response" + e.toString());
+            Logger.log(Level.WARN, "JSONException when parsing response: " + e.toString());
+            return;
         }
 
         if (request.id != response.id) {

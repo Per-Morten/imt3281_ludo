@@ -64,7 +64,7 @@ public class Client extends Application {
         // Start socket
         try {
             mSocketManager.start();
-        } catch (IOException e) {
+        } catch (IOException|NullPointerException e) {
             Logger.log(Level.WARN, "Could not create connection: " + e.toString());
         }
 
