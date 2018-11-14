@@ -3,11 +3,13 @@ package no.ntnu.imt3281.ludo.gui;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Tab;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 
 import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.client.Actions;
@@ -20,10 +22,14 @@ import no.ntnu.imt3281.ludo.common.Logger.Level;
  */
 public class Transitions {
 
-    private HashMap<String, IController> mControllers = new HashMap<>();
     private Stage mStage;
     private Actions mActions;
     private StateManager mStateManager;
+
+    public class FXMLDocument {
+        public AnchorPane root;
+        public IController controller;
+    }
 
     public void bind(Stage stage, Actions actions, StateManager sm) {
         mStage = stage;
@@ -31,15 +37,37 @@ public class Transitions {
         mStateManager = sm;
     }
 
-    public void render(String filename) {
+    public void renderLogin() {
 
-        var rootPane = this.loadFXML(filename);
-        var root = new Scene(rootPane);
+        var login = this.loadFXML("Login.fxml");
+        var root = new Scene(login.root);
         Platform.runLater(() -> {
             mStage.setScene(root);
             mStage.show();
         });
     }
+
+    public void renderLudo() {
+        var ludo = this.loadFXML("Ludo.fxml");
+        var ludoController = (LudoController)ludo.controller;
+        var state = mStateManager.copy();
+
+        state.gameId.forEach(id -> {
+
+            Logger.log(Level.DEBUG, "NOEN SKJER!");
+            var gameBoard = this.loadFXML("GameBoard.fxml");
+            Tab tab = new Tab("Game" + id);
+            tab.setContent(gameBoard.root);
+            ludoController.mTabbedPane.getTabs().add(tab);
+        });
+        mStage.setScene(new Scene(ludo.root));
+        mStage.show();
+        Platform.runLater(()-> {
+
+
+        });
+    }
+
 
     private void toastPending(String message) {
         int toastMsgTime = 1500;
@@ -57,17 +85,21 @@ public class Transitions {
                 Color.color((float) 0xB0 / 0xff, (float) 0x00 / 0xff, (float) 0x20 / 0xff));
     }
 
-    private AnchorPane loadFXML(String filename) {
-        var root = new AnchorPane();
+    private FXMLDocument loadFXML(String filename) {
+        var fxmlDocument = new FXMLDocument();
+
         var fxmlLoader = new FXMLLoader(getClass().getResource(filename));
+        fxmlLoader.setResources(ResourceBundle.getBundle("no.ntnu.imt3281.I18N.i18n"));
+
+        IController controller;
         try {
-            root = fxmlLoader.load();
-            IController guiController = fxmlLoader.getController();
-            guiController.bind(mActions, mStateManager);
-            mControllers.put(filename, guiController);
+            fxmlDocument.root = fxmlLoader.load();
+            fxmlDocument.controller = fxmlLoader.getController();
+            fxmlDocument.controller.bind(mActions, mStateManager);
         } catch (IOException e) {
             Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.toString());
         }
-        return root;
+
+        return fxmlDocument;
     }
 }

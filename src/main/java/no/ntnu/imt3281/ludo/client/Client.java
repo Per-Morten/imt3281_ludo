@@ -73,7 +73,7 @@ public class Client extends Application {
             Platform.exit();
         });
 
-        mTransitions.render("Login.fxml");
+        mTransitions.renderLogin();
     }
 
     /**

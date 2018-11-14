@@ -51,8 +51,21 @@ public class Actions {
                         state.authToken = "afaa254";
                         // @DUMMY
                         state.userId = 2;
+                        // @DUMMY
+                        state.gameId.clear();
+                        state.gameId.add(2);
+                        state.gameId.add(3);
+
+                        state.clientId.clear();
+                        state.clientId.add(2);
+                        state.clientId.add(3);
+
+                        state.friendId.clear();
+                        state.friendId.add(2);
+                        state.friendId.add(3);
                     });
-                    mTransitions.render("Ludo.fxml");
+
+                    mTransitions.renderLudo();
                 },
                 (req, error) -> Logger.log(Level.WARN, "Action -> LoginError: " + error.toString()));
 
@@ -86,7 +99,7 @@ public class Actions {
                         // @DUMMY
                         state.username = "jonasjso";
                     });
-                    mTransitions.render("Login.fxml");
+                    mTransitions.renderLogin();
                 },
                 (req, error) -> Logger.log(Level.WARN, "Action -> CreateUserError"));
 
@@ -112,7 +125,7 @@ public class Actions {
                         state.authToken = "";
                         state.username = "";
                     });
-                    mTransitions.render("Login.fxml");
+                    mTransitions.renderLogin();
                 },
                 (req, error) -> Logger.log(Level.WARN, "Action -> LogoutError"));
 

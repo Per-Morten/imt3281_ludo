@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
 /**
  * Holds all state of client
@@ -18,6 +19,10 @@ public class State {
     public String username = "";
     public String email = "";
     public int userId = -1;
+
+    public ArrayList<Integer> gameId = new ArrayList<Integer>();
+    public ArrayList<Integer> clientId = new ArrayList<Integer>();
+    public ArrayList<Integer> friendId = new ArrayList<Integer>();
 
     private static final String filename = "client-cache.json";
 

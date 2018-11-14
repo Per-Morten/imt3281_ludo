@@ -76,6 +76,4 @@ public class LoginController implements IController {
             mLoginEmail.setText(localState.email);
         });
     }
-
-
 }
