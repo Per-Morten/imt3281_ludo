@@ -59,7 +59,7 @@ public class Client extends Application {
         mStateManager = new StateManager(initialState);
         mApi.bind(mSocketManager);
         mActions.bind(mTransitions, mApi, mStateManager);
-        mTransitions.bind(primaryStage, mActions);
+        mTransitions.bind(primaryStage, mActions, mStateManager);
 
         // Start socket
         try {
@@ -73,7 +73,7 @@ public class Client extends Application {
             Platform.exit();
         });
 
-        mTransitions.redirect("Login.fxml");
+        mTransitions.render("Login.fxml");
     }
 
     /**
