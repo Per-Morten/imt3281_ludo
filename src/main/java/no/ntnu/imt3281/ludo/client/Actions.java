@@ -7,6 +7,7 @@ import org.json.JSONObject;
 
 import static no.ntnu.imt3281.ludo.api.RequestType.CREATE_USER_REQUEST;
 import static no.ntnu.imt3281.ludo.api.RequestType.LOGIN_REQUEST;
+import static no.ntnu.imt3281.ludo.api.RequestType.LOGOUT_REQUEST;
 
 public class Actions {
 
@@ -35,7 +36,7 @@ public class Actions {
      * @param password valid password
      */
     public void login(String email, String password) {
-        this.logAction("login");
+        this.startAction("login");
 
         var item = new JSONObject();
         item.put("email", email);
@@ -66,7 +67,7 @@ public class Actions {
      * @param password valid password
      */
     public void createUser(String email, String password, String username) {
-        this.logAction("createUser");
+        this.startAction("createUser");
 
         var item = new JSONObject();
         item.put("email", email);
@@ -90,10 +91,12 @@ public class Actions {
                 (req, error) -> Logger.log(Level.DEBUG, "Action -> CreateUserError"));
 
         mAPI.send(request);
+        mTransitions.render("Login.fxml");
+        // TODO Autocomplete with response
     }
 
     /**
-     *
+     * Logout the user with user_id stored in state.
      */
     public void logout() {
         this.startAction("logout");
@@ -120,162 +123,163 @@ public class Actions {
      *
      */
     public void getUser() {
-        this.logAction("getUser");
+        this.startAction("getUser");
     }
 
     /**
      *
      */
     public void updateUser() {
-        this.logAction("updateUser");
+        this.startAction("updateUser");
     }
 
     /**
      *
      */
     public void deleteUser() {
-        this.logAction("deleteUser");
+        this.startAction("deleteUser");
     }
 
     /**
      *
      */
     public void getFriend() {
-        this.logAction("getFriend");
+        this.startAction("getFriend");
     }
 
     /**
      *
      */
     public void friend() {
-        this.logAction("friend");
+        this.startAction("friend");
     }
 
     /**
      *
      */
     public void unfriend() {
-        this.logAction("unfriend");
+        this.startAction("unfriend");
     }
 
     /**
      *
      */
     public void joinChat() {
-        this.logAction("joinChat");
+        this.startAction("joinChat");
     }
 
     /**
      *
      */
     public void leaveChat() {
-        this.logAction("leaveChat");
+        this.startAction("leaveChat");
     }
 
     /**
      *
      */
     public void getChat() {
-        this.logAction("login");
+        this.startAction("login");
     }
 
     /**
      *
      */
     public void createChat() {
-        this.logAction("createChat");
+        this.startAction("createChat");
     }
 
     /**
      *
      */
     public void sendChatMessage() {
-        this.logAction("sendChatMessage");
+        this.startAction("sendChatMessage");
     }
 
     /**
      *
      */
     public void sendChatInvite() {
-        this.logAction("sendChatInvite");
+        this.startAction("sendChatInvite");
     }
 
     /**
      *
      */
     public void createGame() {
-        this.logAction("createGame");
+        this.startAction("createGame");
     }
 
     /**
      *
      */
     public void joinGame() {
-        this.logAction("joinGame");
+        this.startAction("joinGame");
     }
 
     /**
      *
      */
     public void leaveGame() {
-        this.logAction("leaveGame");
+        this.startAction("leaveGame");
     }
 
     /**
      *
      */
     public void sendGameInvite() {
-        this.logAction("sendGameInvite");
+        this.startAction("sendGameInvite");
     }
 
     /**
      *
      */
     public void declineGameInvite() {
-        this.logAction("declineGameInvite");
+        this.startAction("declineGameInvite");
     }
 
     /**
      *
      */
     public void startGame() {
-        this.logAction("startGame");
+        this.startAction("startGame");
     }
 
     /**
      *
      */
     public void getGame() {
-        this.logAction("getGame");
+        this.startAction("getGame");
     }
 
     /**
      *
      */
     public void getGameState() {
-        this.logAction("getGameState");
+        this.startAction("getGameState");
     }
 
     /**
      *
      */
     public void sendRollDice() {
-        this.logAction("sendRollDice");
+        this.startAction("sendRollDice");
     }
 
     /**
      *
      */
     public void movePiece() {
-        this.logAction("movePiece");
+        this.startAction("movePiece");
     }
 
     /**
-     * Log action level info
+     * Do prep-work and log action.
      *
      * @param methodName name of callee
      */
-    private void logAction(String methodName) {
+    private void startAction(String methodName) {
         Logger.log(Level.INFO, "Action -> " + methodName);
+        mLocalState = mStateManager.copy();
     }
 }

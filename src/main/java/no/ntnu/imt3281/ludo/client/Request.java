@@ -22,7 +22,7 @@ public class Request {
         var json = new JSONObject();
         json.put("id", id);
         json.put("token", token);
-        json.put("type", APIFunctions.toSnakeCase(type));
+        json.put("type", RequestType.toLowerCaseString(type));
         json.put("payload", payload);
 
         return json;

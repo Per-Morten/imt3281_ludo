@@ -63,40 +63,6 @@ public class APIFunctions {
     }
 
     /**
-     * Make reponse object from string
-     *
-     * @param jsonres json response object
-     *
-     * @return Response object
-     */
-    static public Response makeResponse(JSONObject jsonres) throws JSONException, ClassCastException {
-
-        Response res = new Response();
-
-        res.id = jsonres.getInt("id");
-        String resopnseType = APIFunctions.fromSnakeCase(jsonres.getString("type"));
-        res.type = ResponseType.valueOf(resopnseType);
-
-        var successList = new ArrayList<JSONObject>();
-        JSONArray successArray = jsonres.getJSONArray("success");
-        for (int i = 0; i < successArray.length(); ++i) {
-            JSONObject o = successArray.getJSONObject(i);
-            successList.add(o);
-        }
-        res.success = successList;
-
-        var errorList = new ArrayList<JSONObject>();
-        JSONArray errorArray = jsonres.getJSONArray("error");
-        for (int i = 0; i < errorArray.length(); ++i) {
-            JSONObject o = errorArray.getJSONObject(i);
-            errorList.add(o);
-        }
-        res.error = errorList;
-
-        return res;
-    }
-
-    /**
      * Check if string matches any response type enum
      *
      * @param maybeResponseType pascal cased response type

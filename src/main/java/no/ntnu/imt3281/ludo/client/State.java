@@ -30,6 +30,9 @@ public class State {
     public static State deepCopy(State state) {
         var copy = new State();
         copy.authToken = state.authToken;
+        copy.username = state.username;
+        copy.email = state.email;
+        copy.userId = state.userId;
         return copy;
     }
 
@@ -71,7 +74,6 @@ public class State {
         json.put("username", state.username);
         json.put("email", state.email);
         json.put("user_id", state.userId);
-
         try (var writer = new FileWriter(State.filename)) {
             writer.write(json.toString());
         } catch (IOException e) {

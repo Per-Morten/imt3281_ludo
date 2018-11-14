@@ -9,10 +9,21 @@ import javafx.event.ActionEvent;
 
 import no.ntnu.imt3281.ludo.client.Actions;
 import no.ntnu.imt3281.ludo.client.State;
+import no.ntnu.imt3281.ludo.client.StateManager;
 
 public class LoginController implements IController {
 
-    Actions mActions;
+    private Actions mActions;
+    private StateManager mState;
+
+    /**
+     * IController
+     */
+    public void bind(Actions a, StateManager s) {
+
+        mActions = a;
+        mState = s;
+    }
 
     @FXML
     private TextField mLoginEmail;
@@ -65,4 +76,6 @@ public class LoginController implements IController {
             mLoginEmail.setText(localState.email);
         });
     }
+
+
 }

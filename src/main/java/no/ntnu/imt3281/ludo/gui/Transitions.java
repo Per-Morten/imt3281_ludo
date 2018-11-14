@@ -23,12 +23,12 @@ public class Transitions {
     private HashMap<String, IController> mControllers = new HashMap<>();
     private Stage mStage;
     private Actions mActions;
-    private StateManager mState;
+    private StateManager mStateManager;
 
-    public void bind(Stage stage, Actions actions, StateManager s) {
+    public void bind(Stage stage, Actions actions, StateManager sm) {
         mStage = stage;
         mActions = actions;
-        mState = s;
+        mStateManager = sm;
     }
 
     public void render(String filename) {
@@ -63,7 +63,7 @@ public class Transitions {
         try {
             root = fxmlLoader.load();
             IController guiController = fxmlLoader.getController();
-            guiController.bind(mActions, mState);
+            guiController.bind(mActions, mStateManager);
             mControllers.put(filename, guiController);
         } catch (IOException e) {
             Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.toString());
