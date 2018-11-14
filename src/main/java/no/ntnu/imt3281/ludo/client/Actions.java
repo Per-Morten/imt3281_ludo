@@ -49,6 +49,7 @@ public class Actions {
                 (req, error) -> Logger.log(Level.INFO, "Action -> LoginError: " + error.toString()));
 
         mAPI.send(request);
+
     }
 
     /**

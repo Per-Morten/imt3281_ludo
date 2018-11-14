@@ -52,7 +52,7 @@ public class Client extends Application {
         try {
             mSocketManager = new SocketManager(InetAddress.getByName("localhost"), 9010);
         } catch (UnknownHostException e) {
-            Logger.log(Level.ERROR, "UnknownHostException on new SocketManager: " + e.getCause().toString());
+            Logger.log(Level.WARN, "Could not create socket: " + e.toString());
         }
 
         // Bind dependencies between important systems.
@@ -66,7 +66,7 @@ public class Client extends Application {
         try {
             mSocketManager.start();
         } catch (IOException e) {
-            Logger.log(Level.ERROR, "IOException on SocketMAnager.start()): " + e.getCause().toString());
+            Logger.log(Level.WARN, "Could not create connection: " + e.toString());
         }
 
         // Handle close window
