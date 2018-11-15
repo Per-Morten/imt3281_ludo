@@ -30,24 +30,26 @@ public class API {
      * @param request to be sent to server
      */
     public void send(Request request) {
-
-        boolean success = mPendingRequests.offer(request);
-        if (!success) {
-            Logger.log(Logger.Level.WARN, "Still waiting for the previous request. Cannot send more than 1 request at a time");
-            return;
-        }
-
-        try {
-            mSocketManager.send(request.toJSON().toString());
-        } catch (NullPointerException|IOException e) {
-            Logger.log(Level.WARN, "No connection with server: " + e.toString());
+        new Thread(() -> {
             try {
-                mPendingRequests.take();
-                // ... Request failed, so we throw it away, to avoid blocking new attempts.
-            } catch (InterruptedException e2) {
+                mPendingRequests.put(request);
+            } catch(InterruptedException e) {
                 Logger.log(Logger.Level.INFO, "mPendingRequests.take() interrupted" + e.toString());
+                return;
             }
-        }
+
+            try {
+                mSocketManager.send(request.toJSON().toString());
+            } catch (NullPointerException | IOException e) {
+                Logger.log(Level.WARN, "No connection with server: " + e.toString());
+                try {
+                    mPendingRequests.take();
+                    // ... Request failed, so we throw it away, to avoid blocking new requests.
+                } catch (InterruptedException e2) {
+                    Logger.log(Logger.Level.INFO, "mPendingRequests.take() interrupted" + e.toString());
+                }
+            }
+        }).start();
     }
 
     /**

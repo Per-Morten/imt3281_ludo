@@ -37,7 +37,7 @@ public class CacheManager {
     }
 
     /**
-     * Mutate the state with provided mutation. Block all incomming copies until
+     * Mutate the state with provided mutation. Block all incoming copies until
      * mutation is completed.
      *
      * @param mutation which should be applied on state
@@ -46,7 +46,7 @@ public class CacheManager {
         try {
             Cache cache = mCache.take();
             mutation.run(cache);
-            mCache.put(Cache.deepCopy(cache));
+            mCache.put(cache);
         } catch (InterruptedException e) {
             Platform.exit();
         }

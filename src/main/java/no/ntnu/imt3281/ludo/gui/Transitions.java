@@ -2,9 +2,9 @@ package no.ntnu.imt3281.ludo.gui;
 
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 
 import java.io.IOException;
@@ -26,7 +26,7 @@ public class Transitions {
     private CacheManager mCacheManager;
 
     public class FXMLDocument {
-        public AnchorPane root;
+        public Parent root;
         public IController controller;
     }
 
@@ -69,6 +69,49 @@ public class Transitions {
         var state = mCacheManager.copy();
 
         Platform.runLater(()-> {
+
+            state.gameRange.forEach(game -> {
+                Logger.log(Level.DEBUG, "" + game.toString());
+
+                var item = this.loadFXML("ListItem.fxml");
+                var itemController = (ListItemController)item.controller;
+                var name = game.getString("name");
+                var playerCount = game.getJSONArray("player_id").length();
+
+                itemController.mText.setText(name + " [" + playerCount + "/4]");
+                searchController.mBoxGames.getChildren().add(item.root);
+            });
+
+            state.chatRange.forEach(chat -> {
+                var item = this.loadFXML("ListItem.fxml");
+                var itemController = (ListItemController)item.controller;
+
+                var name = chat.getString("name");
+                var participantCount = chat.getJSONArray("participant_id").length();
+                itemController.mText.setText(name + "[" + participantCount + " people]");
+                searchController.mBoxChats.getChildren().add(item.root);
+            });
+
+            state.friendRange.forEach(friend -> {
+                var item = this.loadFXML("ListItem.fxml");
+                var itemController = (ListItemController)item.controller;
+
+                var name = friend.getString("username");
+
+                itemController.mText.setText(name);
+                searchController.mBoxFriends.getChildren().add(item.root);
+            });
+
+            state.userRange.forEach(user -> {
+                var item = this.loadFXML("ListItem.fxml");
+                var itemController = (ListItemController)item.controller;
+
+                var name = user.getString("username");
+
+                itemController.mText.setText(name);
+                searchController.mBoxUsers.getChildren().add(item.root);
+            });
+
             mStage.setScene(new Scene(search.root));
             mStage.show();
         });
