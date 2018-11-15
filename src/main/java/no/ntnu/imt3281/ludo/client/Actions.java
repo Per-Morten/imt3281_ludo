@@ -45,35 +45,33 @@ public class Actions {
         Request request = mRequestFactory.make(LOGIN_REQUEST, item, mLocalCache.authToken,
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Action -> LoginSuccess: " + success.toString());
-
-                    mCacheManager.commit(state -> {
-                        // @DUMMY
-                        state.authToken = "afaa254";
-                        // @DUMMY
-                        state.userId = 2;
-                        // @DUMMY
-                        state.gameId.clear();
-                        state.gameId.add(2);
-                        state.gameId.add(3);
-                        // @DUMMY
-                        state.clientId.clear();
-                        state.clientId.add(2);
-                        state.clientId.add(3);
-                        // @DUMMY
-                        state.friendId.clear();
-                        state.friendId.add(2);
-                        state.friendId.add(3);
-                    });
-
-                    var state = mCacheManager.copy();
-
-                    Logger.log(Level.DEBUG, "NOEN SKJERsasdsds!" + state.gameId.size());
-
-                    mTransitions.renderLudo();
                 },
                 (req, error) -> Logger.log(Level.WARN, "Action -> LoginError: " + error.toString()));
 
         mAPI.send(request);
+
+        mCacheManager.commit(state -> {
+            // @DUMMY
+            state.authToken = "afaa254";
+            // @DUMMY
+            state.userId = 2;
+            // @DUMMY
+            state.gameId.clear();
+            state.gameId.add(2);
+            state.gameId.add(3);
+            // @DUMMY
+            state.clientId.clear();
+            state.clientId.add(2);
+            state.clientId.add(3);
+            // @DUMMY
+            state.friendId.clear();
+            state.friendId.add(2);
+            state.friendId.add(3);
+        });
+
+        var state = mCacheManager.copy();
+
+        mTransitions.renderLudo();
     }
 
     /**
@@ -95,19 +93,20 @@ public class Actions {
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Action -> CreateUserSuccess");
 
-                    mCacheManager.commit(state -> {
-                        // @DUMMY
-                        state.userId = 2;
-                        // @DUMMY
-                        state.email = "jonas.solsvik@gmail.com";
-                        // @DUMMY
-                        state.username = "jonasjso";
-                    });
-                    mTransitions.renderLogin();
                 },
                 (req, error) -> Logger.log(Level.WARN, "Action -> CreateUserError"));
 
         mAPI.send(request);
+
+        mCacheManager.commit(state -> {
+            // @DUMMY
+            state.userId = 2;
+            // @DUMMY
+            state.email = "jonas.solsvik@gmail.com";
+            // @DUMMY
+            state.username = "jonasjso";
+        });
+        mTransitions.renderLogin();
     }
 
     /**
@@ -123,17 +122,17 @@ public class Actions {
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Action -> LogoutSucces");
 
-                    mCacheManager.commit(state -> {
-                        state.userId = -1;
-                        state.email = "";
-                        state.authToken = "";
-                        state.username = "";
-                    });
-                    mTransitions.renderLogin();
                 },
                 (req, error) -> Logger.log(Level.WARN, "Action -> LogoutError"));
 
         mAPI.send(request);
+        mCacheManager.commit(state -> {
+            state.userId = -1;
+            state.email = "";
+            state.authToken = "";
+            state.username = "";
+        });
+        mTransitions.renderLogin();
     }
 
     /**

@@ -7,11 +7,11 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="1000.0" prefWidth="1500.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.LudoController">
+<AnchorPane prefHeight="1000.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.LudoController">
    <children>
       <VBox prefHeight="200.0" prefWidth="100.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <HBox alignment="CENTER" prefHeight="80.0" prefWidth="1500.0" style="-fx-background-color: #ddd; -fx-border-color: #333;">
+            <HBox alignment="CENTER" prefHeight="66.0" prefWidth="1600.0" style="-fx-background-color: #ddd; -fx-border-color: #333;">
                <children>
                   <Button fx:id="mBtnUser" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickUser" prefHeight="30.0" prefWidth="100.0" text="User" />
                   <Button fx:id="mBtnGames" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickGames" prefHeight="30.0" prefWidth="100.0" text="Games" />
@@ -25,7 +25,7 @@
             </HBox>
             <HBox prefHeight="85.0" prefWidth="1232.0" VBox.vgrow="ALWAYS">
                <children>
-                  <VBox prefHeight="920.0" prefWidth="1252.0" style="-fx-border-color: #333;" HBox.hgrow="SOMETIMES">
+                  <VBox prefHeight="934.0" prefWidth="1233.0" style="-fx-border-color: #333;" HBox.hgrow="SOMETIMES">
                      <children>
                         <HBox alignment="CENTER_LEFT" style="-fx-background-color: #ddd;">
                            <children>
@@ -35,10 +35,10 @@
                               <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                            </padding>
                         </HBox>
-                        <TabPane fx:id="mTabGame" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
+                        <TabPane fx:id="mTabGame" prefHeight="882.0" prefWidth="1009.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
                      </children>
                   </VBox>
-                  <VBox prefHeight="920.0" prefWidth="844.0" style="-fx-border-color: #333;" HBox.hgrow="SOMETIMES">
+                  <VBox prefHeight="934.0" prefWidth="857.0" style="-fx-border-color: #333;" HBox.hgrow="SOMETIMES">
                      <children>
                         <HBox alignment="CENTER_RIGHT" style="-fx-background-color: #ddd;">
                            <children>
@@ -48,7 +48,7 @@
                               <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                            </padding>
                         </HBox>
-                        <TabPane fx:id="mTabChat" prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
+                        <TabPane fx:id="mTabChat" prefHeight="882.0" prefWidth="636.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
                      </children>
                   </VBox>
                </children>

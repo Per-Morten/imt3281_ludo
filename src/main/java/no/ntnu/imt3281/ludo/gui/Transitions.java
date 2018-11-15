@@ -49,15 +49,10 @@ public class Transitions {
     public void renderLudo() {
         var ludo = this.loadFXML("Ludo.fxml");
         var ludoController = (LudoController)ludo.controller;
+        var state = mCacheManager.copy();
 
         Platform.runLater(()-> {
-
-            var state = mCacheManager.copy();
-
-            Logger.log(Level.DEBUG, "NOEN SKJER!" + state.gameId.size());
-
             state.gameId.forEach(id -> {
-
                 var gameBoard = this.loadFXML("GameBoard.fxml");
                 Tab tab = new Tab("Game" + id);
                 tab.setContent(gameBoard.root);
