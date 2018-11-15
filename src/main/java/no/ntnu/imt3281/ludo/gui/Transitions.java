@@ -38,7 +38,7 @@ public class Transitions {
 
     public void renderLogin() {
 
-        var login = this.loadFXML("Login.fxml");
+        var login = this.loadFXML("SceneLogin.fxml");
         var root = new Scene(login.root);
         Platform.runLater(() -> {
             mStage.setScene(root);
@@ -46,23 +46,44 @@ public class Transitions {
         });
     }
 
-    public void renderLudo() {
-        var ludo = this.loadFXML("Ludo.fxml");
-        var ludoController = (LudoController)ludo.controller;
+    public void renderLive() {
+        var live = this.loadFXML("SceneLive.fxml");
+        var liveController = (SceneLiveController)live.controller;
         var state = mCacheManager.copy();
 
         Platform.runLater(()-> {
             state.gameId.forEach(id -> {
-                var gameBoard = this.loadFXML("GameBoard.fxml");
+                var gameTab = this.loadFXML("TabGame.fxml");
                 Tab tab = new Tab("Game" + id);
-                tab.setContent(gameBoard.root);
-                ludoController.mTabGame.getTabs().add(tab);
+                tab.setContent(gameTab.root);
+                liveController.mTabGame.getTabs().add(tab);
             });
-            mStage.setScene(new Scene(ludo.root));
+            mStage.setScene(new Scene(live.root));
             mStage.show();
         });
     }
 
+    public void renderSearch() {
+        var search = this.loadFXML("SceneSearch.fxml");
+        var searchController = (SceneSearchController)search.controller;
+        var state = mCacheManager.copy();
+
+        Platform.runLater(()-> {
+            mStage.setScene(new Scene(search.root));
+            mStage.show();
+        });
+    }
+
+    public void renderUser() {
+        var user = this.loadFXML("SceneUser.fxml");
+        var userController = (SceneSearchController)user.controller;
+        var state = mCacheManager.copy();
+
+        Platform.runLater(()-> {
+            mStage.setScene(new Scene(user.root));
+            mStage.show();
+        });
+    }
 
     private void toastPending(String message) {
         int toastMsgTime = 1500;

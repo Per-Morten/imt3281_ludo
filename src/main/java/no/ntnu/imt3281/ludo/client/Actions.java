@@ -71,7 +71,7 @@ public class Actions {
 
         var state = mCacheManager.copy();
 
-        mTransitions.renderLudo();
+        mTransitions.renderLive();
     }
 
     /**
@@ -138,6 +138,55 @@ public class Actions {
     /**
      *
      */
+    public void gotoLive() {
+        mTransitions.renderLive();
+    }
+
+    /**
+     *
+     */
+    public void gotoSearch() {
+        mTransitions.renderSearch();
+    }
+
+    /**
+     *
+     */
+    public void gotoUser() {
+        mTransitions.renderUser();
+    }
+
+    /**
+     *
+     */
+    public void newGame() {
+        this.startAction("newGame");
+    }
+
+    /**
+     *
+     */
+    public void newChat() {
+        this.startAction("newChat");
+    }
+
+    /**
+     *
+     */
+    public void submitGame() {
+        this.startAction("submitGame");
+    }
+
+    /**
+     *
+     */
+    public void submitChat() {
+        this.startAction("submitChat");
+    }
+
+    /**
+     *
+     */
     public void getUser() {
         this.startAction("getUser");
     }
@@ -198,12 +247,6 @@ public class Actions {
         this.startAction("login");
     }
 
-    /**
-     *
-     */
-    public void createChat() {
-        this.startAction("createChat");
-    }
 
     /**
      *
@@ -219,12 +262,6 @@ public class Actions {
         this.startAction("sendChatInvite");
     }
 
-    /**
-     *
-     */
-    public void createGame() {
-        this.startAction("createGame");
-    }
 
     /**
      *
