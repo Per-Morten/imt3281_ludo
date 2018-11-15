@@ -86,7 +86,6 @@ public class Transitions {
         var fxmlLoader = new FXMLLoader(getClass().getResource(filename));
         fxmlLoader.setResources(ResourceBundle.getBundle("no.ntnu.imt3281.I18N.i18n"));
 
-        IController controller;
         try {
             fxmlDocument.root = fxmlLoader.load();
             fxmlDocument.controller = fxmlLoader.getController();
