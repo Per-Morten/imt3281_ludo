@@ -1,5 +1,8 @@
 package no.ntnu.imt3281.ludo.common;
 
+import java.sql.Timestamp;
+import java.util.Date;
+
 /**
  * Class used for logging, as we didn't really like a lot of the other logger
  * frameworks. The logger is single instance, so no need create it on a pr
@@ -52,8 +55,10 @@ public class Logger {
             return;
         }
 
+        var currentTime = new Timestamp(new Date().getTime());
+
         var out = (level == Level.ERROR || level == Level.WARN) ? System.err : System.out;
-        out.println(String.format("%s: %s%n", level.toString(), string));
+        out.println(String.format("%s %s: %s%n", currentTime, level.toString(), string));
         out.flush();
 
         if (level == Level.ERROR) {
@@ -70,8 +75,10 @@ public class Logger {
             return;
         }
 
+        var currentTime = new Timestamp(new Date().getTime());
+
         var out = (level == Level.ERROR || level == Level.WARN) ? System.err : System.out;
-        out.println(String.format("%s: %s, Exception Encountered: %s, trace:%n", level.toString(), string, exception.getClass()));
+        out.println(String.format("%s %s: %s, Exception Encountered: %s, trace:%n", currentTime, level.toString(), string, exception.getClass()));
         exception.printStackTrace(out);
         out.flush();
 
