@@ -1,5 +1,8 @@
 package no.ntnu.imt3281.ludo.server;
 
+import no.ntnu.imt3281.ludo.common.Connection;
+import no.ntnu.imt3281.ludo.common.Logger;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.SocketException;
@@ -7,9 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-
-import no.ntnu.imt3281.ludo.common.Connection;
-import no.ntnu.imt3281.ludo.common.Logger;
 
 /**
  * SocketManager for the server side of the application. Handles sending and
