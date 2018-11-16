@@ -1,5 +1,7 @@
 package no.ntnu.imt3281.ludo.server;
 
+import no.ntnu.imt3281.ludo.api.Error;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -90,16 +92,17 @@ public class Database implements AutoCloseable {
      * @return Returns the user_id of the new user
      * @throws SQLException            Throws SQLException Upon SQL Errors (Should
      *                                 not happen)
-     * @throws NotUniqueValueException Throws NotUniqueValueException in the case
+     * @throws APIErrorException Throws APIErrorException in the case
      *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see NotUniqueValueException
+     *                                 isn't unique. @see APIErrorException
+     *                                 In this case this is if the username or email isn't unique.
      */
     public int createUser(String username, String email, String password, String salt) throws SQLException {
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Email, email))
-            throw new NotUniqueValueException(UserFields.Email);
+            throw new APIErrorException(Error.NOT_UNIQUE_EMAIL);
 
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Username, username))
-            throw new NotUniqueValueException(UserFields.Username);
+            throw new APIErrorException(Error.NOT_UNIQUE_USERNAME);
 
         try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s, %s) VALUES (?, ?, ?, ?)",
                 UserFields.DBName, UserFields.Username, UserFields.Email, UserFields.Password, UserFields.Salt))) {
@@ -130,17 +133,18 @@ public class Database implements AutoCloseable {
      * @param avatarURI The new avatar URI of the user.
      * @throws SQLException            Throws SQLException on SQL errors (should not
      *                                 happen)
-     * @throws NotUniqueValueException Throws NotUniqueValueException in the case
+     * @throws APIErrorException Throws APIErrorException in the case
      *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see NotUniqueValueException
+     *                                 isn't unique. @see APIErrorException
+     *                                 In this case this is if the username or email isn't unique.
      */
     public void updateUser(int id, String username, String email, String password, String avatarURI, String salt)
             throws SQLException {
         if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Email, email))
-            throw new NotUniqueValueException(UserFields.Email);
+            throw new APIErrorException(Error.NOT_UNIQUE_EMAIL);
 
-        if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Username, username))
-            throw new NotUniqueValueException(UserFields.Username);
+        if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Username, username))
+            throw new APIErrorException(Error.NOT_UNIQUE_USERNAME);
 
         try (var statement = mConnection.prepareStatement(String.format(
                 "UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE %s=?", UserFields.DBName, UserFields.Username,
@@ -223,13 +227,13 @@ public class Database implements AutoCloseable {
      * @param token The token to give to the user.
      * @throws SQLException            Throws SQLException on SQL errors (should not
      *                                 happen)
-     * @throws NotUniqueValueException Throws NotUniqueValueException if the token
+     * @throws NotUniqueTokenException Throws NotUniqueValueException if the token
      *                                 is already in use somewhere else. @see
      *                                 NotUniqueValueException.
      */
     public void setUserToken(int id, String token) throws SQLException {
         if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Token, token))
-            throw new NotUniqueValueException(UserFields.Token);
+            throw new NotUniqueTokenException();
 
         try (var statement = mConnection.prepareStatement(String.format("UPDATE %s SET %s = ? WHERE %s = ?",
                 UserFields.DBName, UserFields.Token, UserFields.ID))) {
