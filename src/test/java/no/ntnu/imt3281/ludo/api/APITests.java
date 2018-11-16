@@ -12,11 +12,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
@@ -26,9 +28,6 @@ public class APITests {
     private static Thread sServerThread;
     private static final long TIMEOUT_TIME_MS = 5000;
 
-    // TODO: Set up method that sends oneoff requests and responses.
-
-
     private static final User USER_1 = new User(1, "User1", null, "User1@mail.com", null, null, "User1Password");
     private static final User USER_2 = new User(2, "User2", null, "User2@mail.com", null, null, "User2Password");
     private static final User USER_3 = new User(3, "User3", null, "User3@mail.com", null, null, "User3Password");
@@ -37,10 +36,15 @@ public class APITests {
     private static final User USER_TO_BE_DELETED = new User(6, "UserToBeDeleted", null, "UserToBeDeleted@mail.com", null, null, "UserToBeDeletedPassword");
 
     private static JSONObject createRequest(RequestType type, JSONArray payload) {
+        return createRequest(type, payload, null);
+    }
+
+    private static JSONObject createRequest(RequestType type, JSONArray payload, String token) {
         var json = new JSONObject();
         json.put(FieldNames.ID, 0);
         json.put(FieldNames.TYPE, type.toLowerCaseString());
         json.put(FieldNames.PAYLOAD, payload);
+        json.put(FieldNames.AUTH_TOKEN, token);
         return json;
     }
 
@@ -63,6 +67,15 @@ public class APITests {
         request.put(FieldNames.PASSWORD, password);
         payload.put(0, request);
         return createRequest(RequestType.LOGIN_REQUEST, payload);
+    }
+
+    private static JSONObject createGetUserRequest(int userID, String token) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID,0);
+        request.put(FieldNames.USER_ID, userID);
+        payload.put(0, request);
+        return createRequest(RequestType.GET_USER_REQUEST, payload, token);
     }
 
     private static void sendPreparationMessageToServer(JSONObject message, Consumer<JSONObject> callback) throws IOException, InterruptedException {
@@ -138,7 +151,6 @@ public class APITests {
             }
             USER_TO_BE_DELETED.token = success.getJSONObject(0).getString(FieldNames.AUTH_TOKEN);
         });
-
     }
 
 
@@ -305,6 +317,7 @@ public class APITests {
 
         var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
         socket.setOnReceiveCallback((string) -> {
+            Logger.log(Logger.Level.DEBUG, String.format("Got message back %s", string));
             var json = new JSONObject(string);
             var msgID = json.getInt(FieldNames.ID);
             assertEquals(0, msgID);
@@ -317,10 +330,13 @@ public class APITests {
             assertEquals(0, id);
             assertEquals(1, firstSuccess.getInt(FieldNames.USER_ID));
             assertEquals(USER_1.username, firstSuccess.getString(FieldNames.USERNAME));
-            assertEquals(USER_1.avatarURI, firstSuccess.getString(FieldNames.AVATAR_URI));
+            // TODO: Ask Jonas, if we have a null value in the json fields, should we remove the field, or mark it as ""?
+            //assertEquals(USER_1.avatarURI, firstSuccess.getString(FieldNames.AVATAR_URI));
 
             var error = json.getJSONArray(FieldNames.ERROR);
             assert (error.length() == 0);
+
+            Logger.log(Logger.Level.DEBUG, "Got here");
 
             running.set(false);
         });
@@ -359,23 +375,43 @@ public class APITests {
     @Test
     public void canUpdateUser() throws IOException, InterruptedException {
         final AtomicBoolean running = new AtomicBoolean(true);
+        final AtomicInteger count = new AtomicInteger(0);
 
         var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
         socket.setOnReceiveCallback((string) -> {
-            var json = new JSONObject(string);
-            var msgID = json.getInt(FieldNames.ID);
-            assertEquals(0, msgID);
-            var type = json.getString(FieldNames.TYPE);
-            assertEquals(ResponseType.UPDATE_USER_RESPONSE.toLowerCaseString(), type);
-            var success = json.getJSONArray(FieldNames.SUCCESS);
-            assertEquals(1, success.length());
-            var firstSuccess = success.getJSONObject(0);
-            var id = firstSuccess.get(FieldNames.ID);
-            assertEquals(0, id);
-            var error = json.getJSONArray(FieldNames.ERROR);
-            assert (error.length() == 0);
+            if (count.get() == 0) {
+                var json = new JSONObject(string);
+                var msgID = json.getInt(FieldNames.ID);
+                assertEquals(0, msgID);
+                var type = json.getString(FieldNames.TYPE);
+                assertEquals(ResponseType.UPDATE_USER_RESPONSE.toLowerCaseString(), type);
+                var success = json.getJSONArray(FieldNames.SUCCESS);
+                assertEquals(1, success.length());
+                var firstSuccess = success.getJSONObject(0);
+                var id = firstSuccess.get(FieldNames.ID);
+                assertEquals(0, id);
+                var error = json.getJSONArray(FieldNames.ERROR);
+                assert (error.length() == 0);
 
-            running.set(false);
+                try {
+                    socket.send(createGetUserRequest(USER_TO_BE_UPDATED.id, USER_TO_BE_UPDATED.token).toString());
+                } catch (IOException e) {
+                    fail();
+                }
+            }
+            if (count.get() == 1) {
+                var json = new JSONObject(string);
+                var success = json.getJSONArray(FieldNames.SUCCESS);
+                assertEquals(1, success.length());
+                var firstUser = success.getJSONObject(0);
+                assertEquals("Some Cool Avatar", firstUser.getString(FieldNames.AVATAR_URI));
+            }
+
+
+            count.incrementAndGet();
+            if (count.get() >= 2) {
+                running.set(false);
+            }
 
         });
 
@@ -413,24 +449,44 @@ public class APITests {
     @Test
     public void canDeleteUser() throws IOException, InterruptedException {
         final AtomicBoolean running = new AtomicBoolean(true);
+        final AtomicInteger count = new AtomicInteger(0);
 
         var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
         socket.setOnReceiveCallback((string) -> {
-            var json = new JSONObject(string);
-            var msgID = json.getInt(FieldNames.ID);
-            assertEquals(0, msgID);
-            var type = json.getString(FieldNames.TYPE);
-            assertEquals(ResponseType.DELETE_USER_RESPONSE.toLowerCaseString(), type);
-            var success = json.getJSONArray(FieldNames.SUCCESS);
-            assertEquals(1, success.length());
-            var firstSuccess = success.getJSONObject(0);
-            var id = firstSuccess.get(FieldNames.ID);
-            assertEquals(0, id);
-            var error = json.getJSONArray(FieldNames.ERROR);
-            assert (error.length() == 0);
+            if (count.get() == 0) {
+                var json = new JSONObject(string);
+                var msgID = json.getInt(FieldNames.ID);
+                assertEquals(0, msgID);
+                var type = json.getString(FieldNames.TYPE);
+                assertEquals(ResponseType.DELETE_USER_RESPONSE.toLowerCaseString(), type);
+                var success = json.getJSONArray(FieldNames.SUCCESS);
+                assertEquals(1, success.length());
+                var firstSuccess = success.getJSONObject(0);
+                var id = firstSuccess.get(FieldNames.ID);
+                assertEquals(0, id);
+                var error = json.getJSONArray(FieldNames.ERROR);
+                assert (error.length() == 0);
 
-            running.set(false);
+                try {
+                    socket.send(createGetUserRequest(USER_TO_BE_DELETED.id, USER_TO_BE_DELETED.token).toString());
+                } catch (IOException e) {
+                    fail();
+                }
+            }
 
+            if (count.get() == 1) {
+                var json = new JSONObject(string);
+                var error = json.getJSONArray(FieldNames.ERROR);
+                assertEquals(1, error.length());
+                var firstError = error.getJSONObject(0);
+                assertEquals(0, firstError.getInt(FieldNames.ID));
+                assertEquals(Error.USER_ID_NOT_FOUND, Error.fromInt(firstError.getJSONArray(FieldNames.CODE).getInt(0)));
+            }
+
+            count.incrementAndGet();
+            if (count.get() >= 2) {
+                running.set(false);
+            }
         });
 
         socket.start();

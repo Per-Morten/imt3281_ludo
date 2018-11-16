@@ -6,6 +6,7 @@ public enum Error {
     NOT_UNIQUE_EMAIL,
     NOT_UNIQUE_USERNAME,
     INVALID_USERNAME_OR_PASSWORD,
+    USER_ID_NOT_FOUND,
     ;
 
     public int toInt() {

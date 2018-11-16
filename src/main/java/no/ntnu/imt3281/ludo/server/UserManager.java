@@ -95,6 +95,24 @@ public class UserManager {
 
     public void getUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
         Logger.log(Logger.Level.DEBUG, "Get users request received");
+        for (int i = 0; i < requests.length(); i++) {
+            var request = requests.getJSONObject(i);
+            var requestID = request.getInt(FieldNames.ID);
+            var userID = request.getInt(FieldNames.USER_ID);
+            try {
+                var user = mDB.getUserByID(userID);
+                if (user != null) {
+                    var json = userToJSON(user);
+                    json.put(FieldNames.ID, requestID);
+                    successes.put(json);
+                } else {
+                    MessageUtility.addErrorToArray(errors, requestID, Error.USER_ID_NOT_FOUND);
+                }
+            } catch(SQLException e) {
+                Logger.logException(Logger.Level.WARN, e, "Unexpected SQL Exception when trying to log in user");
+            }
+        }
+
     }
 
     public void getUserRange(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
@@ -196,6 +214,15 @@ public class UserManager {
             Logger.logException(Logger.Level.ERROR, e, "Platform doesn't support hashing algorithm, cannot run here!");
             return null;
         }
+    }
+
+    private JSONObject userToJSON(User user) {
+        var json = new JSONObject();
+        json.put(FieldNames.USER_ID, user.id);
+        json.put(FieldNames.USERNAME, user.username);
+        json.put(FieldNames.AVATAR_URI, user.avatarURI);
+
+        return json;
     }
 
 }
