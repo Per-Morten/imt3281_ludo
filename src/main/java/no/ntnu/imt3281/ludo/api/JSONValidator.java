@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class JSONValidator {
+
+
     /**
      * Checks that the message contains all the fields needed as indicated by the api.
      * Returns true in the case where the message is valid, false otherwise.
@@ -35,14 +37,16 @@ public class JSONValidator {
 
         var type = json.getString(FieldNames.TYPE);
         if (RequestType.fromString(type) != null) {
-            Logger.log(Logger.Level.DEBUG, String.format("Object RequestType Invalid, %s", type));
             return verifyRequest(json);
+        }
+        else {
+            Logger.log(Logger.Level.DEBUG, String.format("Object RequestType Invalid, %s", type));
         }
 
         return false;
     }
 
-    private static boolean hasInt(String key, JSONObject json) {
+    public static boolean hasInt(String key, JSONObject json) {
         if (json.has(key)) {
             try {
                 json.getInt(key);
@@ -54,19 +58,21 @@ public class JSONValidator {
         return false;
     }
 
-    private static boolean hasString(String key, JSONObject json) {
+    public static boolean hasString(String key, JSONObject json) {
         if (json.has(key)) {
             try {
                 json.getString(key);
                 return true;
             } catch(JSONException e) {
+                Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasString");
                 return false;
             }
         }
+        Logger.log(Logger.Level.DEBUG, String.format("Didn't have string: %s, jsonObject: %s", key, json.toString()));
         return false;
     }
 
-    private static boolean hasJSONArray(String key, JSONObject json) {
+    public static boolean hasJSONArray(String key, JSONObject json) {
         if (json.has(key)) {
             try {
                 json.getJSONArray(key);
@@ -78,61 +84,85 @@ public class JSONValidator {
         return false;
     }
 
-    private static boolean hasJSONObject(String key, JSONObject json) {
+    public static boolean hasJSONObject(String key, JSONObject json) {
         if (json.has(key)) {
             try {
                 json.getJSONObject(key);
                 return true;
             } catch(JSONException e) {
+                Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasJSONObject");
                 return false;
             }
         }
         return false;
     }
 
-    private static boolean hasJSONObject(int index, JSONArray json) {
+    public static boolean hasJSONObject(int index, JSONArray json) {
         try {
-            json.getJSONArray(index);
+            json.getJSONObject(index);
             return true;
         } catch (JSONException e) {
+            Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasJSONObject");
             return false;
         }
     }
 
     // This can be generalized to handle all message types if make it generic and send in the array.
-    private static boolean verifyRequest(JSONObject json) {
+    public static boolean verifyRequest(JSONObject json) {
+        var type = RequestType.fromString(json.getString(FieldNames.TYPE));
+        if (type != RequestType.CREATE_USER_REQUEST && type != RequestType.LOGIN_REQUEST && !hasString(FieldNames.AUTH_TOKEN, json)) {
+            return false;
+        }
+
         if (!hasJSONArray(FieldNames.PAYLOAD, json)) {
             Logger.log(Logger.Level.DEBUG, String.format("Object didn't contain %s", FieldNames.PAYLOAD));
             return false;
         }
 
-        var type = RequestType.fromString(json.getString(FieldNames.TYPE));
         var payload = json.getJSONArray(FieldNames.PAYLOAD);
+        if (payload.length() == 0) {
+            Logger.log(Logger.Level.DEBUG, "Payload was 0");
+            return false;
+        }
 
         for (int i = 0; i < payload.length(); i++) {
             if (!hasJSONObject(i, payload)) {
-                Logger.log(Logger.Level.DEBUG, String.format("Object didn't contain JSONObject in payload", FieldNames.PAYLOAD));
+                Logger.log(Logger.Level.DEBUG, String.format("Object didn't contain JSONObject in %s", FieldNames.PAYLOAD));
                 return false;
             }
 
             var item = payload.getJSONObject(i); // Must validate that this is a json object
             if (!hasInt(FieldNames.ID, item)) {
-                Logger.log(Logger.Level.DEBUG, String.format("JSONObject in payload doesn't have field", FieldNames.ID));
+                Logger.log(Logger.Level.DEBUG, String.format("JSONObject in payload doesn't have integer field: %s", FieldNames.ID));
                 return false;
+            } else {
+                Logger.log(Logger.Level.DEBUG, String.format("ID is: %d", item.getInt(FieldNames.ID)));
             }
 
             for (var field : sRequestTypes) {
                 if (field.messageType.contains(type)) {
-                    if (field.type == FieldType.INTEGER && !hasInt(field.fieldName, json)) {
+                    if (field.type == FieldType.INTEGER && !hasInt(field.fieldName, item)) {
+                        Logger.log(Logger.Level.DEBUG, String.format("Request was of type: %s, but did not contain integer field: %s",
+                                type,
+                                field.fieldName));
                         return false;
                     }
-                    if (field.type == FieldType.STRING && !hasString(field.fieldName, json)) {
+                    if (field.type == FieldType.STRING && !hasString(field.fieldName, item)) {
+                        Logger.log(Logger.Level.DEBUG, String.format("Request was of type: %s, but did not contain string field: %s",
+                                type,
+                                field.fieldName));
                         return false;
                     }
-                    if (field.type == FieldType.JSON_ARRAY && !hasJSONArray(field.fieldName, json)) {
+                    if (field.type == FieldType.JSON_ARRAY && !hasJSONArray(field.fieldName, item)) {
+                        Logger.log(Logger.Level.DEBUG, String.format("Request was of type: %s, but did not contain JSON_ARRAY field: %s",
+                                type,
+                                field.fieldName));
                         return false;
                     }
-                    if (field.type == FieldType.JSON_OBJECT && !hasJSONObject(field.fieldName, json)) {
+                    if (field.type == FieldType.JSON_OBJECT && !hasJSONObject(field.fieldName, item)) {
+                        Logger.log(Logger.Level.DEBUG, String.format("Request was of type: %s, but did not contain JSON_OBJECT field: %s",
+                                type,
+                                field.fieldName));
                         return false;
                     }
                 }
@@ -164,7 +194,7 @@ public class JSONValidator {
     // Not Particularly pretty but it gets the job done.
     public static void init() {
         // Requests
-        sRequestTypes.add(new Field<>(FieldNames.USERNAME, FieldType.INTEGER, new RequestType[]{
+        sRequestTypes.add(new Field<>(FieldNames.USERNAME, FieldType.STRING, new RequestType[]{
                 RequestType.CREATE_USER_REQUEST,
                 RequestType.UPDATE_USER_REQUEST,
         }));
