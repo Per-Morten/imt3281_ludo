@@ -1,16 +1,14 @@
 package no.ntnu.imt3281.ludo.server;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class DatabaseTest {
     private static Database sDB;
@@ -22,11 +20,11 @@ public class DatabaseTest {
         sDB = new Database("ludo_tests.db");
 
         // Don't re-order these, I rely on their autoincremented id for a lot of my tests.
-        sDB.createUser("User1", "User1@mail.com", "User1Password"); // id = 1
-        sDB.createUser("User2", "User2@mail.com", "User2Password"); // id = 2
-        sDB.createUser("User3", "User3@mail.com", "User3Password"); // id = 3
-        sDB.createUser("User4", "User4@mail.com", "User4Password"); // id = 3
-        sDB.createUser("User5", "User5@mail.com", "User5Password"); // id = 3
+        sDB.createUser("User1", "User1@mail.com", "User1Password", "salt"); // id = 1
+        sDB.createUser("User2", "User2@mail.com", "User2Password", "salt"); // id = 2
+        sDB.createUser("User3", "User3@mail.com", "User3Password", "salt"); // id = 3
+        sDB.createUser("User4", "User4@mail.com", "User4Password", "salt"); // id = 3
+        sDB.createUser("User5", "User5@mail.com", "User5Password", "salt"); // id = 3
     }
 
     ///////////////////////////////////////////////////////
@@ -34,7 +32,7 @@ public class DatabaseTest {
     ///////////////////////////////////////////////////////
     @Test
     public void canCreateUser() throws SQLException {
-        sDB.createUser("NewUser", "NewUser@outlook.com", "something");
+        sDB.createUser("NewUser", "NewUser@outlook.com", "something", "salt");
     }
 
     @Test
@@ -48,15 +46,15 @@ public class DatabaseTest {
 
     @Test
     public void canDeleteUser() throws SQLException {
-        var id = sDB.createUser("UserToDelete", "UserToDelete@mail.com", "UserToDelete");
+        var id = sDB.createUser("UserToDelete", "UserToDelete@mail.com", "UserToDelete", "salt");
         sDB.deleteUser(id);
         assertNull(sDB.getUserByID(id));
     }
 
     @Test
     public void canUpdateUser() throws SQLException {
-        var id = sDB.createUser("UserToUpdate", "UserToUpdate@mail.com", "UserToUpdate");
-        sDB.updateUser(id, "UpdatedUser", "UserToUpdate@mail.com", "pwd", null);
+        var id = sDB.createUser("UserToUpdate", "UserToUpdate@mail.com", "UserToUpdate", "salt");
+        sDB.updateUser(id, "UpdatedUser", "UserToUpdate@mail.com", "pwd", null, "salt");
         var user = sDB.getUserByID(id);
         assertEquals("UpdatedUser", user.username);
         assertEquals("UserToUpdate@mail.com", user.email);
@@ -65,7 +63,7 @@ public class DatabaseTest {
 
     @Test
     public void canGetUserIDBasedWithToken() throws SQLException {
-        var id = sDB.createUser("UserToGiveToken", "UserToGiveToken@mail.com", "pwd");
+        var id = sDB.createUser("UserToGiveToken", "UserToGiveToken@mail.com", "pwd", "salt");
         sDB.setUserToken(id, "UserToGiveToken");
         var user = sDB.getUserByToken("UserToGiveToken");
         assertNotNull(user);
@@ -95,7 +93,7 @@ public class DatabaseTest {
     @Test
     public void throwsOnNonUniqueEmailInCreation() throws SQLException {
         try {
-            sDB.createUser("NonUnique", "User1@mail.com", "something");
+            sDB.createUser("NonUnique", "User1@mail.com", "something", "salt");
         } catch (NotUniqueValueException e) {
             assertEquals("email", e.getValueName());
         }
@@ -104,7 +102,7 @@ public class DatabaseTest {
     @Test
     public void throwsOnNonUniqueEmailInUpdate() throws SQLException {
         try {
-            sDB.updateUser(2, "User2", "User1@mail.com", "pwd", null);
+            sDB.updateUser(2, "User2", "User1@mail.com", "pwd", null, "salt");
         } catch (NotUniqueValueException e) {
             assertEquals("email", e.getValueName());
         }

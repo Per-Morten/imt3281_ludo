@@ -1,20 +1,19 @@
 package no.ntnu.imt3281.ludo.server;
 
+import no.ntnu.imt3281.ludo.api.Error;
+import no.ntnu.imt3281.ludo.api.*;
+import no.ntnu.imt3281.ludo.common.Logger;
+import no.ntnu.imt3281.ludo.common.MessageUtility;
+import no.ntnu.imt3281.ludo.common.NetworkConfig;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import no.ntnu.imt3281.ludo.api.FieldNames;
-import no.ntnu.imt3281.ludo.api.JSONValidator;
-import no.ntnu.imt3281.ludo.api.RequestType;
-import no.ntnu.imt3281.ludo.api.ResponseType;
-import no.ntnu.imt3281.ludo.common.Logger;
-import no.ntnu.imt3281.ludo.common.NetworkConfig;
 
 // Think:
 // Have a hashmap with the response type mapped to a function
@@ -74,12 +73,6 @@ public class Server {
                 continue;
             }
 
-            // TODO: Need to talk to Jonas about identifying sockets regarding tokens.
-            // We need to be able to identify users to that we know who to send events to.
-            // The API might be breaking down here, because we cannot for example make users
-            // we don't know who are part of a game, because we don't know their socket ids.
-            // We will identify them upon login!
-
             // Think: Create general purpose API exception that can be thrown different
             // places, that can easily be turned into error code?
             if (!JSONValidator.isValidMessage(message.message)) {
@@ -89,7 +82,6 @@ public class Server {
             }
 
             var json = new JSONObject(message.message);
-
             var requestType = RequestType.fromString(json.getString(FieldNames.TYPE));
 
             var requests = json.getJSONArray(FieldNames.PAYLOAD);
@@ -97,28 +89,76 @@ public class Server {
             var errors = new JSONArray();
 
             var response = new JSONObject();
-            response.put(FieldNames.ID, json.getInt(FieldNames.ID));
-            response.put(FieldNames.TYPE, ResponseType.getCorrespondingResponse(requestType).toString());
-
-            mEventHandlers.get(requestType).apply(requestType, requests, successes, errors);
-
+            var requestID = json.getInt(FieldNames.ID);
+            response.put(FieldNames.ID, requestID);
+            response.put(FieldNames.TYPE, ResponseType.getCorrespondingResponse(requestType).toLowerCaseString());
             response.put(FieldNames.SUCCESS, successes);
             response.put(FieldNames.ERROR, errors);
+
+            // Doing a filter of all things we aren't authorized to do.
+            removeUnauthorizedRequests(json, errors);
+
+
+
+                mEventHandlers.get(requestType).apply(requestType, requests, successes, errors);
+                // Hack to deal with being able to map user id's to sockets.
+                if (requestType == RequestType.LOGIN_REQUEST && message.socketID < 0) {
+                    updateSocketIDs(message, successes);
+                }
 
             sSocketManager.send(message.socketID, response.toString());
         }
     }
 
+    private static void removeUnauthorizedRequests(JSONObject message, JSONArray errors) {
+        if (!JSONValidator.hasString(FieldNames.AUTH_TOKEN, message)) {
+            return;
+        }
+        var type = RequestType.fromString(message.getString(FieldNames.TYPE));
+
+        // TODO: Add more here.
+        if (type == RequestType.GET_USER_REQUEST || type == RequestType.GET_USER_RANGE_REQUEST) {
+            return;
+        }
+
+        var token = message.getString(FieldNames.AUTH_TOKEN);
+        var requests = message.getJSONArray(FieldNames.PAYLOAD);
+
+        var indexesToRemove = new ArrayList<Integer>();
+
+        for (int i = 0; i < requests.length(); i++) {
+            var request = requests.getJSONObject(i);
+            if (!sUserManager.isUserAuthorized(request, token)) {
+                MessageUtility.addErrorToArray(errors, request.getInt(FieldNames.ID), Error.UNAUTHORIZED);
+                indexesToRemove.add(i);
+            }
+        }
+
+        for (var idx : indexesToRemove) {
+            requests.remove(idx);
+        }
+    }
+
+    private static void updateSocketIDs(SocketManager.Message message, JSONArray successes) {
+        if (successes.length() >= 1) {
+            var success = successes.getJSONObject(0);
+            var id = success.getInt(FieldNames.USER_ID);
+            sSocketManager.assignIdToSocket(message.socketID, id);
+            message.socketID = (long)id;
+        }
+    }
+
     private static void setupEventHandlers() {
 
-        mEventHandlers.put(RequestType.CREATE_USER_REQUEST, sUserManager::createUsers);
-        mEventHandlers.put(RequestType.DELETE_USER_REQUEST, sUserManager::deleteUsers);
-        mEventHandlers.put(RequestType.UPDATE_USER_REQUEST, sUserManager::updateUsers);
-        mEventHandlers.put(RequestType.GET_USER_REQUEST, sUserManager::getUsers);
+        mEventHandlers.put(RequestType.CREATE_USER_REQUEST, sUserManager::createUser);
+        mEventHandlers.put(RequestType.DELETE_USER_REQUEST, sUserManager::deleteUser);
+        mEventHandlers.put(RequestType.UPDATE_USER_REQUEST, sUserManager::updateUser);
+        mEventHandlers.put(RequestType.GET_USER_REQUEST, sUserManager::getUser);
+        mEventHandlers.put(RequestType.GET_USER_RANGE_REQUEST, sUserManager::getUserRange);
         // Remember to add GetUserRangeRequest
 
-        mEventHandlers.put(RequestType.LOGIN_REQUEST, sUserManager::logInUsers);
-        mEventHandlers.put(RequestType.LOGOUT_REQUEST, sUserManager::logOutUsers);
+        mEventHandlers.put(RequestType.LOGIN_REQUEST, sUserManager::logInUser);
+        mEventHandlers.put(RequestType.LOGOUT_REQUEST, sUserManager::logOutUser);
 
     }
 
