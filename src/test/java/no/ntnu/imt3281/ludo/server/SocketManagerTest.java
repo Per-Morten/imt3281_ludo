@@ -10,7 +10,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 
-import no.ntnu.imt3281.ludo.common.MessageType;
+import no.ntnu.imt3281.ludo.api.RequestType;
+import no.ntnu.imt3281.ludo.api.ResponseType;
 import no.ntnu.imt3281.ludo.common.NetworkConfig;
 
 public class SocketManagerTest {
@@ -32,7 +33,7 @@ public class SocketManagerTest {
             var msgID = json.getLong("id");
             assertEquals(msgID, 0);
             var type = json.getString("type");
-            assertEquals(type, MessageType.CREATE_USER_REQUEST);
+            assertEquals(type, RequestType.CREATE_USER_REQUEST.toLowerCaseString());
 
             var payload = json.getJSONArray("payload");
             var request = payload.getJSONObject(0);
@@ -41,7 +42,7 @@ public class SocketManagerTest {
 
             var response = new JSONObject();
             response.put("id", 0);
-            response.put("type", MessageType.CREATE_USER_RESPONSE);
+            response.put("type", ResponseType.CREATE_USER_RESPONSE.toLowerCaseString());
             var success = new JSONArray();
             var firstSuccess = new JSONObject();
             firstSuccess.put("id", 0);
@@ -60,7 +61,7 @@ public class SocketManagerTest {
             var msgID = json.getInt("id");
             assertEquals(msgID, 0);
             var type = json.getString("type");
-            assertEquals(type, MessageType.CREATE_USER_RESPONSE);
+            assertEquals(type, ResponseType.CREATE_USER_RESPONSE.toLowerCaseString());
             var success = json.getJSONArray("success");
             assert (success.length() == 1);
             var firstSuccess = success.getJSONObject(0);
@@ -79,7 +80,7 @@ public class SocketManagerTest {
         {
             var json = new JSONObject();
             json.put("id", 0);
-            json.put("type", MessageType.CREATE_USER_REQUEST);
+            json.put("type", RequestType.CREATE_USER_REQUEST.toLowerCaseString());
             var payload = new JSONArray();
             var request = new JSONObject();
             request.put("id", 0);
