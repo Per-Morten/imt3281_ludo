@@ -7,17 +7,17 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import no.ntnu.imt3281.ludo.client.Actions;
-import no.ntnu.imt3281.ludo.client.CacheManager;
+import no.ntnu.imt3281.ludo.client.StateManager;
 
 public class TabGameController implements IController {
 
     private Actions mActions;
-    private CacheManager mState;
+    private StateManager mState;
 
     /**
      * IController
      */
-    public void bind(Actions a, CacheManager s) {
+    public void bind(Actions a, StateManager s) {
         mActions = a;
         mState = s;
     }

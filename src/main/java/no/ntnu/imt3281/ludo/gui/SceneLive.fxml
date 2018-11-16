@@ -23,7 +23,7 @@
                               <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                            </padding>
                         </HBox>
-                        <TabPane fx:id="mTabGame" prefHeight="882.0" prefWidth="1009.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
+                        <TabPane fx:id="mTabGames" prefHeight="882.0" prefWidth="1009.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
                      </children>
                   </VBox>
                   <VBox prefHeight="934.0" prefWidth="857.0" style="-fx-border-color: #333;" HBox.hgrow="SOMETIMES">
@@ -36,7 +36,7 @@
                               <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                            </padding>
                         </HBox>
-                        <TabPane fx:id="mTabChat" prefHeight="882.0" prefWidth="636.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
+                        <TabPane fx:id="mTabChats" prefHeight="882.0" prefWidth="636.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
                      </children>
                   </VBox>
                </children>

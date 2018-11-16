@@ -21,7 +21,7 @@ import no.ntnu.imt3281.ludo.gui.Transitions;
 public class Client extends Application {
 
     private ExecutorService mExecutorService = Executors.newFixedThreadPool(2);
-    private CacheManager mCacheManager;
+    private StateManager mStateManager;
     private SocketManager mSocketManager;
 
     final Transitions mTransitions = new Transitions();
@@ -55,11 +55,11 @@ public class Client extends Application {
         }
 
         // Bind dependencies between important systems.
-        Cache initialCache = Cache.load();
-        mCacheManager = new CacheManager(initialCache);
+        State initialState = State.load();
+        mStateManager = new StateManager(initialState);
         mApi.bind(mSocketManager);
-        mActions.bind(mTransitions, mApi, mCacheManager);
-        mTransitions.bind(primaryStage, mActions, mCacheManager);
+        mActions.bind(mTransitions, mApi, mStateManager);
+        mTransitions.bind(primaryStage, mActions, mStateManager);
 
         // Start socket
         try {
@@ -90,6 +90,6 @@ public class Client extends Application {
         } catch (InterruptedException|NullPointerException e) {
             Logger.log(Level.WARN, "Trying to stop non-existing connection: " + e.toString());
         }
-        Cache.dump(mCacheManager.copy());
+        State.dump(mStateManager.copy());
     }
 }

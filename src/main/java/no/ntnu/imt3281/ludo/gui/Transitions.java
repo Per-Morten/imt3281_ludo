@@ -8,11 +8,13 @@ import javafx.scene.control.Tab;
 import javafx.scene.paint.Color;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.client.Actions;
-import no.ntnu.imt3281.ludo.client.CacheManager;
+import no.ntnu.imt3281.ludo.client.StateManager;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 
@@ -23,17 +25,18 @@ public class Transitions {
 
     private Stage mStage;
     private Actions mActions;
-    private CacheManager mCacheManager;
+    private StateManager mStateManager;
+    private Map<String, FXMLDocument> mDocuments = new HashMap<String, FXMLDocument>();
 
     public class FXMLDocument {
         public Parent root;
         public IController controller;
     }
 
-    public void bind(Stage stage, Actions actions, CacheManager sm) {
+    public void bind(Stage stage, Actions actions, StateManager sm) {
         mStage = stage;
         mActions = actions;
-        mCacheManager = sm;
+        mStateManager = sm;
     }
 
     public void renderLogin() {
@@ -48,25 +51,58 @@ public class Transitions {
 
     public void renderLive() {
         var live = this.loadFXML("SceneLive.fxml");
-        var liveController = (SceneLiveController)live.controller;
-        var state = mCacheManager.copy();
 
         Platform.runLater(()-> {
-            state.gameId.forEach(id -> {
-                var gameTab = this.loadFXML("TabGame.fxml");
-                Tab tab = new Tab("Game" + id);
-                tab.setContent(gameTab.root);
-                liveController.mTabGame.getTabs().add(tab);
-            });
             mStage.setScene(new Scene(live.root));
             mStage.show();
         });
     }
 
+    public void renderGameTabs() {
+
+        var live = this.mDocuments.get("SceneLive.fxml");
+        var liveController = (SceneLiveController)live.controller;
+        var state = mStateManager.copy();
+
+        Platform.runLater(()-> {
+            liveController.mTabGames.getTabs().clear();
+
+            state.activeGames.forEach((id, game) -> {
+                Logger.log(Level.DEBUG, "New game " + id);
+
+                var gameTab = this.loadFXML("TabGame.fxml");
+                Tab tab = new Tab("Game" + id);
+                tab.setContent(gameTab.root);
+                liveController.mTabGames.getTabs().add(tab);
+            });
+        });
+    }
+
+    public void renderChatTabs() {
+
+        var live = this.mDocuments.get("SceneLive.fxml");
+        var liveController = (SceneLiveController)live.controller;
+        var state = mStateManager.copy();
+
+        Platform.runLater(()-> {
+            liveController.mTabChats.getTabs().clear();
+
+            state.activeChats.forEach((id, chat) -> {
+
+                Logger.log(Level.DEBUG, "New Chat " + id);
+                var chatTab = this.loadFXML("TabChat.fxml");
+                Tab tab = new Tab("Chat" + id);
+                tab.setContent(chatTab.root);
+                liveController.mTabChats.getTabs().add(tab);
+            });
+        });
+    }
+
+
     public void renderSearch() {
         var search = this.loadFXML("SceneSearch.fxml");
         var searchController = (SceneSearchController)search.controller;
-        var state = mCacheManager.copy();
+        var state = mStateManager.copy();
 
         Platform.runLater(()-> {
 
@@ -117,10 +153,12 @@ public class Transitions {
         });
     }
 
+
+
     public void renderUser() {
         var user = this.loadFXML("SceneUser.fxml");
         var userController = (SceneSearchController)user.controller;
-        var state = mCacheManager.copy();
+        var state = mStateManager.copy();
 
         Platform.runLater(()-> {
             mStage.setScene(new Scene(user.root));
@@ -153,7 +191,8 @@ public class Transitions {
         try {
             fxmlDocument.root = fxmlLoader.load();
             fxmlDocument.controller = fxmlLoader.getController();
-            fxmlDocument.controller.bind(mActions, mCacheManager);
+            fxmlDocument.controller.bind(mActions, mStateManager);
+            mDocuments.put(filename, fxmlDocument);
         } catch (IOException e) {
             Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.toString());
         }

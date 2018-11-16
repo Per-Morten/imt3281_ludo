@@ -14,9 +14,9 @@ public class Actions {
 
     private Transitions mTransitions;
     private API mAPI;
-    private CacheManager mCacheManager;
+    private StateManager mStateManager;
     private String mAuth;
-    private Cache mLocalCache = new Cache();
+    private State mLocalState = new State();
     private final RequestFactory mRequestFactory = new RequestFactory();
 
     /**
@@ -25,9 +25,9 @@ public class Actions {
      * @param transitions to feed mutations
      * @param API         to push requests
      */
-    void bind(Transitions transitions, API API, CacheManager cacheManager) {
+    void bind(Transitions transitions, API API, StateManager stateManager) {
         mTransitions = transitions;
-        mCacheManager = cacheManager;
+        mStateManager = stateManager;
         mAPI = API;
     }
 
@@ -52,24 +52,11 @@ public class Actions {
 
         mAPI.send(request);
 
-        mCacheManager.commit(cache -> {
+        mStateManager.commit(cache -> {
             // @DUMMY
             cache.authToken = "afaa254";
             // @DUMMY
             cache.userId = 2;
-            // @DUMMY
-            cache.gameId.clear();
-            cache.gameId.add(2);
-            cache.gameId.add(3);
-            // @DUMMY
-            cache.clientId.clear();
-            cache.clientId.add(2);
-            cache.clientId.add(3);
-            // @DUMMY
-            cache.friendId.clear();
-            cache.friendId.add(2);
-            cache.friendId.add(3);
-
         });
 
         mTransitions.renderLive();
@@ -99,7 +86,7 @@ public class Actions {
 
         mAPI.send(request);
 
-        mCacheManager.commit(cache -> {
+        mStateManager.commit(cache -> {
             // @DUMMY
             cache.userId = 2;
             // @DUMMY
@@ -117,7 +104,7 @@ public class Actions {
         this.startAction("logout");
 
         var item = new JSONObject();
-        item.put("user_id", mLocalCache.userId);
+        item.put("user_id", mLocalState.userId);
 
         Request request = mRequestFactory.make(LOGOUT_REQUEST, item, mAuth,
                 (req, success) -> {
@@ -127,7 +114,7 @@ public class Actions {
                 (req, error) -> Logger.log(Level.WARN, "Action -> LogoutError"));
 
         mAPI.send(request);
-        mCacheManager.commit(cache -> {
+        mStateManager.commit(cache -> {
             cache.userId = -1;
             cache.email = "";
             cache.authToken = "";
@@ -182,7 +169,7 @@ public class Actions {
 
                     Logger.log(Level.DEBUG, "" + game.toString() + " " + game2.toString());
 
-                    mCacheManager.commit(cache -> {
+                    mStateManager.commit(cache -> {
                         cache.gameRange.clear();
                         cache.gameRange.addAll(gameRange);
                     });
@@ -214,7 +201,7 @@ public class Actions {
                     chat2.put("participant_id", new JSONArray(new int[]{0,2,4,5,6,7,8}));
                     chatRange.add(chat2);
 
-                    mCacheManager.commit(cache -> {
+                    mStateManager.commit(cache -> {
                         cache.chatRange.clear();
                         cache.chatRange.addAll(chatRange);
                     });
@@ -255,7 +242,7 @@ public class Actions {
                     friend4.put("username", "Alla Saman");
                     friendRange.add(friend4);
 
-                    mCacheManager.commit(cache -> {
+                    mStateManager.commit(cache -> {
                         cache.friendRange.clear();
                         cache.friendRange.addAll(friendRange);
                     });
@@ -284,7 +271,7 @@ public class Actions {
                     user2.put("username", "Jonas Solsvik");
                     userRange.add(user2);
 
-                    mCacheManager.commit(cache -> {
+                    mStateManager.commit(cache -> {
                         cache.userRange.clear();
                         cache.userRange.addAll(userRange);
                     });
@@ -308,29 +295,28 @@ public class Actions {
     /**
      *
      */
-    public void newGame() {
-        this.startAction("newGame");
+    public void createGame() {
+        this.startAction("createGame");
+
+        mStateManager.commit(state -> {
+            var game = new JSONObject();
+            state.activeGames.put(state.activeGames.size(),game);
+        });
+
+        mTransitions.renderGameTabs();
     }
 
     /**
      *
      */
-    public void newChat() {
-        this.startAction("newChat");
-    }
+    public void createChat() {
+        this.startAction("createChat");
 
-    /**
-     *
-     */
-    public void submitGame() {
-        this.startAction("submitGame");
-    }
-
-    /**
-     *
-     */
-    public void submitChat() {
-        this.startAction("submitChat");
+        mStateManager.commit(state -> {
+            var chat = new JSONObject();
+            state.activeChats.put(state.activeChats.size(), chat);
+        });
+        mTransitions.renderChatTabs();
     }
 
     /**
@@ -482,7 +468,7 @@ public class Actions {
      */
     private void startAction(String methodName) {
         Logger.log(Level.INFO, "Action -> " + methodName);
-        mLocalCache = mCacheManager.copy();
-        mAuth = mLocalCache.authToken;
+        mLocalState = mStateManager.copy();
+        mAuth = mLocalState.authToken;
     }
 }

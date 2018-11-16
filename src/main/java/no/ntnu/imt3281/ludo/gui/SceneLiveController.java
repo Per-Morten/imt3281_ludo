@@ -1,7 +1,5 @@
 package no.ntnu.imt3281.ludo.gui;
 
-import java.util.ResourceBundle;
-
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -12,28 +10,22 @@ import no.ntnu.imt3281.ludo.client.*;
 public class SceneLiveController implements IController {
 
     private Actions mActions;
-    private CacheManager mCache;
+    private StateManager mState;
 
     /**
      * IController
      */
-    public void bind(Actions a, CacheManager c) {
+    public void bind(Actions a, StateManager s) {
 
         mActions = a;
-        mCache = c;
+        mState = s;
     }
 
     @FXML
     public Button mBtnUser;
 
     @FXML
-    public Button mBtnGames;
-
-    @FXML
-    public Button mBtnFriends;
-
-    @FXML
-    public Button mBtnChats;
+    public Button mBtnSearch;
 
     @FXML
     public Button mBtnLogout;
@@ -42,13 +34,13 @@ public class SceneLiveController implements IController {
     public Button mBtnNewGame;
 
     @FXML
-    public TabPane mTabGame;
-
-    @FXML
     public Button mBtnNewChat;
 
     @FXML
-    public TabPane mTabChat;
+    public TabPane mTabGames;
+
+    @FXML
+    public TabPane mTabChats;
 
 
     @FXML
@@ -68,24 +60,22 @@ public class SceneLiveController implements IController {
 
     @FXML
     void onNewChat(ActionEvent event) {
-        mActions.newChat();
+        mActions.createChat();
     }
 
     @FXML
     void onNewGame(ActionEvent event) {
-        mActions.newGame();
+        mActions.createGame();
     }
 
     @FXML
     void initialize() {
         assert mBtnUser != null : "fx:id=\"mBtnUser\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mBtnGames != null : "fx:id=\"mBtnGames\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mBtnFriends != null : "fx:id=\"mBtnFriends\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mBtnChats != null : "fx:id=\"mBtnChats\" was not injected: check your FXML file 'SceneLive.fxml'.";
+        assert mBtnSearch != null : "fx:id=\"mBtnSearch\" was not injected: check your FXML file 'SceneLive.fxml'.";
         assert mBtnLogout != null : "fx:id=\"mBtnLogout\" was not injected: check your FXML file 'SceneLive.fxml'.";
         assert mBtnNewGame != null : "fx:id=\"mBtnNewGame\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mTabGame != null : "fx:id=\"mTabGame\" was not injected: check your FXML file 'SceneLive.fxml'.";
+        assert mTabGames != null : "fx:id=\"mTabGame\" was not injected: check your FXML file 'SceneLive.fxml'.";
         assert mBtnNewChat != null : "fx:id=\"mBtnNewChat\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mTabChat != null : "fx:id=\"mTabChat\" was not injected: check your FXML file 'SceneLive.fxml'.";
+        assert mTabChats != null : "fx:id=\"mTabChat\" was not injected: check your FXML file 'SceneLive.fxml'.";
     }
 }
