@@ -1,7 +1,5 @@
 package no.ntnu.imt3281.ludo.api;
 
-import no.ntnu.imt3281.ludo.common.Logger;
-
 public enum ResponseType {
     LOGIN_RESPONSE,
     LOGOUT_RESPONSE,
@@ -42,6 +40,11 @@ public enum ResponseType {
         }
     }
 
+    public String toLowerCaseString() {
+        return this.toString().toLowerCase();
+    }
+
+    @Deprecated
     public static String toLowerCaseString(ResponseType value) {
         return value.toString().toLowerCase();
     }

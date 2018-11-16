@@ -41,6 +41,11 @@ public enum RequestType {
         }
     }
 
+    public String toLowerCaseString() {
+        return this.toString().toLowerCase();
+    }
+
+    @Deprecated
     public static String toLowerCaseString(RequestType value) {
         return value.toString().toLowerCase();
     }

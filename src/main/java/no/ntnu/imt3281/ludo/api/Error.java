@@ -5,10 +5,11 @@ public enum Error {
     UNAUTHORIZED,
     NOT_UNIQUE_EMAIL,
     NOT_UNIQUE_USERNAME,
+    INVALID_USERNAME_OR_PASSWORD,
     ;
 
-    public static int toInt(Error error) {
-        return error.ordinal();
+    public int toInt() {
+        return this.ordinal();
     }
 
     public static Error fromInt(int i) {
