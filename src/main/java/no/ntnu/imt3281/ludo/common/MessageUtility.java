@@ -10,7 +10,7 @@ public class MessageUtility {
         var error = new JSONObject();
         error.put(FieldNames.ID, requestID);
         var codes = new JSONArray();
-        codes.put(code.toInt());
+        codes.put(code);
         error.put(FieldNames.CODE, codes);
         errors.put(error);
     }
