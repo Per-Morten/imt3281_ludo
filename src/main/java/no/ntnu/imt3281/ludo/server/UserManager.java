@@ -46,23 +46,51 @@ public class UserManager {
 
             } catch (SQLException e) {
                 Logger.logException(Logger.Level.WARN, e, "Unexpected SQL Exception when trying to create user");
-            } catch (NotUniqueValueException e) {
-                if (e.getValueName().equals(Database.UserFields.Email)) {
-                    MessageUtility.addErrorToArray(errors, requestID, Error.NOT_UNIQUE_EMAIL);
-
-                } else if (e.getValueName().equals(Database.UserFields.Username)) {
-                    MessageUtility.addErrorToArray(errors, requestID, Error.NOT_UNIQUE_USERNAME);
-                }
+            } catch (APIErrorException e) {
+                MessageUtility.addErrorToArray(errors, requestID, e.getError());
             }
         }
     }
 
     public void deleteUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
-        Logger.log(Logger.Level.DEBUG, "Delete users request received");
+        for (int i = 0; i < requests.length(); i++) {
+            var request = requests.getJSONObject(i);
+            var requestID = request.getInt(FieldNames.ID);
+            var userID = request.getInt(FieldNames.USER_ID);
+            try {
+                mDB.deleteUser(userID);
+            } catch(SQLException e) {
+                Logger.logException(Logger.Level.WARN, e, "Unexpected SQL Exception when trying to log in user");
+            }
+            var success = new JSONObject();
+            success.put(FieldNames.ID, requestID);
+            successes.put(success);
+        }
     }
 
     public void updateUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
-        Logger.log(Logger.Level.DEBUG, "Update users request received");
+        for (int i = 0; i < requests.length(); i++) {
+            var request = requests.getJSONObject(i);
+            var requestID = request.getInt(FieldNames.ID);
+            try {
+                var salt = randomGenerateSalt();
+                mDB.updateUser(request.getInt(FieldNames.USER_ID),
+                        request.getString(FieldNames.USERNAME),
+                        request.getString(FieldNames.EMAIL),
+                        hashPassword(request.getString(FieldNames.PASSWORD), salt),
+                        request.getString(FieldNames.AVATAR_URI),
+                        salt);
+
+                var success = new JSONObject();
+                success.put(FieldNames.ID, requestID);
+                successes.put(success);
+
+            } catch(SQLException e) {
+                Logger.logException(Logger.Level.WARN, e, "Unexpected SQL Exception when trying to log in user");
+            } catch(APIErrorException e) {
+                MessageUtility.addErrorToArray(errors, requestID, e.getError());
+            }
+        }
     }
 
     public void getUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
