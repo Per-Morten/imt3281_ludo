@@ -158,6 +158,8 @@ public class Server {
         // Remember to add GetUserRangeRequest
 
         mEventHandlers.put(RequestType.LOGIN_REQUEST, sUserManager::logInUser);
+
+        // More probably needs to happen here, because we need to remove the user from several games as well.
         mEventHandlers.put(RequestType.LOGOUT_REQUEST, sUserManager::logOutUser);
 
     }
