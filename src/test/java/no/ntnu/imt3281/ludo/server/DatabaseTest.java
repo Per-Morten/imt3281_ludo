@@ -1,14 +1,19 @@
 package no.ntnu.imt3281.ludo.server;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 
-import static org.junit.Assert.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import no.ntnu.imt3281.ludo.api.Error;
 
 public class DatabaseTest {
     private static Database sDB;
@@ -25,6 +30,11 @@ public class DatabaseTest {
         sDB.createUser("User3", "User3@mail.com", "User3Password", "salt"); // id = 3
         sDB.createUser("User4", "User4@mail.com", "User4Password", "salt"); // id = 3
         sDB.createUser("User5", "User5@mail.com", "User5Password", "salt"); // id = 3
+    }
+
+    @AfterClass
+    public static void shutDownDatabase() throws SQLException {
+        sDB.close();
     }
 
     ///////////////////////////////////////////////////////
@@ -94,8 +104,8 @@ public class DatabaseTest {
     public void throwsOnNonUniqueEmailInCreation() throws SQLException {
         try {
             sDB.createUser("NonUnique", "User1@mail.com", "something", "salt");
-        } catch (NotUniqueValueException e) {
-            assertEquals("email", e.getValueName());
+        } catch (APIErrorException e) {
+            assertEquals(Error.NOT_UNIQUE_EMAIL, e.getError());
         }
     }
 
@@ -103,19 +113,16 @@ public class DatabaseTest {
     public void throwsOnNonUniqueEmailInUpdate() throws SQLException {
         try {
             sDB.updateUser(2, "User2", "User1@mail.com", "pwd", null, "salt");
-        } catch (NotUniqueValueException e) {
-            assertEquals("email", e.getValueName());
+        } catch (APIErrorException e) {
+            assertEquals(Error.NOT_UNIQUE_EMAIL, e.getError());
         }
     }
 
-    @Test
+    @Test(expected = NotUniqueTokenException.class)
     public void throwsOnNonUniqueToken() throws SQLException {
-        try {
+
             sDB.setUserToken(1, "Token");
             sDB.setUserToken(2, "Token");
 
-        } catch (NotUniqueValueException e) {
-            assertEquals("token", e.getValueName());
-        }
     }
 }
