@@ -129,7 +129,7 @@ public class Server {
         for (int i = 0; i < requests.length(); i++) {
             var request = requests.getJSONObject(i);
             if (!sUserManager.isUserAuthorized(request, token)) {
-                MessageUtility.addErrorToArray(errors, request.getInt(FieldNames.ID), Error.UNAUTHORIZED);
+                MessageUtility.appendError(errors, request.getInt(FieldNames.ID), Error.UNAUTHORIZED);
                 indexesToRemove.add(i);
             }
         }
