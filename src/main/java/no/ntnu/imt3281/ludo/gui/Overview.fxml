@@ -49,7 +49,7 @@
                                         </Text>
                                     </children>
                                 </HBox>
-                                <Button fx:id="mBtnSendChatInvite" mnemonicParsing="false" onAction="#onSendChatInvite" prefHeight="35.0" prefWidth="1000.0" text="Send Invite">
+                                <Button fx:id="mSendChatInvite" mnemonicParsing="false" onAction="#onSendChatInvite" prefHeight="35.0" prefWidth="1000.0" text="Send Invite">
                                     <font>
                                         <Font size="14.0" />
                                     </font>
@@ -59,7 +59,7 @@
                                         <Font size="14.0" />
                                     </font>
                                 </Button>
-                                <VBox fx:id="mBoxGames2" prefWidth="100.0" />
+                                <VBox fx:id="mBoxChats" prefWidth="100.0" />
                             </children>
                         </VBox>
                         <VBox minWidth="400.0" prefHeight="200.0" prefWidth="400.0" style="-fx-border-color: #333;" HBox.hgrow="ALWAYS">
@@ -73,12 +73,12 @@
                                         </Text>
                                     </children>
                                 </HBox>
-                                <Button fx:id="mAcceptFriendRequest" mnemonicParsing="false" onAction="#onAcceptFriendRequest" prefHeight="35.0" prefWidth="1000.0" text="Friend">
+                                <Button fx:id="mRemove" mnemonicParsing="false" onAction="#onUnfriend" prefHeight="35.0" prefWidth="1000.0" text="Remove">
                                     <font>
                                         <Font size="14.0" />
                                     </font>
                                 </Button>
-                                <Button fx:id="mUnfriend" mnemonicParsing="false" onAction="#onUnfriend" prefHeight="35.0" prefWidth="1000.0" text="Unfriend">
+                                <Button fx:id="mAcceptFriendRequest" mnemonicParsing="false" onAction="#onAcceptFriendRequest" prefHeight="35.0" prefWidth="1000.0" text="Accept Friend Request">
                                     <font>
                                         <Font size="14.0" />
                                     </font>
@@ -97,12 +97,19 @@
                                         </Text>
                                     </children>
                                 </HBox>
-                                <Button fx:id="mSendFriendRequest" mnemonicParsing="false" onAction="#onSendFriendRequest" prefHeight="35.0" prefWidth="1000.0" text="Send Friend Request">
-                                    <font>
-                                        <Font size="14.0" />
-                                    </font>
-                                </Button>
-                                <VBox fx:id="mBoxUsers" prefHeight="200.0" prefWidth="100.0" VBox.vgrow="ALWAYS" />
+                                <VBox fx:id="mBoxUsers" prefHeight="200.0" prefWidth="100.0" VBox.vgrow="ALWAYS">
+                           <children>
+                                      <Button fx:id="mSendFriendRequest" mnemonicParsing="false" onAction="#onSendFriendRequest" prefHeight="35.0" prefWidth="1000.0" text="Send Friend Request">
+                                          <font>
+                                              <Font size="14.0" />
+                                          </font>
+                                      </Button>
+                              <Button fx:id="mIgnoreUser" mnemonicParsing="false" onAction="#onIgnore" prefHeight="35.0" prefWidth="1000.0" text="Ignore">
+                                 <font>
+                                    <Font size="14.0" />
+                                 </font>
+                              </Button>
+                           </children></VBox>
                             </children>
                         </VBox>
                     </children>

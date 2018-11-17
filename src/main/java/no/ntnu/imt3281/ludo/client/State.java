@@ -16,7 +16,9 @@ import java.util.*;
  * Holds all state of client
  */
 public class State {
+    //
     // Persistent state
+    //
     public String authToken = "";
     public String username = "";
     public String email = "";
@@ -24,24 +26,18 @@ public class State {
 
 
     //
-    // In memory state
+    // In memory-state
     //
+    public Map<Integer, JSONObject> gamelist = new HashMap<>();
+    public Map<Integer, JSONObject> chatlist = new HashMap<>();
+    public Map<Integer, JSONObject> friendlist = new HashMap<>();
+    public Map<Integer, JSONObject> userlist = new HashMap<>();
 
-    // Live scene
-    public Map<Integer, JSONObject> activeGames = new HashMap<>();
-    public Map<Integer, JSONObject> activeChats = new HashMap<>();
+    public Set<Integer> activeGames = new HashSet<>();
+    public Set<Integer> activeChats = new HashSet<>();
 
-    // Search scene
-    public Set<Integer> selectedGames = new HashSet<>();
-    public Set<Integer> selectedChats = new HashSet<>();
-    public Set<Integer> selectedFriends = new HashSet<>();
-    public Set<Integer> selectedUsers = new HashSet<>();
-
-    public ArrayList<JSONObject> gameRange = new ArrayList<>();
-    public ArrayList<JSONObject> chatRange = new ArrayList<>();
-    public ArrayList<JSONObject> friendRange = new ArrayList<>();
-    public ArrayList<JSONObject> userRange = new ArrayList<>();
-
+    public Set<Integer> chatInvites = new HashSet<>();
+    public Set<Integer> gameInvites = new HashSet<>();
 
     private static final String filepath = "client-state.json";
 
@@ -51,28 +47,30 @@ public class State {
      * @param state to be copied
      * @return copy
      */
-    public static State deepCopy(State state) {
+    static State deepCopy(State state) {
         var copy = new State();
-        
+
+        //
         // Persistent state
+        //
         copy.authToken = state.authToken;
         copy.username = state.username;
         copy.email = state.email;
         copy.userId = state.userId;
 
-        // In memory state
-        copy.activeGames.putAll(state.activeGames);
-        copy.activeChats.putAll(state.activeChats);
+        //
+        // In-memory state
+        //
+        copy.gamelist.putAll(state.gamelist);
+        copy.chatlist.putAll(state.chatlist);
+        copy.friendlist.putAll(state.friendlist);
+        copy.userlist.putAll(state.userlist);
 
-        copy.gameRange.addAll(state.gameRange);
-        copy.chatRange.addAll(state.chatRange);
-        copy.friendRange.addAll(state.friendRange);
-        copy.userRange.addAll(state.userRange);
-        
-        copy.selectedGames.addAll(state.selectedGames);
-        copy.selectedChats.addAll(state.selectedChats);
-        copy.selectedFriends.addAll(state.selectedFriends);
-        copy.selectedUsers.addAll(state.selectedUsers);
+        copy.activeGames.addAll(state.activeGames);
+        copy.activeChats.addAll(state.activeChats);
+
+        copy.gameInvites.addAll(state.gameInvites);
+        copy.chatInvites.addAll(state.chatInvites);
 
         return copy;
     }

@@ -1,9 +1,13 @@
 package no.ntnu.imt3281.ludo.gui;
 
 public enum ListItemType {
-    GameItem,
-    ChatItem,
-    FriendItem,
-    UserItem,
+    GAME,
+    GAME_INVITE,
+    CHAT,
+    CHAT_INVITE,
+    FRIEND,
+    FRIEND_REQUEST,
+    USER,
+    USER_IGNORED,
     ;
 }

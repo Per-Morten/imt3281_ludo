@@ -9,18 +9,7 @@ import javafx.scene.image.ImageView;
 import no.ntnu.imt3281.ludo.client.Actions;
 import no.ntnu.imt3281.ludo.client.StateManager;
 
-public class GameTabController implements IController {
-
-    private Actions mActions;
-    private StateManager mState;
-
-    /**
-     * IController
-     */
-    public void bind(Actions a, StateManager s) {
-        mActions = a;
-        mState = s;
-    }
+public class GameTabController extends BaseController {
 
     @FXML
     Label player1Name;

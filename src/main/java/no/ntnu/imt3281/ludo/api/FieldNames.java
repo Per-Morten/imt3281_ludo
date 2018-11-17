@@ -22,6 +22,7 @@ public class FieldNames {
    // Friend Related
    public static final String FRIEND = "friend";
    public static final String OTHER_ID = "other_id";
+   public static final String STATUS = "status";
 
    // Chat related
    public static final String NAME = "name";

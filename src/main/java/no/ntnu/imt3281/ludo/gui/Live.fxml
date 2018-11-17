@@ -44,7 +44,7 @@
             <HBox alignment="CENTER" prefHeight="66.0" prefWidth="1600.0" style="-fx-background-color: #ddd; -fx-border-color: #333;">
                <children>
                   <Button fx:id="mBtnUser" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickUser" prefHeight="30.0" prefWidth="100.0" text="User" />
-                  <Button fx:id="mBtnSearch" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickSearch" prefHeight="30.0" prefWidth="100.0" text="Search" />
+                  <Button fx:id="mBtnOverview" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickOverview" prefHeight="30.0" prefWidth="100.0" text="Overview" />
                   <Button fx:id="mBtnLogout" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickLogout" prefHeight="30.0" prefWidth="100.0" text="Logout" />
                </children>
                <padding>

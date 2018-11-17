@@ -7,23 +7,9 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.event.ActionEvent;
 
-import no.ntnu.imt3281.ludo.client.Actions;
 import no.ntnu.imt3281.ludo.client.State;
-import no.ntnu.imt3281.ludo.client.StateManager;
 
-public class LoginController implements IController {
-
-    private Actions mActions;
-    private StateManager mCache;
-
-    /**
-     * IController
-     */
-    public void bind(Actions a, StateManager c) {
-
-        mActions = a;
-        mCache = c;
-    }
+public class LoginController extends BaseController {
 
     @FXML
     private TextField mLoginEmail;

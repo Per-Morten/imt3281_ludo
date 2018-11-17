@@ -1,13 +1,15 @@
 package no.ntnu.imt3281.ludo.client;
 
 import no.ntnu.imt3281.ludo.api.FieldNames;
+import no.ntnu.imt3281.ludo.api.FriendStatus;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static no.ntnu.imt3281.ludo.api.RequestType.*;
 
@@ -16,7 +18,7 @@ public class Actions {
     private Transitions mTransitions;
     private API mAPI;
     private StateManager mStateManager;
-    private final RequestFactory mRequestFactory = new RequestFactory();
+    private final RequestFactory mRequests = new RequestFactory();
 
     /**
      * Bind dependencies of Actions
@@ -43,22 +45,20 @@ public class Actions {
         item.put(FieldNames.EMAIL, email);
         item.put(FieldNames.PASSWORD, password);
 
-        Request request = mRequestFactory.make(LOGIN_REQUEST, item, state.authToken,
+        mAPI.send(mRequests.make(LOGIN_REQUEST, item, state.authToken,
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Action -> LoginSuccess: " + success.toString());
+
+                    mStateManager.commit(gState -> {
+                        // @DUMMY
+                        gState.authToken = "afaa254";
+                        // @DUMMY
+                        gState.userId = 2;
+                    });
+
+                    mTransitions.renderLive();
                 },
-                (req, error) -> Logger.log(Level.WARN, "Action -> LoginError: " + error.toString()));
-
-        mAPI.send(request);
-
-        mStateManager.commit(gState -> {
-            // @DUMMY
-            gState.authToken = "afaa254";
-            // @DUMMY
-            gState.userId = 2;
-        });
-
-        mTransitions.renderLive();
+                (req, error) -> Logger.log(Level.WARN, "Action -> LoginError: " + error.toString())));
     }
 
     /**
@@ -70,30 +70,29 @@ public class Actions {
      */
     public void createUser(String email, String password, String username) {
         var state = this.startAction("createUser");
+        mTransitions.renderLogin();
 
         var item = new JSONObject();
         item.put(FieldNames.EMAIL, email);
         item.put(FieldNames.PASSWORD, password);
         item.put(FieldNames.USERNAME, username);
 
-        Request request = mRequestFactory.make(CREATE_USER_REQUEST, item, state.authToken,
+        mAPI.send(mRequests.make(CREATE_USER_REQUEST, item, state.authToken,
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Action -> CreateUserSuccess");
+                    mStateManager.commit(gState -> {
+                        // @DUMMY
+                        gState.userId = 2;
+                        // @DUMMY
+                        gState.email = "jonas.solsvik@gmail.com";
+                        // @DUMMY
+                        gState.username = "jonasjso";
+                    });
 
+                    mTransitions.renderLogin();
                 },
-                (req, error) -> Logger.log(Level.WARN, "Action -> CreateUserError"));
+                (req, error) -> Logger.log(Level.WARN, "Action -> CreateUserError")));
 
-        mAPI.send(request);
-
-        mStateManager.commit(gState -> {
-            // @DUMMY
-            gState.userId = 2;
-            // @DUMMY
-            gState.email = "jonas.solsvik@gmail.com";
-            // @DUMMY
-            gState.username = "jonasjso";
-        });
-        mTransitions.renderLogin();
     }
 
     /**
@@ -105,21 +104,18 @@ public class Actions {
         var item = new JSONObject();
         item.put(FieldNames.USER_ID, state.userId);
 
-        Request request = mRequestFactory.make(LOGOUT_REQUEST, item, state.authToken,
+        mAPI.send(mRequests.make(LOGOUT_REQUEST, item, state.authToken,
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Action -> LogoutSucces");
-
+                    mStateManager.commit(gState -> {
+                        gState.userId = -1;
+                        gState.email = "";
+                        gState.authToken = "";
+                        gState.username = "";
+                    });
+                    mTransitions.renderLogin();
                 },
-                (req, error) -> Logger.log(Level.WARN, "Action -> LogoutError"));
-
-        mAPI.send(request);
-        mStateManager.commit(gState -> {
-            gState.userId = -1;
-            gState.email = "";
-            gState.authToken = "";
-            gState.username = "";
-        });
-        mTransitions.renderLogin();
+                (req, error) -> Logger.log(Level.WARN, "Action -> LogoutError")));
     }
 
     /**
@@ -127,163 +123,120 @@ public class Actions {
      */
     public void gotoLive() {
         mTransitions.renderLive();
+        mTransitions.renderGameTabs();
+        mTransitions.renderChatTabs();
     }
 
     /**
      *
      */
-    public void gotoSearch() {
-        var state = this.startAction("gotoSearch");
+    public void gotoOverview() {
+        var state = this.startAction("gotoOverview");
 
-        final var item = new JSONObject();
-        item.put("page_index", 0);
-        Request requestGameRange = mRequestFactory.make(GET_GAME_RANGE_REQUEST, item, state.authToken,
+        mTransitions.renderOverview();
+
+
+        final var payload = new JSONObject();
+        payload.put("page_index", 0);
+
+        mAPI.send(mRequests.make(GET_GAME_RANGE_REQUEST, payload, state.authToken,
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Request -> GET_GAME_RANGE_REQUEST Success");
 
-                    var gameRange = new ArrayList<JSONObject>();
-
-                    // @DUMMY
-                    var game = new JSONObject();
-                    game.put("game_id", 0);
-
-                    game.put("player_id", new JSONArray(new int[]{0,1,2,3}));
-                    game.put(FieldNames.NAME, "Ludder Fight");
-                    gameRange.add(game);
-
-                    // @DUMMY
-                    var game2 = new JSONObject();
-                    game2.put("game_id", 1);
-                    game2.put("player_id", new JSONArray(new int[]{0}));
-                    game2.put(FieldNames.NAME, "Ludo Capital");
-                    gameRange.add(game2);
-
-                    // @DUMMY
-                    var game3 = new JSONObject();
-                    game3.put("game_id", 2);
-                    game3.put("player_id", new JSONArray(new int[]{}));
-                    game3.put(FieldNames.NAME, "Showdown of ages");
-                    gameRange.add(game3);
-
-
-                    Logger.log(Level.DEBUG, "" + game.toString() + " " + game2.toString());
+                    // TODO
+                    var gamelist = new HashMap<Integer, JSONObject>();
 
                     mStateManager.commit(gState -> {
-                        gState.gameRange.clear();
-                        gState.gameRange.addAll(gameRange);
+                        gState.gamelist.putAll(gamelist);
                     });
 
                     mTransitions.renderGameList();
                 },
-                (req, error) -> Logger.log(Level.WARN, "Request -> GET_GAME_RANGE_REQUEST failed"));
+                (req, error) -> Logger.log(Level.WARN, "Request -> GET_GAME_RANGE_REQUEST failed")));
 
 
-        final var item3 = new JSONObject();
-        item.put("page_index", 0);
-        Request requestChatRange = mRequestFactory.make(GET_CHAT_RANGE_REQUEST, item, state.authToken,
+        final var payload3 = new JSONObject();
+        payload3.put("page_index", 0);
+
+        mAPI.send(mRequests.make(GET_CHAT_RANGE_REQUEST, payload3, state.authToken,
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Request -> GET_CHAT_RANGE_REQUEST Success");
 
-                    var chatRange = new ArrayList<JSONObject>();
-
-                    // @DUMMY
-                    var chat = new JSONObject();
-                    chat .put(FieldNames.CHAT_ID, 0);
-                    chat.put(FieldNames.NAME, "DarkRoom");
-                    chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{0,2}));
-                    chatRange.add(chat);
-
-                    // @DUMMY
-                    var chat2 = new JSONObject();
-                    chat2 .put(FieldNames.CHAT_ID, 1);
-                    chat2.put(FieldNames.NAME, "WastedWastes");
-                    chat2.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{0,2,4,5,6,7,8}));
-                    chatRange.add(chat2);
+                    // TODO
+                    var chatlist = new HashMap<Integer,JSONObject>();
 
                     mStateManager.commit(gState -> {
-                        gState.chatRange.clear();
-                        gState.chatRange.addAll(chatRange);
+                        gState.chatlist.putAll(chatlist);
                     });
                     mTransitions.renderChatList();
                 },
-                (req, error) -> Logger.log(Level.WARN, "Request -> GET_CHAT_RANGE_REQUEST failed"));
+                (req, error) -> Logger.log(Level.WARN, "Request -> GET_CHAT_RANGE_REQUEST failed")));
 
 
-        final var item4 = new JSONObject();
-        item.put("page_index", 0);
-        Request requestFriendRange = mRequestFactory.make(GET_FRIEND_RANGE_REQUEST, item, state.authToken,
+        final var payload4 = new JSONObject();
+        payload4.put("page_index", 0);
+
+        mAPI.send(mRequests.make(GET_FRIEND_RANGE_REQUEST, payload4, state.authToken,
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Request -> GET_FRIEND_RANGE_REQUEST Success");
 
-                    var friendRange = new ArrayList<JSONObject>();
+                    var friendlist = new HashMap<Integer, JSONObject>();
 
-                    // @DUMMY
+                    // TODO
                     var friend = new JSONObject();
                     friend.put(FieldNames.USER_ID, 0);
                     friend.put(FieldNames.USERNAME, "Patrick Patriot");
-                    friendRange.add(friend);
+                    friend.put(FieldNames.STATUS, FriendStatus.FRIEND);
+                    friendlist.put(0,friend);
 
-                    // @DUMMY
                     var friend2 = new JSONObject();
                     friend2.put(FieldNames.USER_ID, 1);
                     friend2.put(FieldNames.USERNAME, "Senna Sanoi");
-                    friendRange.add(friend2);
+                    friend2.put(FieldNames.STATUS, FriendStatus.PENDING);
+                    friendlist.put(1,friend2);
 
-                    // @DUMMY
                     var friend3 = new JSONObject();
-                    friend3.put(FieldNames.USER_ID, 2);
-                    friend3.put(FieldNames.USERNAME, "Mah Man");
-                    friendRange.add(friend3);
-
-                    // @DUMMY
-                    var friend4 = new JSONObject();
-                    friend4.put(FieldNames.USER_ID, 3);
-                    friend4.put(FieldNames.USERNAME, "Alla Saman");
-                    friendRange.add(friend4);
+                    friend3.put(FieldNames.USER_ID, 1);
+                    friend3.put(FieldNames.USERNAME, "Ignore-me Ignored");
+                    friend3.put(FieldNames.STATUS, FriendStatus.IGNORED);
+                    friendlist.put(2,friend3);
 
                     mStateManager.commit(gState -> {
-                        gState.friendRange.clear();
-                        gState.friendRange.addAll(friendRange);
+                        gState.friendlist.putAll(friendlist);
                     });
                     mTransitions.renderFriendList();
                 },
-                (req, error) -> Logger.log(Level.WARN, "Request -> GET_FRIEND_RANGE_REQUEST failed"));
+                (req, error) -> Logger.log(Level.WARN, "Request -> GET_FRIEND_RANGE_REQUEST failed")));
 
 
-        final var item2 = new JSONObject();
-        item.put("page_index", 0);
-        Request requestUserRange = mRequestFactory.make(GET_USER_RANGE_REQUEST, item, state.authToken,
+        final var payload2 = new JSONObject();
+        payload2.put("page_index", 0);
+
+        mAPI.send(mRequests.make(GET_USER_RANGE_REQUEST, payload2, state.authToken,
                 (req, success) -> {
                     Logger.log(Level.DEBUG, "Request -> GET_USER_RANGE_REQUEST Success");
 
-                    var userRange = new ArrayList<JSONObject>();
+                    // TODO
+                    var userlist = new HashMap<Integer, JSONObject>();
 
                     // @DUMMY
                     var user = new JSONObject();
                     user.put(FieldNames.USER_ID, 0);
                     user.put(FieldNames.USERNAME, "Nalle Bordvik");
-                    userRange .add(user);
+                    userlist.put(0,user);
 
                     // @DUMMY
                     var user2 = new JSONObject();
                     user2.put(FieldNames.USER_ID, 1);
                     user2.put(FieldNames.USERNAME, "Jonas Solsvik");
-                    userRange.add(user2);
+                    userlist.put(1,user2);
 
                     mStateManager.commit(gState -> {
-                        gState.userRange.clear();
-                        gState.userRange.addAll(userRange);
+                        gState.userlist.putAll(userlist);
                     });
                     mTransitions.renderUserList();
                 },
-                (req, error) -> Logger.log(Level.WARN, "Request -> GET_USER_RANGE_REQUEST failed"));
-
-        mTransitions.renderOverview();
-
-        mAPI.send(requestGameRange);
-        mAPI.send(requestChatRange);
-        mAPI.send(requestUserRange);
-        mAPI.send(requestFriendRange);
+                (req, error) -> Logger.log(Level.WARN, "Request -> GET_USER_RANGE_REQUEST failed")));
     }
 
     /**
@@ -294,30 +247,57 @@ public class Actions {
     }
 
     /**
-     *
+     * Create game and add as active
      */
-    public void createGame() {
+    public void createGame(/* TODO pass name*/) {
         var state = this.startAction("createGame");
+        var newGameId = randomId();
 
-        mStateManager.commit(gState -> {
-            var game = new JSONObject();
-            gState.activeGames.put(state.activeGames.size(),game);
-        });
+        var payload = new JSONObject();
+        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.NAME, "Game "+newGameId);
 
-        mTransitions.renderGameTabs();
+        mAPI.send(mRequests.make(CREATE_GAME_REQUEST, payload, state.authToken,
+                (req, success) -> {
+                    // TODO
+                    var game = new JSONObject();
+                    game.put(FieldNames.NAME, "Game " + newGameId);
+                    game.put(FieldNames.PLAYER_ID, new JSONArray(new int[]{}));
+                    mStateManager.commit(gState -> {
+                        gState.gamelist.put(newGameId, game);
+                        gState.activeGames.add(newGameId);
+                    });
+
+                    mTransitions.newGame(newGameId);
+                },
+                (req, error) -> Logger.log(Level.WARN, "Request -> CREATE_GAME_REQUEST failed")));
     }
 
-    /**
-     *
-     */
-    public void createChat() {
-        var state = this.startAction("createChat");
 
-        mStateManager.commit(gState -> {
-            var chat = new JSONObject();
-            gState.activeChats.put(state.activeChats.size(), chat);
-        });
-        mTransitions.renderChatTabs();
+    /**
+     * Create chat and add as active
+     */
+    public void createChat(/* TODO pass name*/) {
+        var state = this.startAction("createChat");
+        var newChatId = randomId();
+        var payload = new JSONObject();
+        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.NAME, "Chat " + newChatId);
+
+        mAPI.send(mRequests.make(CREATE_CHAT_REQUEST, payload, state.authToken,
+                (req, success) -> {
+                    // TODO
+                    var chat = new JSONObject();
+                    chat.put(FieldNames.NAME, "Chat "+newChatId);
+                    chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
+
+                    mStateManager.commit(gState -> {
+                        gState.chatlist.put(newChatId, chat);
+                        gState.activeChats.add(newChatId);
+                    });
+                    mTransitions.newChat(newChatId);
+                },
+                (req, error) -> Logger.log(Level.WARN, "Request -> CREATE_CHAT_REQUEST failed")));
     }
 
     /**
@@ -462,6 +442,7 @@ public class Actions {
         var state = this.startAction("movePiece");
     }
 
+
     /**
      * Do prep-work and log action.
      *
@@ -470,5 +451,9 @@ public class Actions {
     private State startAction(String methodName) {
         Logger.log(Level.INFO, "Action -> " + methodName);
         return mStateManager.copy();
+    }
+
+    private static int randomId() {
+        return ThreadLocalRandom.current().nextInt(100000, 10000000);
     }
 }

@@ -1,4 +1,4 @@
 package no.ntnu.imt3281.ludo.gui;
 
-public class ChatItemController {
+public class ChatItemController extends BaseController {
 }

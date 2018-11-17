@@ -8,7 +8,7 @@
 
 <HBox alignment="CENTER_LEFT" prefHeight="75.0" prefWidth="200.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.ListItemController">
    <children>
-      <CheckBox mnemonicParsing="false" text="">
+      <CheckBox fx:id="mCheckbox" mnemonicParsing="false" onAction="#onCheck" text="">
          <font>
             <Font size="20.0" />
          </font>
