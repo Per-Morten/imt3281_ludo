@@ -1,15 +1,12 @@
 /**
- * 
+ *
  */
 package no.ntnu.imt3281.ludo.logic;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
-import org.mockito.InOrder;
 
 /**
  * @author okolloen
@@ -22,15 +19,15 @@ public class LudoTest {
 	 * players (RED=0, BLUE=1, YELLOW=2 and GREEN=3) and that the empty constructors
 	 * initiates a game with no players. The constructor with parameters should
 	 * require at least two players, or else throw an exception.
-	 * 
+	 *
 	 * The method nrOfPlayers should return the number of players registered for the
 	 * game.
-	 * 
+	 *
 	 * The method getPlayerName should return the name of the given player.
 	 */
 	@Test
 	public void initialTest() {
-/*		// Player 1 should be red, player 2 should be blue, player 3 should be yellow
+        // Player 1 should be red, player 2 should be blue, player 3 should be yellow
 		// and player 4 should be green.
 		assertEquals(0, Ludo.RED, 0);
 		assertEquals(1, Ludo.BLUE, 0);
@@ -63,7 +60,7 @@ public class LudoTest {
 			exceptionThrown = true;
 		}
 		assertTrue(exceptionThrown);
-*/	}
+    }
 
 	/**
 	 * Test the methods addPlayer and removePlayer. It should be possible to add up
@@ -71,10 +68,10 @@ public class LudoTest {
 	 * Removing a player should not actually remove the player but mark the player
 	 * as inactive. I.e. the number of players returned by nrOfPlayers should not be
 	 * affected.
-	 * 
+	 *
 	 * The method activePlayers should be used to return the number of active
 	 * players in a game.
-	 * 
+	 *
 	 * The method getPlayerName should return the name of the player prepended with
 	 * the string "Inactive: " for players that have been removed from the game.
 	 */
@@ -134,13 +131,13 @@ public class LudoTest {
 	 * player must throw a six to be able to move. With all pieces at the home
 	 * position a player gets three attempts at getting a six. If player does not
 	 * get a six, the turn moves to the next player.
-	 * 
+	 *
 	 * If not able to move, the turn should go to the next player.
-	 * 
+	 *
 	 * When a user throws a six, the player gets and extra turn. Note, the player
 	 * does NOT get an extra turn if that six is used to move out of the home
 	 * position.
-	 * 
+	 *
 	 * When the user has moved (and did not get a six) turn goes to the next player.
 	 * Moving a piece returns true if legal move, false if piece could not be moved.
 	 */
@@ -289,7 +286,7 @@ public class LudoTest {
 	 * playing field and to place pieces on the Ludo board we need to be able to
 	 * convert between player locations and board locations. Here we test these
 	 * conversions.
-	 * 
+	 *
 	 * @param ludo
 	 */
 	@Test
@@ -333,7 +330,7 @@ public class LudoTest {
 	/**
 	 * When a player lands on top of an opponents piece that opponents piece should
 	 * be put back to start.
-	 * 
+	 *
 	 */
 	@Test
 	public void landingOnTopSendsPlayerBack() {
@@ -448,7 +445,7 @@ public class LudoTest {
 	/**
 	 * Use to throw three ones for a player, i.e. if this player has all the pieces
 	 * in home position it will effectively skip this player.
-	 * 
+	 *
 	 * @param ludo the object holding this game
 	 */
 	private void skipPlayer(Ludo ludo) {
@@ -496,7 +493,7 @@ public class LudoTest {
 	 * moved, both the piece that is moved and any pieces that is affected by that
 	 * move should receive separate pieceMoved messages through the registered
 	 * PieceListener's.
-	 * 
+	 *
 	 * This is the BIG one, once this passes your logic is all sound and good
 	 */
 	@Test
