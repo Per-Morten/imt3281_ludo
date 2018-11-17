@@ -289,20 +289,18 @@ public class Database implements AutoCloseable {
     }
 
     private User queryToUser(ResultSet set) throws SQLException {
-        var user = new User(set.getInt(UserFields.ID),
+        return new User(set.getInt(UserFields.ID),
                 set.getString(UserFields.Username),
                 set.getString(UserFields.AvatarURI));
-        return user;
     }
 
     private User queryToExtendedUser(ResultSet set) throws SQLException {
-        var user = new User(set.getInt(UserFields.ID),
+        return new User(set.getInt(UserFields.ID),
                 set.getString(UserFields.Username),
                 set.getString(UserFields.AvatarURI),
                 set.getString(UserFields.Email),
                 set.getString(UserFields.Salt),
                 set.getString(UserFields.Token),
                 set.getString(UserFields.Password));
-        return user;
     }
 }
