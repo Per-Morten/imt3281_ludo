@@ -235,7 +235,6 @@ public class Ludo {
         } else {
             sixesInARow++;
             if (sixesInARow == 3) {
-                sixesInARow = 0;
                 nextPlayersTurn();
             }
         }
@@ -245,6 +244,24 @@ public class Ludo {
     public boolean movePiece(int color, int from, int to) {
         for (int i = 0; i < 4; i++) {
             if (getPosition(color, i) == from) {
+                if (canMoveTo(from, to)) {
+                    for (int player = 0; player < 4; player++) {
+                        if (player != currentPlayer) {
+                            for (int piece = 0; piece < 4; piece++) {
+                                int targetTile = userGridToLudoBoardGrid(currentPlayer, to);
+                                int tilePieceIsOn = userGridToLudoBoardGrid(player, getPosition(player, piece));
+                                if (targetTile == tilePieceIsOn) {
+                                    setPosition(player, piece, 0);
+                                }
+                            }
+                        }
+                    }
+                    setPosition(color, i, to);
+                    if (from == 0 || (to - from) < 6) {
+                        nextPlayersTurn();
+                    }
+                    return true;
+                }
                 setPosition(color, i, to);
                 if (from == 0 || (to - from) < 6) {
                     nextPlayersTurn();
@@ -256,6 +273,7 @@ public class Ludo {
     }
 
     private void nextPlayersTurn() {
+        sixesInARow = 0;
         currentPlayer = (currentPlayer + 1) % 4;
         // Skip inactive players
         while (!players[currentPlayer].active) {
@@ -318,15 +336,27 @@ public class Ludo {
     }
 
     private boolean canMoveTo(int from, int to) {
-        if (to > 59 || from == 0) {
-            return false;
+        if (to > 59 || (from == 0 && to != 1)) {
+            return false; // Can't move outside user grid 59, and can't move to anywhere else than user
+                          // grid 1 from user grid 0
         }
-        /*
-         * int piecesThere = 0; for (int player = 0; player < 4; player++) { for (int
-         * piece = 0; piece < 4; piece++) { if (player != currentPlayer &&
-         * getPosition(player, piece) == position) { piecesThere++; } } } if
-         * (piecesThere > 1) { return false; }
-         */
+        for (int i = from + 1; i < to + 1; i++) {
+            int piecesOnTile = 0;
+            for (int player = 0; player < 4; player++) {
+                if (player != currentPlayer) {
+                    for (int piece = 0; piece < 4; piece++) {
+                        int targetTile = userGridToLudoBoardGrid(currentPlayer, i);
+                        int tilePieceIsOn = userGridToLudoBoardGrid(player, getPosition(player, piece));
+                        if (targetTile == tilePieceIsOn) {
+                            piecesOnTile++;
+                        }
+                    }
+                }
+            }
+            if (piecesOnTile > 1) {
+                return false; // Tower in the way, can't move past it.
+            }
+        }
         return true;
     }
 

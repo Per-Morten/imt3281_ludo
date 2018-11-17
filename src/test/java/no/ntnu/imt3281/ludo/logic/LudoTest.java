@@ -334,7 +334,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void landingOnTopSendsPlayerBack() {
-/*		Ludo ludo = new Ludo("Player1", "Player2", null, null);
+        Ludo ludo = new Ludo("Player1", "Player2", null, null);
 
 		ludo.throwDice(6); // Lucky red, threw a six
 		ludo.movePiece(Ludo.RED, 0, 1); // Board position 16
@@ -370,7 +370,7 @@ public class LudoTest {
 
 		// RED player got "hit" by BLUE player and should be sent back to start
 		assertEquals(0, ludo.getPosition(Ludo.RED, 0));
-*/	}
+    }
 
 	/**
 	 * When a player has two or more pieces on top of each other no other player can
@@ -378,7 +378,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void towersBlocksOpponents() {
-/*		Ludo ludo = new Ludo("Player1", "Player2", null, null);
+        Ludo ludo = new Ludo("Player1", "Player2", null, null);
 
 		ludo.throwDice(6); // RED is in play
 		assertTrue(ludo.movePiece(Ludo.RED, 0, 1));
@@ -440,7 +440,7 @@ public class LudoTest {
 		assertEquals(0, ludo.getPosition(Ludo.RED, 3), 0);
 
 		assertEquals(5, ludo.getPosition(Ludo.BLUE, 0));
-*/	}
+    }
 
 	/**
 	 * Use to throw three ones for a player, i.e. if this player has all the pieces
