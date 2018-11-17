@@ -9,17 +9,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Utility class for validating the JSON messages that are sent through the API.
+ * NOTE: Currently only validation of requests is supported!
+ */
 public class JSONValidator {
-
-
     /**
      * Checks that the message contains all the fields needed as indicated by the api.
      * Returns true in the case where the message is valid, false otherwise.
      *
      * Currently only Request types are supported, as this is most important on the server.
      *
-     * @param message
-     * @return
+     * @param message The message to check the validity of.
+     * @return True of the message is valid, false otherwise.
      */
     public static boolean isValidMessage(String message) {
         JSONObject json;
@@ -46,6 +48,18 @@ public class JSONValidator {
         return false;
     }
 
+    /**
+     * Checks if the JSONObject has the object int type with the key key.
+     *
+     * The JSON library we use does not support a way to check if a value if of a specific type
+     * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
+     * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
+     * that controlflow.
+     *
+     * @param key The key of the value.
+     * @param json The JSONObject to check.
+     * @return True of it has an integer named key, false otherwise.
+     */
     public static boolean hasInt(String key, JSONObject json) {
         if (json.has(key)) {
             try {
@@ -58,6 +72,18 @@ public class JSONValidator {
         return false;
     }
 
+    /**
+     * Checks if the JSONObject has the object String type with the key key.
+     *
+     * The JSON library we use does not support a way to check if a value if of a specific type
+     * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
+     * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
+     * that controlflow.
+     *
+     * @param key The key of the value.
+     * @param json The JSONObject to check.
+     * @return True of it has a String named key, false otherwise.
+     */
     public static boolean hasString(String key, JSONObject json) {
         if (json.has(key)) {
             try {
@@ -72,6 +98,18 @@ public class JSONValidator {
         return false;
     }
 
+    /**
+     * Checks if the JSONObject has the object JSONArray type with the key key.
+     *
+     * The JSON library we use does not support a way to check if a value if of a specific type
+     * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
+     * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
+     * that controlflow.
+     *
+     * @param key The key of the value.
+     * @param json The JSONObject to check.
+     * @return True of it has a JSONArray named key, false otherwise.
+     */
     public static boolean hasJSONArray(String key, JSONObject json) {
         if (json.has(key)) {
             try {
@@ -84,6 +122,18 @@ public class JSONValidator {
         return false;
     }
 
+    /**
+     * Checks if the JSONObject has the object JSONObject type with the key key.
+     *
+     * The JSON library we use does not support a way to check if a value if of a specific type
+     * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
+     * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
+     * that controlflow.
+     *
+     * @param key The key of the value.
+     * @param json The JSONObject to check.
+     * @return True of it has a JSONObject named key, false otherwise.
+     */
     public static boolean hasJSONObject(String key, JSONObject json) {
         if (json.has(key)) {
             try {
@@ -97,6 +147,18 @@ public class JSONValidator {
         return false;
     }
 
+    /**
+     * Checks if the JSONArray has the object JSONObject type with the at index index.
+     *
+     * The JSON library we use does not support a way to check if a value if of a specific type
+     * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
+     * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
+     * that controlflow.
+     *
+     * @param index The index of the value.
+     * @param json The JSONArray to check.
+     * @return True of it has a JSONObject at index index, false otherwise.
+     */
     public static boolean hasJSONObject(int index, JSONArray json) {
         try {
             json.getJSONObject(index);
@@ -107,8 +169,11 @@ public class JSONValidator {
         }
     }
 
-    // This can be generalized to handle all message types if make it generic and send in the array.
-    public static boolean verifyRequest(JSONObject json) {
+    /**
+     * Function for verifying that a request is correct, by ensuring that it has all the fields indicated by the request type.
+     * The logic of this is quite ugly, but I think it does work.
+     */
+    private static boolean verifyRequest(JSONObject json) {
         var type = RequestType.fromString(json.getString(FieldNames.TYPE));
         if (type != RequestType.CREATE_USER_REQUEST && type != RequestType.LOGIN_REQUEST && !hasString(FieldNames.AUTH_TOKEN, json)) {
             return false;
