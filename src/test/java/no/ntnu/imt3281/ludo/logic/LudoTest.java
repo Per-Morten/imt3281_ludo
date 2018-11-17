@@ -77,7 +77,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void addingRemovingPlayers() {
-/*		Ludo ludo = new Ludo();
+        Ludo ludo = new Ludo();
 		ludo.addPlayer("Player A");
 		ludo.addPlayer("Player B");
 		ludo.addPlayer("Player C");
@@ -101,7 +101,7 @@ public class LudoTest {
 		assertEquals(3, ludo.activePlayers(), 0);
 		assertEquals("Player D", ludo.getPlayerName(Ludo.GREEN));
 		assertEquals("Inactive: Player B", ludo.getPlayerName(Ludo.BLUE));
-*/	}
+    }
 
 	/**
 	 * Test initial positions for all pieces for all players. All pieces for all
@@ -110,7 +110,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void testInitialPositions() {
-/*		Ludo ludo = new Ludo("Player1", "Player2", null, null);
+        Ludo ludo = new Ludo("Player1", "Player2", null, null);
 
 		// All pieces should be placed at position 0
 		for (int player = 0; player < 4; player++) { // RED is 0, GREEN is 3
@@ -123,7 +123,7 @@ public class LudoTest {
 		// move
 		// his/her pieces.
 		assertEquals(Ludo.RED, ludo.activePlayer(), 0);
-*/	}
+    }
 
 	/**
 	 * Player must throw a six to get out of the home position. Since all pieces are
@@ -143,7 +143,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void needASixToGetStarted() {
-/*		Ludo ludo = new Ludo("Player1", "Player2", null, null);
+        Ludo ludo = new Ludo("Player1", "Player2", null, null);
 
 		assertEquals(Ludo.RED, ludo.activePlayer(), 0);
 		ludo.throwDice(1);
@@ -179,7 +179,7 @@ public class LudoTest {
 			assertEquals(Ludo.BLUE, ludo.activePlayer(), 0);
 		else // If not it should be REDs turn
 			assertEquals(Ludo.RED, ludo.activePlayer(), 0);
-*/	}
+    }
 
 	/**
 	 * Checks that player need exact number of eyes on the dice to move to finish.
@@ -189,7 +189,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void gameStates() {
-/*		Ludo ludo = new Ludo();
+        Ludo ludo = new Ludo();
 		assertEquals("Created", ludo.getStatus()); // A game with no players are created
 		ludo.addPlayer("Player1");
 		assertEquals("Initiated", ludo.getStatus()); // A game with players are Initiated
@@ -279,7 +279,7 @@ public class LudoTest {
 		assertTrue(ludo.movePiece(Ludo.RED, 55, 59));
 		assertEquals("Finished", ludo.getStatus()); // A game with a winner is finished
 		assertEquals(Ludo.RED, ludo.getWinner(), 0);
-*/	}
+    }
 
 	/**
 	 * To be able to detect when pieces from different players end up on the same
@@ -449,10 +449,10 @@ public class LudoTest {
 	 * @param ludo the object holding this game
 	 */
 	private void skipPlayer(Ludo ludo) {
-/*		for (int noBlue = 0; noBlue < 3; noBlue++) { // We will be moving the red players pieces only
+        for (int noBlue = 0; noBlue < 3; noBlue++) { // We will be moving the red players pieces only
 			ludo.throwDice(1); // So blue only throws ones
 		}
-*/	}
+    }
 
 	/*
 	 * =========================================================================
