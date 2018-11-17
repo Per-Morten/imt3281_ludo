@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
@@ -62,7 +63,7 @@ public class APITests {
     private static JSONObject createLoginRequest(String email, String password) {
         var payload = new JSONArray();
         var request = new JSONObject();
-        request.put(FieldNames.ID,0);
+        request.put(FieldNames.ID, 0);
         request.put(FieldNames.EMAIL, email);
         request.put(FieldNames.PASSWORD, password);
         payload.put(0, request);
@@ -72,7 +73,7 @@ public class APITests {
     private static JSONObject createGetUserRequest(int userID, String token) {
         var payload = new JSONArray();
         var request = new JSONObject();
-        request.put(FieldNames.ID,0);
+        request.put(FieldNames.ID, 0);
         request.put(FieldNames.USER_ID, userID);
         payload.put(0, request);
         return createRequest(RequestType.GET_USER_REQUEST, payload, token);
@@ -93,7 +94,9 @@ public class APITests {
         socket.send(message.toString());
         long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
         while (running.get() && System.currentTimeMillis() < end) {
+            // Empty
         }
+        
         if (running.get()) {
             throw new RuntimeException("Didn't get response from server fast enough");
         }
@@ -160,15 +163,55 @@ public class APITests {
         sServerThread.join();
     }
 
+    private static class TestContext {
+        AtomicBoolean running;
+        AtomicInteger count;
+        SocketManager socket;
+    }
+
+    private static void runTest(BiConsumer<TestContext, String> onReceiveCallback, String firstMessage) {
+        final var context = new TestContext();
+
+        context.running = new AtomicBoolean(true);
+        context.count = new AtomicInteger(0);
+        context.socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
+
+        context.socket.setOnReceiveCallback((string) -> {
+            try {
+                onReceiveCallback.accept(context, string);
+            } catch (Exception e) {
+                fail(e.getMessage());
+            }
+        });
+        try {
+            context.socket.start();
+            context.socket.send(firstMessage);
+        } catch (Exception e) {
+            fail();
+        }
+
+        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
+        while (context.running.get() && System.currentTimeMillis() < end) {
+
+        }
+
+        if (context.running.get()) {
+            fail("Timed out");
+        }
+
+        try {
+            context.socket.stop();
+        } catch (Exception e) {
+            fail();
+        }
+    }
+
     ///////////////////////////////////////////////////////
     /// User Sunshine tests
     ///////////////////////////////////////////////////////
     @Test
-    public void canCreateUser() throws InterruptedException, IOException {
-        final AtomicBoolean running = new AtomicBoolean(true);
-
-        var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
-        socket.setOnReceiveCallback((string) -> {
+    public void canCreateUser() {
+        BiConsumer<TestContext, String> callback = (context, string) -> {
             var json = new JSONObject(string);
             var msgID = json.getInt(FieldNames.ID);
             assertEquals(0, msgID);
@@ -183,43 +226,26 @@ public class APITests {
             var error = json.getJSONArray(FieldNames.ERROR);
             assert (error.length() == 0);
 
-            running.set(false);
+            context.running.set(false);
+        };
 
-        });
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USERNAME, "JohnDoe");
+        request.put(FieldNames.PASSWORD, "Secret Password");
+        request.put(FieldNames.EMAIL, "john.doe@ubermail.com");
+        payload.put(0, request);
 
-        socket.start();
-        {
-            var payload = new JSONArray();
-            var request = new JSONObject();
-            request.put(FieldNames.ID, 0);
-            request.put(FieldNames.USERNAME, "JohnDoe");
-            request.put(FieldNames.PASSWORD, "Secret Password");
-            request.put(FieldNames.EMAIL, "john.doe@ubermail.com");
-            payload.put(0, request);
-            socket.send(createRequest(RequestType.CREATE_USER_REQUEST, payload).toString());
-        }
-
-
-        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
-        while (running.get() && System.currentTimeMillis() < end) {
-
-        }
-
-        if (running.get()) {
-            fail("Timed out");
-        }
-
-        socket.stop();
+        runTest(callback, createRequest(RequestType.CREATE_USER_REQUEST, payload).toString());
     }
 
     @Test
-    public void canLogIn() throws InterruptedException, IOException {
-        final AtomicBoolean running = new AtomicBoolean(true);
+    public void canLogIn() {
 
         // Desired ID is 1 because we are logging in as the first test user.
         int desiredID = 1;
-        var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
-        socket.setOnReceiveCallback((string) -> {
+        BiConsumer<TestContext, String> callback = (context, string) -> {
             var json = new JSONObject(string);
             var msgID = json.getInt(FieldNames.ID);
             assertEquals(0, msgID);
@@ -234,42 +260,25 @@ public class APITests {
             assertEquals(desiredID, userID);
             var token = firstSuccess.getString(FieldNames.AUTH_TOKEN);
             var error = json.getJSONArray(FieldNames.ERROR);
-            assertEquals(0,error.length());
+            assertEquals(0, error.length());
 
-            running.set(false);
+            context.running.set(false);
+        };
 
-        });
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.PASSWORD, USER_1.password);
+        request.put(FieldNames.EMAIL, USER_1.email);
+        payload.put(0, request);
 
-        socket.start();
-        {
-            var payload = new JSONArray();
-            var request = new JSONObject();
-            request.put(FieldNames.ID, 0);
-            request.put(FieldNames.PASSWORD, USER_1.password);
-            request.put(FieldNames.EMAIL, USER_1.email);
-            payload.put(0, request);
-            socket.send(createRequest(RequestType.LOGIN_REQUEST, payload).toString());
-        }
-
-
-        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
-        while (running.get() && System.currentTimeMillis() < end) {
-
-        }
-
-        if (running.get()) {
-            fail("Timed out");
-        }
-
-        socket.stop();
+        runTest(callback, createRequest(RequestType.LOGIN_REQUEST, payload).toString());
     }
 
     @Test
-    public void canLogOut() throws InterruptedException, IOException {
-        final AtomicBoolean running = new AtomicBoolean(true);
+    public void canLogOut() {
 
-        var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
-        socket.setOnReceiveCallback((string) -> {
+        BiConsumer<TestContext, String> callback = (context, string) -> {
             var json = new JSONObject(string);
             var msgID = json.getInt(FieldNames.ID);
             assertEquals(0, msgID);
@@ -283,41 +292,22 @@ public class APITests {
             var error = json.getJSONArray(FieldNames.ERROR);
             assert (error.length() == 0);
 
-            running.set(false);
-        });
+            context.running.set(false);
+        };
 
-        socket.start();
-        {
-            var payload = new JSONArray();
-            var request = new JSONObject();
-            request.put(FieldNames.ID, 0);
-            request.put(FieldNames.USER_ID, LOGGED_IN_USER.id);
-            payload.put(0, request);
-            var json = createRequest(RequestType.LOGOUT_REQUEST, payload);
-            json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
-
-            socket.send(json.toString());
-        }
-
-        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
-        while (running.get() && System.currentTimeMillis() < end) {
-
-        }
-
-        if (running.get()) {
-            fail("Timed out");
-        }
-
-        socket.stop();
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, LOGGED_IN_USER.id);
+        payload.put(0, request);
+        var json = createRequest(RequestType.LOGOUT_REQUEST, payload);
+        json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
+        runTest(callback, json.toString());
     }
 
     @Test
-    public void canGetUser() throws IOException, InterruptedException {
-        final AtomicBoolean running = new AtomicBoolean(true);
-
-        var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
-        socket.setOnReceiveCallback((string) -> {
-            Logger.log(Logger.Level.DEBUG, String.format("Got message back %s", string));
+    public void canGetUser() {
+        BiConsumer<TestContext, String> callback = (context, string) -> {
             var json = new JSONObject(string);
             var msgID = json.getInt(FieldNames.ID);
             assertEquals(0, msgID);
@@ -336,50 +326,29 @@ public class APITests {
             var error = json.getJSONArray(FieldNames.ERROR);
             assert (error.length() == 0);
 
-            Logger.log(Logger.Level.DEBUG, "Got here");
+            context.running.set(false);
+        };
 
-            running.set(false);
-        });
-
-        socket.start();
-        {
-            var payload = new JSONArray();
-            var request = new JSONObject();
-            request.put(FieldNames.ID, 0);
-            request.put(FieldNames.USER_ID, USER_1.id);
-            payload.put(0, request);
-            var json = createRequest(RequestType.GET_USER_REQUEST, payload);
-            json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
-
-            socket.send(json.toString());
-        }
-
-        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
-        while (running.get() && System.currentTimeMillis() < end) {
-
-        }
-
-        if (running.get()) {
-            fail("Timed out");
-        }
-
-        socket.stop();
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, USER_1.id);
+        payload.put(0, request);
+        var json = createRequest(RequestType.GET_USER_REQUEST, payload);
+        json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
+        runTest(callback, json.toString());
     }
 
     @Test
-    public void canGetUserRange() throws IOException {
+    public void canGetUserRange() {
         // TODO: Ask Jonas if we can update the API to not say friends, chats, or games for the reponses
         // to the ranges, as that isn't generic.
     }
 
     @Test
-    public void canUpdateUser() throws IOException, InterruptedException {
-        final AtomicBoolean running = new AtomicBoolean(true);
-        final AtomicInteger count = new AtomicInteger(0);
-
-        var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
-        socket.setOnReceiveCallback((string) -> {
-            if (count.get() == 0) {
+    public void canUpdateUser() {
+        BiConsumer<TestContext, String> callback = (context, string) -> {
+            if (context.count.get() == 0) {
                 var json = new JSONObject(string);
                 var msgID = json.getInt(FieldNames.ID);
                 assertEquals(0, msgID);
@@ -394,12 +363,12 @@ public class APITests {
                 assert (error.length() == 0);
 
                 try {
-                    socket.send(createGetUserRequest(USER_TO_BE_UPDATED.id, USER_TO_BE_UPDATED.token).toString());
+                    context.socket.send(createGetUserRequest(USER_TO_BE_UPDATED.id, USER_TO_BE_UPDATED.token).toString());
                 } catch (IOException e) {
                     fail();
                 }
             }
-            if (count.get() == 1) {
+            if (context.count.get() == 1) {
                 var json = new JSONObject(string);
                 var success = json.getJSONArray(FieldNames.SUCCESS);
                 assertEquals(1, success.length());
@@ -408,52 +377,32 @@ public class APITests {
             }
 
 
-            count.incrementAndGet();
-            if (count.get() >= 2) {
-                running.set(false);
+            context.count.incrementAndGet();
+            if (context.count.get() >= 2) {
+                context.running.set(false);
             }
+        };
 
-        });
 
-        socket.start();
-        {
-            var payload = new JSONArray();
-            var request = new JSONObject();
-            request.put(FieldNames.ID, 0);
-            request.put(FieldNames.USER_ID, USER_TO_BE_UPDATED.id);
-            request.put(FieldNames.USERNAME, USER_TO_BE_UPDATED.username);
-            request.put(FieldNames.PASSWORD, USER_TO_BE_UPDATED.password);
-            request.put(FieldNames.EMAIL, USER_TO_BE_UPDATED.email);
-            request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
-            payload.put(0, request);
-            var json = createRequest(RequestType.UPDATE_USER_REQUEST, payload);
-            json.put(FieldNames.AUTH_TOKEN, USER_TO_BE_UPDATED.token);
-            socket.send(json.toString());
-        }
-
-        // TODO: When the get user is implemented, need to do that here, to verify that the change actually happened.
-
-        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
-        while (running.get() && System.currentTimeMillis() < end) {
-
-        }
-
-        if (running.get()) {
-            fail("Timed out");
-        }
-
-        socket.stop();
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, USER_TO_BE_UPDATED.id);
+        request.put(FieldNames.USERNAME, USER_TO_BE_UPDATED.username);
+        request.put(FieldNames.PASSWORD, USER_TO_BE_UPDATED.password);
+        request.put(FieldNames.EMAIL, USER_TO_BE_UPDATED.email);
+        request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+        payload.put(0, request);
+        var json = createRequest(RequestType.UPDATE_USER_REQUEST, payload);
+        json.put(FieldNames.AUTH_TOKEN, USER_TO_BE_UPDATED.token);
+        runTest(callback, json.toString());
 
     }
 
     @Test
-    public void canDeleteUser() throws IOException, InterruptedException {
-        final AtomicBoolean running = new AtomicBoolean(true);
-        final AtomicInteger count = new AtomicInteger(0);
-
-        var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
-        socket.setOnReceiveCallback((string) -> {
-            if (count.get() == 0) {
+    public void canDeleteUser() {
+        BiConsumer<TestContext, String> callback = (context, string) -> {
+            if (context.count.get() == 0) {
                 var json = new JSONObject(string);
                 var msgID = json.getInt(FieldNames.ID);
                 assertEquals(0, msgID);
@@ -468,13 +417,13 @@ public class APITests {
                 assert (error.length() == 0);
 
                 try {
-                    socket.send(createGetUserRequest(USER_TO_BE_DELETED.id, USER_TO_BE_DELETED.token).toString());
+                    context.socket.send(createGetUserRequest(USER_TO_BE_DELETED.id, USER_TO_BE_DELETED.token).toString());
                 } catch (IOException e) {
                     fail();
                 }
             }
 
-            if (count.get() == 1) {
+            if (context.count.get() == 1) {
                 var json = new JSONObject(string);
                 var error = json.getJSONArray(FieldNames.ERROR);
                 assertEquals(1, error.length());
@@ -483,41 +432,59 @@ public class APITests {
                 assertEquals(Error.USER_ID_NOT_FOUND, Error.fromInt(firstError.getJSONArray(FieldNames.CODE).getInt(0)));
             }
 
-            count.incrementAndGet();
-            if (count.get() >= 2) {
-                running.set(false);
+            context.count.incrementAndGet();
+            if (context.count.get() >= 2) {
+                context.running.set(false);
             }
-        });
+        };
 
-        socket.start();
-        {
-            var payload = new JSONArray();
-            var request = new JSONObject();
-            request.put(FieldNames.ID, 0);
-            request.put(FieldNames.USER_ID, USER_TO_BE_DELETED.id);
-            payload.put(0, request);
-            var json = createRequest(RequestType.DELETE_USER_REQUEST, payload);
-            json.put(FieldNames.AUTH_TOKEN, USER_TO_BE_DELETED.token);
-            socket.send(json.toString());
-        }
-
-        // TODO: When the get user is implemented, need to do that here, to verify that the change actually happened.
-
-        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
-        while (running.get() && System.currentTimeMillis() < end) {
-
-        }
-
-        if (running.get()) {
-            fail("Timed out");
-        }
-
-        socket.stop();
-
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, USER_TO_BE_DELETED.id);
+        payload.put(0, request);
+        var json = createRequest(RequestType.DELETE_USER_REQUEST, payload);
+        json.put(FieldNames.AUTH_TOKEN, USER_TO_BE_DELETED.token);
+        runTest(callback, json.toString());
     }
 
     ///////////////////////////////////////////////////////
     /// User Failing tests
     ///////////////////////////////////////////////////////
 
+
+    @Test
+    public void errorOnIllegalUserID() {
+
+    }
+
+    @Test
+    public void errorOnNonUniqueUserName() {
+
+    }
+
+    @Test
+    public void errorOnNonUniqueEmail() {
+
+    }
+
+    @Test
+    public void getUnauthorizedErrorOnDeletingSomeoneElsesAccount() {
+
+    }
+
+    @Test
+    public void getUnauthorizedErrorOnUpdatingSomeoneElsesAccount() {
+
+    }
+
+    @Test
+    public void errorOnLoggingInWithWrongPassword() {
+
+    }
+
+    @Test
+    public void errorOnLoggingInWithWrongEmail() {
+
+    }
 }
