@@ -53,8 +53,10 @@ public class OverviewController extends BaseController {
     private Set<Integer> mSelectedUsers = new HashSet<>();
     private Set<Integer> mSelectedUsersIgnored = new HashSet<>();
 
-    private static final String textSendInvite = "Send invite"; // TODO i18n;
-    private static final String textAcceptInvite = "Accept invite"; // TODO i18n;
+    private static final String textSendGameInvite = "Send Game Invite"; // TODO i18n;
+    private static final String textAcceptGameInvite = "Accept Game Invite"; // TODO i18n;
+    private static final String textSendChatInvite = "Send Chat Invite"; // TODO i18n;
+    private static final String textAcceptChatInvite = "Accept Chat Invite"; // TODO i18n;
     private static final String textAcceptRequest = "Accept Friend Request"; // TODO i18n;
     private static final String textSendRequest = "Send Friend request"; // TODO i18n;
     private static final String textRemove = "Remove"; // TODO i18n;
@@ -109,18 +111,18 @@ public class OverviewController extends BaseController {
     void renderButtonTexts() {
         // ------------ Game list -----------
         // Invite friends to active games
-        mSendGameInvite.setText(textSendInvite + " " + mSelectedGames.size() + " <- " + mSelectedFriends.size());
+        mSendGameInvite.setText(textSendGameInvite + " " + mSelectedGames.size() + " <- " + mSelectedFriends.size());
 
         // Accept game invites
-        mAcceptGameInvite.setText(textAcceptInvite + " " + mSelectedGameInvites.size());
+        mAcceptGameInvite.setText(textAcceptGameInvite + " " + mSelectedGameInvites.size());
 
 
         // ------------ Chat list -------------
         // Invite friends to active chats
-        mSendChatInvite.setText(textSendInvite + " " + mSelectedChats.size() + " <- " + mSelectedFriends.size());
+        mSendChatInvite.setText(textSendChatInvite + " " + mSelectedChats.size() + " <- " + mSelectedFriends.size());
 
         // Accept chat invites
-        mAcceptChatInvite.setText(textAcceptInvite + " " + mSelectedChatInvites.size());
+        mAcceptChatInvite.setText(textAcceptChatInvite + " " + mSelectedChatInvites.size());
 
 
         // ----------- Friend list ----------
