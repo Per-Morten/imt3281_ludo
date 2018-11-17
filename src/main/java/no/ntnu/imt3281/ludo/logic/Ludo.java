@@ -329,4 +329,18 @@ public class Ludo {
          */
         return true;
     }
+
+    public int userGridToLudoBoardGrid(int playerColor, int localGrid) {
+        if (localGrid == 0) {
+            return playerColor * 4;
+        }
+        int boardGrid = (15 + localGrid + (13 * playerColor));
+        if (boardGrid < 68) {
+            return boardGrid;
+        }
+        if (boardGrid > 67 && localGrid < 54) {
+            return boardGrid - 52;
+        }
+        return localGrid + 14 + (6 * playerColor);
+    }
 }
