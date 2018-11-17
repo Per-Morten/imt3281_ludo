@@ -7,3 +7,4 @@ target
 .DS_Store
 bin
 client-state.json
+ludo.db
