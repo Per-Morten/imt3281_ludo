@@ -12,44 +12,41 @@ import java.util.ArrayList;
  */
 public class RequestFactory {
 
-    public Request make(RequestType _type, JSONObject _payload, String _token, RequestCallback _onSuccess, RequestCallback _onError) {
+    public Request make(RequestType type, JSONObject payload, String token, RequestCallback onSuccess, RequestCallback onError) {
 
         var req = new Request();
         req.id = this.nextRequestId();
-        req.type = _type;
-        req.token = _token;
-        req.onSuccess = _onSuccess;
-        req.onError = _onError;
+        req.type = type;
+        req.token = token;
+        req.onSuccess = onSuccess;
+        req.onError = onError;
 
         var array = new ArrayList<JSONObject>();
-        _payload.put("id", this.nextItemId());
-        array.add(_payload);
+        payload.put("id", 0);
+        array.add(payload);
         req.payload = array;
         return req;
     }
 
-    public Request make(RequestType _type,  ArrayList<JSONObject> _payload, String _token, RequestCallback _onSuccess, RequestCallback _onError) {
+    public Request make(RequestType type,  ArrayList<JSONObject> payload, String token, RequestCallback onSuccess, RequestCallback onError) {
 
+        int i = 0;
         var req = new Request();
         req.id = this.nextRequestId();
-        req.type = _type;
-        req.token = _token;
-        req.onSuccess = _onSuccess;
-        req.onError = _onError;
+        req.type = type;
+        req.token = token;
+        req.onSuccess = onSuccess;
+        req.onError = onError;
 
-        _payload.forEach(item -> item.put("id", this.nextItemId()));
+        for (var item : payload) {
+            item.put("id", i++);
+        }
 
-        req.payload = _payload;
+        req.payload = payload;
         return req;
     }
 
-    private int mItemIncrementer = 0;
     private int mRequestIncrementer = 0;
-
-    synchronized private int nextItemId() {
-        mItemIncrementer += 1;
-        return mItemIncrementer;
-    }
 
     synchronized private int nextRequestId() {
         mRequestIncrementer += 1;
