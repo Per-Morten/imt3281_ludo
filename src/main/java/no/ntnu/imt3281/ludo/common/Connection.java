@@ -59,7 +59,7 @@ public class Connection {
         mSocketWriter = new BufferedWriter(new OutputStreamWriter(mSocket.getOutputStream()));
 
         mRunning.set(true);
-        mThread = new Thread(() -> run());
+        mThread = new Thread(this::run);
         mThread.start();
     }
 
@@ -76,8 +76,7 @@ public class Connection {
             mSocketWriter.close();
             mSocket.close();
         } catch (IOException e) {
-            Logger.log(Logger.Level.WARN, String.format("Could not close Connection socket, exception: %s, trace: %s",
-                    e.getClass().getName(), e.getCause().toString()));
+            Logger.logException(Logger.Level.WARN, e, "Could not close connection socket");
         }
 
         mThread.join();
@@ -100,11 +99,11 @@ public class Connection {
         Logger.log(Logger.Level.DEBUG, String.format("Sending message to:%s: %d, message: %s",
                 mSocket.getInetAddress().toString(), mSocket.getPort(), message));
 
-        // Don't remove + "\n", it is needed for readLine on the other side.
+        // Don't remove + "%n", it is needed for readLine on the other side.
         // Tok me 5 hours to figure out.
+        mSocketWriter.write(String.format("%s%n", message));
 
         // If we get nullptr exception here that is considered  a disconnect, need to handle that, add more callbacks.
-        mSocketWriter.write(String.format("%s%n",message));
         mSocketWriter.flush();
     }
 
@@ -116,10 +115,10 @@ public class Connection {
             }
         } catch (Exception e) {
             if (mRunning.get()) {
-                Logger.log(Logger.Level.WARN, String.format("Connection closed unexpectedly, exception: %s, trace: %s",
-                        e.getClass().toString(), e.getCause().toString()));
+                Logger.logException(Logger.Level.WARN, e, "Connection closed unexpectedly");
                 mRunning.set(false);
             }
         }
     }
+
 }

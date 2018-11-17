@@ -123,7 +123,7 @@ public class SocketManager {
         try {
             mThread.join();
         } catch (Exception e) {
-            Logger.log(Logger.Level.ERROR, "Could not join the SocketManager Thread");
+            Logger.logException(Logger.Level.ERROR, e, "Could not join the SocketManager Thread");
         }
     }
 

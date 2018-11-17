@@ -1,9 +1,5 @@
 package no.ntnu.imt3281.ludo.gui;
 
-/**
- * Sample Skeleton for 'GameBoard.fxml' IController Class
- */
-
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -13,7 +9,7 @@ import javafx.scene.image.ImageView;
 import no.ntnu.imt3281.ludo.client.Actions;
 import no.ntnu.imt3281.ludo.client.StateManager;
 
-public class GameBoardController implements IController {
+public class TabGameController implements IController {
 
     private Actions mActions;
     private StateManager mState;

@@ -50,8 +50,7 @@ public class DatabaseTest {
         var user = sDB.getUserByID(1);
         assertEquals(1, user.id);
         assertEquals("User1", user.username);
-        assertEquals("User1@mail.com", user.email);
-        assertNull(user.avatarURI);
+        assertEquals("", user.avatarURI);
     }
 
     @Test
@@ -67,8 +66,7 @@ public class DatabaseTest {
         sDB.updateUser(id, "UpdatedUser", "UserToUpdate@mail.com", "pwd", null, "salt");
         var user = sDB.getUserByID(id);
         assertEquals("UpdatedUser", user.username);
-        assertEquals("UserToUpdate@mail.com", user.email);
-        assertNull(user.avatarURI);
+        assertEquals("", user.avatarURI);
     }
 
     @Test
