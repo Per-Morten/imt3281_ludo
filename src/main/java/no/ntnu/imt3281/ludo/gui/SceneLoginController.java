@@ -11,18 +11,18 @@ import no.ntnu.imt3281.ludo.client.Actions;
 import no.ntnu.imt3281.ludo.client.State;
 import no.ntnu.imt3281.ludo.client.StateManager;
 
-public class LoginController implements IController {
+public class SceneLoginController implements IController {
 
     private Actions mActions;
-    private StateManager mState;
+    private StateManager mCache;
 
     /**
      * IController
      */
-    public void bind(Actions a, StateManager s) {
+    public void bind(Actions a, StateManager c) {
 
         mActions = a;
-        mState = s;
+        mCache = c;
     }
 
     @FXML
@@ -63,19 +63,17 @@ public class LoginController implements IController {
 
     @FXML
     void initialize() {
-        assert mLoginEmail != null : "fx:id=\"mLoginEmail\" was not injected: check your FXML file 'Login.fxml'.";
-        assert mLoginPassword != null : "fx:id=\"mLoginPassword\" was not injected: check your FXML file 'Login.fxml'.";
-        assert mButtonLogin != null : "fx:id=\"mButtonLogin\" was not injected: check your FXML file 'Login.fxml'.";
-        assert mCreateEmail != null : "fx:id=\"mCreateEmail\" was not injected: check your FXML file 'Login.fxml'.";
-        assert mCreatePassword != null : "fx:id=\"mCreatePassword\" was not injected: check your FXML file 'Login.fxml'.";
-        assert mCreateUsername != null : "fx:id=\"mCreateUsername\" was not injected: check your FXML file 'Login.fxml'.";
-        assert mButtonCreate != null : "fx:id=\"mButtonCreate\" was not injected: check your FXML file 'Login.fxml'.";
+        assert mLoginEmail != null : "fx:id=\"mLoginEmail\" was not injected: check your FXML file 'SceneLogin.fxml'.";
+        assert mLoginPassword != null : "fx:id=\"mLoginPassword\" was not injected: check your FXML file 'SceneLogin.fxml'.";
+        assert mButtonLogin != null : "fx:id=\"mButtonLogin\" was not injected: check your FXML file 'SceneLogin.fxml'.";
+        assert mCreateEmail != null : "fx:id=\"mCreateEmail\" was not injected: check your FXML file 'SceneLogin.fxml'.";
+        assert mCreatePassword != null : "fx:id=\"mCreatePassword\" was not injected: check your FXML file 'SceneLogin.fxml'.";
+        assert mCreateUsername != null : "fx:id=\"mCreateUsername\" was not injected: check your FXML file 'SceneLogin.fxml'.";
+        assert mButtonCreate != null : "fx:id=\"mButtonCreate\" was not injected: check your FXML file 'SceneLogin.fxml'.";
 
         Platform.runLater(() -> {
-            State localState = mState.copy();
+            State localState = mCache.copy();
             mLoginEmail.setText(localState.email);
         });
     }
-
-
 }

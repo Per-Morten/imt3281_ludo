@@ -37,7 +37,7 @@ public class StateManager {
     }
 
     /**
-     * Mutate the state with provided mutation. Block all incomming copies until
+     * Mutate the state with provided mutation. Block all incoming copies until
      * mutation is completed.
      *
      * @param mutation which should be applied on state
@@ -46,7 +46,7 @@ public class StateManager {
         try {
             State state = mState.take();
             mutation.run(state);
-            mState.put(State.deepCopy(state));
+            mState.put(state);
         } catch (InterruptedException e) {
             Platform.exit();
         }

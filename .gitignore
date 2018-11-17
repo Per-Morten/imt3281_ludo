@@ -6,4 +6,4 @@ target
 target
 .DS_Store
 bin
-client-cache.json
+client-state.json

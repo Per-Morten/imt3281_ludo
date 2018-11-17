@@ -1,11 +1,9 @@
 package no.ntnu.imt3281.ludo.client;
 
-import java.util.ArrayList;
-
 import no.ntnu.imt3281.ludo.api.RequestType;
-import no.ntnu.imt3281.ludo.client.Request;
-import no.ntnu.imt3281.ludo.client.RequestCallback;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
 
 /**
  * Makes requests in accordance to the message protocol
