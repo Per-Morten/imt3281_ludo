@@ -207,21 +207,23 @@ public class Transitions {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController)item.controller;
                 var name = friend.getString(FieldNames.USERNAME);
-                var status = friend.getString(FieldNames.STATUS);
+                var status = FriendStatus.fromInt(friend.getInt(FieldNames.STATUS));
+                if (status == null) {
+                    Logger.log(Level.WARN, "status == null");
+                    return;
+                }
 
-                Logger.log(Level.DEBUG, "friend name " + name);
                 switch (status) {
-                    case FriendStatus.FRIEND:
+                    case FRIENDED:
                         itemController.init(ListItemType.FRIEND, id, overview, name);
                         overview.mBoxFriends.getChildren().add(item.root);
                         break;
 
-                    case FriendStatus.PENDING:
+                    case PENDING:
                         itemController.init(ListItemType.FRIEND_REQUEST, id, overview, name + " [pending]"); // TODO i18n
                         overview.mBoxFriends.getChildren().add(item.root);
                         break;
                 }
-
             });
         });
     }
@@ -248,10 +250,14 @@ public class Transitions {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController)item.controller;
                 var name = friend.getString(FieldNames.USERNAME);
-                var status = friend.getString(FieldNames.STATUS);
+                var status = FriendStatus.fromInt(friend.getInt(FieldNames.STATUS));
+                if (status == null) {
+                    Logger.log(Level.WARN, "status == null");
+                    return;
+                }
 
                 switch (status) {
-                    case FriendStatus.IGNORED:
+                    case IGNORED:
                         itemController.init(ListItemType.USER_IGNORED, id, overview, name + " [ignored]"); // TODO i18n
                         overview.mBoxUsers.getChildren().add(item.root);
                         break;

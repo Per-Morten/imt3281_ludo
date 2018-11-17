@@ -186,19 +186,19 @@ public class Actions {
                     var friend = new JSONObject();
                     friend.put(FieldNames.USER_ID, 0);
                     friend.put(FieldNames.USERNAME, "Patrick Patriot");
-                    friend.put(FieldNames.STATUS, FriendStatus.FRIEND);
+                    friend.put(FieldNames.STATUS, FriendStatus.FRIENDED.toInt());
                     friendlist.put(0,friend);
 
                     var friend2 = new JSONObject();
                     friend2.put(FieldNames.USER_ID, 1);
                     friend2.put(FieldNames.USERNAME, "Senna Sanoi");
-                    friend2.put(FieldNames.STATUS, FriendStatus.PENDING);
+                    friend2.put(FieldNames.STATUS, FriendStatus.PENDING.toInt());
                     friendlist.put(1,friend2);
 
                     var friend3 = new JSONObject();
                     friend3.put(FieldNames.USER_ID, 1);
                     friend3.put(FieldNames.USERNAME, "Ignore-me Ignored");
-                    friend3.put(FieldNames.STATUS, FriendStatus.IGNORED);
+                    friend3.put(FieldNames.STATUS, FriendStatus.IGNORED.toInt());
                     friendlist.put(2,friend3);
 
                     mStateManager.commit(gState -> {
