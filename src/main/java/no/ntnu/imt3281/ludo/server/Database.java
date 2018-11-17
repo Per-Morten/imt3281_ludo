@@ -1,7 +1,10 @@
 package no.ntnu.imt3281.ludo.server;
 
+import no.ntnu.imt3281.ludo.api.Error;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +27,7 @@ public class Database implements AutoCloseable {
         public static final String Password = "password";
         public static final String AvatarURI = "avatar_uri";
         public static final String Token = "token";
+        public static final String Salt = "salt";
     }
 
     private static final int UnassignedID = -1;
@@ -42,8 +46,8 @@ public class Database implements AutoCloseable {
 
         String user = "CREATE TABLE IF NOT EXISTS " + UserFields.DBName + "(" + UserFields.ID
                 + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " + UserFields.Username + " text NOT NULL, "
-                + UserFields.Email + " text NOT NULL UNIQUE, " + UserFields.Password + " text NOT NULL, " // Hashed
-                                                                                                          // password!
+                + UserFields.Email + " text NOT NULL UNIQUE, " + UserFields.Password + " text NOT NULL, " // Hashed password!
+                + UserFields.Salt + " text NOT NULL, "
                 + UserFields.AvatarURI + " text DEFAULT(NULL), " + UserFields.Token + " text DEFAULT(NULL)" + ");";
 
         mConnection = DriverManager.getConnection(url);
@@ -88,22 +92,24 @@ public class Database implements AutoCloseable {
      * @return Returns the user_id of the new user
      * @throws SQLException            Throws SQLException Upon SQL Errors (Should
      *                                 not happen)
-     * @throws NotUniqueValueException Throws NotUniqueValueException in the case
+     * @throws APIErrorException Throws APIErrorException in the case
      *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see NotUniqueValueException
+     *                                 isn't unique. @see APIErrorException
+     *                                 In this case this is if the username or email isn't unique.
      */
-    public int createUser(String username, String email, String password) throws SQLException {
+    public int createUser(String username, String email, String password, String salt) throws SQLException {
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Email, email))
-            throw new NotUniqueValueException(UserFields.Email);
+            throw new APIErrorException(Error.NOT_UNIQUE_EMAIL);
 
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Username, username))
-            throw new NotUniqueValueException(UserFields.Username);
+            throw new APIErrorException(Error.NOT_UNIQUE_USERNAME);
 
-        try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s) VALUES (?, ?, ?)",
-                UserFields.DBName, UserFields.Username, UserFields.Email, UserFields.Password))) {
+        try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s, %s) VALUES (?, ?, ?, ?)",
+                UserFields.DBName, UserFields.Username, UserFields.Email, UserFields.Password, UserFields.Salt))) {
             statement.setString(1, username);
             statement.setString(2, email);
             statement.setString(3, password);
+            statement.setString(4, salt);
 
             statement.execute();
         }
@@ -127,27 +133,30 @@ public class Database implements AutoCloseable {
      * @param avatarURI The new avatar URI of the user.
      * @throws SQLException            Throws SQLException on SQL errors (should not
      *                                 happen)
-     * @throws NotUniqueValueException Throws NotUniqueValueException in the case
+     * @throws APIErrorException Throws APIErrorException in the case
      *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see NotUniqueValueException
+     *                                 isn't unique. @see APIErrorException
+     *                                 In this case this is if the username or email isn't unique.
      */
-    public void updateUser(int id, String username, String email, String password, String avatarURI)
+    public void updateUser(int id, String username, String email, String password, String avatarURI, String salt)
             throws SQLException {
         if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Email, email))
-            throw new NotUniqueValueException(UserFields.Email);
+            throw new APIErrorException(Error.NOT_UNIQUE_EMAIL);
 
-        if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Username, username))
-            throw new NotUniqueValueException(UserFields.Username);
+        if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Username, username))
+            throw new APIErrorException(Error.NOT_UNIQUE_USERNAME);
 
         try (var statement = mConnection.prepareStatement(String.format(
-                "UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ? WHERE %s=?", UserFields.DBName, UserFields.Username,
-                UserFields.Email, UserFields.Password, UserFields.AvatarURI, UserFields.ID))) {
+                "UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE %s=?", UserFields.DBName, UserFields.Username,
+                UserFields.Email, UserFields.Password, UserFields.AvatarURI, UserFields.Salt, UserFields.ID))) {
+
 
             statement.setString(1, username);
             statement.setString(2, email);
             statement.setString(3, password);
             statement.setString(4, avatarURI);
-            statement.setInt(5, id);
+            statement.setString(5, salt);
+            statement.setInt(6, id);
             statement.execute();
         }
     }
@@ -162,18 +171,13 @@ public class Database implements AutoCloseable {
      */
     public User getUserByID(int id) throws SQLException {
         try (var query = mConnection.prepareStatement(
-                String.format("SELECT %s, %s, %s, %s FROM %s WHERE %s=?", UserFields.ID, UserFields.Username,
-                        UserFields.Email, UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
+                String.format("SELECT %s, %s, %s FROM %s WHERE %s=?", UserFields.ID, UserFields.Username,
+                        UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
 
             query.setInt(1, id);
             var res = query.executeQuery();
             if (res.next()) {
-                User user = new User();
-                user.id = res.getInt(UserFields.ID);
-                user.username = res.getString(UserFields.Username);
-                user.avatarURI = res.getString(UserFields.AvatarURI);
-                user.email = res.getString(UserFields.Email);
-                return user;
+                return queryToUser(res);
             }
         }
         return null;
@@ -189,18 +193,13 @@ public class Database implements AutoCloseable {
      */
     public User getUserByToken(String token) throws SQLException {
         try (var query = mConnection.prepareStatement(
-                String.format("SELECT %s, %s, %s, %s FROM %s WHERE %s = ?", UserFields.ID, UserFields.Username,
-                        UserFields.Email, UserFields.AvatarURI, UserFields.DBName, UserFields.Token))) {
+                String.format("SELECT %s, %s, %s FROM %s WHERE %s = ?", UserFields.ID, UserFields.Username,
+                        UserFields.AvatarURI, UserFields.DBName, UserFields.Token))) {
 
             query.setString(1, token);
             var res = query.executeQuery();
             if (res.next()) {
-                User user = new User();
-                user.id = res.getInt(UserFields.ID);
-                user.username = res.getString(UserFields.Username);
-                user.avatarURI = res.getString(UserFields.AvatarURI);
-                user.email = res.getString(UserFields.Email);
-                return user;
+                return queryToUser(res);
             }
             return null;
         }
@@ -228,13 +227,13 @@ public class Database implements AutoCloseable {
      * @param token The token to give to the user.
      * @throws SQLException            Throws SQLException on SQL errors (should not
      *                                 happen)
-     * @throws NotUniqueValueException Throws NotUniqueValueException if the token
+     * @throws NotUniqueTokenException Throws NotUniqueValueException if the token
      *                                 is already in use somewhere else. @see
      *                                 NotUniqueValueException.
      */
     public void setUserToken(int id, String token) throws SQLException {
         if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Token, token))
-            throw new NotUniqueValueException(UserFields.Token);
+            throw new NotUniqueTokenException();
 
         try (var statement = mConnection.prepareStatement(String.format("UPDATE %s SET %s = ? WHERE %s = ?",
                 UserFields.DBName, UserFields.Token, UserFields.ID))) {
@@ -260,8 +259,8 @@ public class Database implements AutoCloseable {
     // I don't want to create 100+ users for test cases.
     List<User> getUserPage(int pageIdx, int pageSize) throws SQLException {
         try (var query = mConnection.prepareStatement(String.format(
-                "SELECT %s, %s, %s, %s FROM %s WHERE %s BETWEEN ? AND ?", UserFields.ID, UserFields.Username,
-                UserFields.Email, UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
+                "SELECT %s, %s, %s FROM %s WHERE %s BETWEEN ? AND ?", UserFields.ID, UserFields.Username,
+                UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
             query.setInt(1, (pageIdx * pageSize) + 1);
             query.setInt(2, (pageIdx + 1) * pageSize);
 
@@ -269,14 +268,39 @@ public class Database implements AutoCloseable {
 
             var retVal = new ArrayList<User>();
             while (res.next()) {
-                User user = new User();
-                user.id = res.getInt(UserFields.ID);
-                user.username = res.getString(UserFields.Username);
-                user.avatarURI = res.getString(UserFields.AvatarURI);
-                user.email = res.getString(UserFields.Email);
-                retVal.add(user);
+                retVal.add(queryToUser(res));
             }
             return retVal;
         }
+    }
+
+    public User getExtendedInformationByEmail(String email) throws SQLException {
+        try (var query = mConnection.prepareStatement(String.format("SELECT * FROM %s WHERE %s = ?",
+                UserFields.DBName, UserFields.Email))) {
+
+            query.setString(1, email);
+            var res = query.executeQuery();
+
+            if (res.next()) {
+                return queryToExtendedUser(res);
+            }
+        }
+        return null;
+    }
+
+    private User queryToUser(ResultSet set) throws SQLException {
+        return new User(set.getInt(UserFields.ID),
+                set.getString(UserFields.Username),
+                set.getString(UserFields.AvatarURI));
+    }
+
+    private User queryToExtendedUser(ResultSet set) throws SQLException {
+        return new User(set.getInt(UserFields.ID),
+                set.getString(UserFields.Username),
+                set.getString(UserFields.AvatarURI),
+                set.getString(UserFields.Email),
+                set.getString(UserFields.Salt),
+                set.getString(UserFields.Token),
+                set.getString(UserFields.Password));
     }
 }

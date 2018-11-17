@@ -25,13 +25,13 @@
 
 # Message protocol
 
-The aim of the protocol is to be as consistent as possible. Therefore all API follow a standard pattern of 'type' and 'payload'. Where the type describes the type of the message and is always interpreted the same, and the payload is an array of objects that are interpreted differently based on the 'type' value.
+The aim of the protocol is to be as consistent as possible. Therefore all messages follow a standard pattern of 'type' and 'payload'. Where the type describes the type of the message and is always interpreted the same, and the payload is an array of objects that are interpreted differently based on the 'type' value.
 Messages can also contain a 'token' variable used for authentication if authentication is needed. This is only the case when clients are talking to the server.
 Any variables that is not the 'type', 'token' or inside the 'payload' are not considered part of the API, and can be removed without notice.
 
 * Communication either happens through 'one-way' data transfers, or 'two-way' transactions in the form of a request-response pair.
 * Data is structured as valid JSON.
-* Three different kinds of API:
+* Three different kinds of messages:
     * Request
     * Response
     * Event
@@ -46,7 +46,7 @@ Any variables that is not the 'type', 'token' or inside the 'payload' are not co
 `payload[].id` indentifies a unique item within the payload
 `auth_token` an optional parameter. Used if the request requires authentication.
 
-```
+```json
 {
     "id": <id>,
     "type": <type>_request,
@@ -60,7 +60,7 @@ Any variables that is not the 'type', 'token' or inside the 'payload' are not co
 ```
 
 **Example**
-```
+```json
 {
     "id": 0,
     "type": "create_user_request",
@@ -173,7 +173,7 @@ Events are one-way communication from the server to clients. You can think of it
 ### create_user
 
 `@brief` Creates a user with the given username, email and password hash.
-`@error` email_already_exists
+`@error` not_unique_username, not_unique_email
 
 create_user_request
 ```json
@@ -206,8 +206,7 @@ create_user_response
         { "id": 0, "user_id": 2 }
     ],
     "error": [
-        { "id": 1, "code": ["invalid_username", "email_already_exists", 
-                            "invalid_password"]}
+        { "id": 1, "code": ["not_unique_email"]}
     ]
 }
 ```
@@ -216,7 +215,7 @@ create_user_response
 ### login
 
 `@brief` Login a user using email and password. If already logged in, refresh `auth_token`, practically logging out all currently logged in clients. Already logged in is not an error.
-`@error` email_or_password_incorrect
+`@error` invalid_username_or_password
 
 login_request
 ```json
@@ -247,7 +246,7 @@ login_response
         {"id": 0, "user_id": 2, "auth_token": "f136803..." }
     ],
     "error": [
-        {"id": 1, "code": ["email_or_password_incorrect"]}
+        {"id": 1, "code": ["invalid_username_or_password"]}
     ]
 }
 ```
@@ -280,7 +279,7 @@ logout_response
         {"id": 0}
     ],
     "errors": [
-        {"id": 1, "code":["not_authorized"]}
+        {"id": 1, "code":["unauthorized"]}
     ]
 }
 ```
@@ -289,7 +288,8 @@ logout_response
 ### get_user
 
 `@requires` authentication
-`@brief` The information you get on each user will vary depending on you authorization level. The fields you are not allowed to see are still present but empty. All users are allowed to see `username` and `avatar_uri`.
+`@brief` Returns information about the requested users containing: `user_id`, `username` and `avatar_uri`.
+Note: All fields are guaranteed to be present, but `avatar_uri` might be an empty string.
 
 get_user_request (The token belongs to user_id: 3)
 ```json
@@ -314,13 +314,11 @@ get_user_response
             "user_id": 3, 
             "username": "John Doe", 
             "avatar_uri": "http://imgur.com/myavatar", 
-            "email": "john.doe@gmail.com"
         },
         {
             "user_id": 4, 
             "username": "Jenna", 
             "avatar_uri": "http://imgur.com/myavatar", 
-            "email": ""
         },
     ],
     "error": [
@@ -332,6 +330,8 @@ get_user_response
 
 `@requires` authentication
 `@brief` - Get a range of users.
+In the case where a page is "out of bounds", no error is given,
+the range array just does not contain any items.
 
 get_user_range
 ```json 
@@ -354,25 +354,26 @@ get_user_range_response
     "success": [
         {
             "id": 0,
-            "user":
+            "range":
             [
                 {
                     "user_id": 3, 
                     "username": "John Doe", 
-                    "avatar_uri": "http://imgur.com/myavatar", 
-                    "email": "john.doe@gmail.com"
+                    "avatar_uri": "http://imgur.com/myavatar"
                 },
                 {
                     "user_id": 4, 
                     "username": "Jenna", 
-                    "avatar_uri": "http://imgur.com/myavatar", 
-                    "email": ""
+                    "avatar_uri": "http://imgur.com/myavatar"
                 },
             ]
+        },
+        {
+            "id": 1,
+            "range": []
         }
     ],
     "error": [
-        {"id": 1, "code": ["page_out_of_bounds"]}
     ]
 }
 ```
@@ -382,7 +383,7 @@ get_user_range_response
  
 `@requires` authentication
 `@brief` Update user ainformation.
-`@error` user_not_found
+`@error` not_unique_username, not_unique_email
 
 update_user_request
 ```json
@@ -395,14 +396,16 @@ update_user_request
              "user_id": 2,
              "username": "JohnDoe" ,
              "email": "john.doe@ubermail.com",
-             "password": "New Secret Password"
+             "password": "New Secret Password",
+             "avatar_uri": "http://imgur.com/myavatar"
         },
         { 
              "id": 1,
              "user_id": 3,
              "username": "Jenna Doe" ,
              "email": "john.doe@ u bermail.com",
-             "password": "New Sec ret Password"
+             "password": "New Sec ret Password",
+             "avatar_uri": "http://imgur.com/myavatar"
         }
     ],
     "auth_token": "f13680.."
@@ -418,7 +421,7 @@ update_user_response
         {"id": 0}
     ],
     "error": [
-        {"id": 1, "code": ["invalid_email"]}
+        {"id": 1, "code": ["not_unique_email"]}
     ]
 }
 ```
@@ -452,45 +455,13 @@ delete_user_response
         { "id": 0 }
     ], 
     "error": [
-        {"id": 1, "code":["not_authorized"]}
+        {"id": 1, "code":["unauthorized"]}
     ]
 }
 ```
 
 
 ## Friends API
-
-### get_friend
-
-`@requires` authentcation
-`@brief` Get 0 or more friends from friendslist. Empty payload returns all friends
-`@error` friend_not_found
-
-get_friend_request
-```json
-{
-    "id": 6,
-    "type": "get_friend_request",
-    "payload": [
-    ],
-    "auth_token": "f1368.." 
-}
-```
-
-get_friend_response
-```json
-{
-    "id": 6,
-    "type": "get_friend_response",
-    "success": [
-        { "id": 1, "user_id": 4 },
-        { "id": 2, "user_id": 5 }
-    ],
-    "error": [
-        {"id": 0, "code": ["friend_not_found"]}
-    ]
-}
-```
 
 ### get_friend_range
 
@@ -520,13 +491,12 @@ get_friend_range_response
             "id": 0,
             "friend":
             [
-                { "user_id": 2 },
-                { "user_id": 3 }
+                { "user_id": 2, "username": "karl", "status": "accepted" },
+                { "user_id": 3, "username": "jonas", "status": "pending" },
             ]
         }
     ],
     "error": [
-        {"id": 1, "code": ["page_out_of_bounds"]}
     ]
 }
 ```
@@ -822,8 +792,8 @@ send_chat_invite_request
     "id": 13,
     "type": "send_chat_invite_request",
     "payload": [
-        {"id": 0, "user_id": 2, "invitee_id": 1, "chat_id": 4},
-        {"id": 1, "user_id": 2, "invitee_id": 2, "chat_id": 3}
+        {"id": 0, "user_id": 2, "other_id": 1, "chat_id": 4},
+        {"id": 1, "user_id": 2, "other_id": 2, "chat_id": 3}
     ],
     "auth_token": "f4029.."
 }
@@ -892,8 +862,8 @@ send_game_invite_request
     "id": 15,
     "type": "send_game_invite_request",
     "payload": [
-        {"id": 0, "user_id": 3, "invitee_id": 1, "game_id": 5},
-        {"id": 1, "user_id": 2, "invitee_id": 1, "game_id": 4}
+        {"id": 0, "user_id": 3, "other_id": 1, "game_id": 5},
+        {"id": 1, "user_id": 2, "other_id": 1, "game_id": 4}
     ],
     "auth_token": "f4029.."
 }

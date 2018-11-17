@@ -102,6 +102,8 @@ public class Connection {
         // Don't remove + "%n", it is needed for readLine on the other side.
         // Tok me 5 hours to figure out.
         mSocketWriter.write(String.format("%s%n", message));
+
+        // If we get nullptr exception here that is considered  a disconnect, need to handle that, add more callbacks.
         mSocketWriter.flush();
     }
 
