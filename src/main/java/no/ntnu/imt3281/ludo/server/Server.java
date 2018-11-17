@@ -73,8 +73,6 @@ public class Server {
                 continue;
             }
 
-            // Think: Create general purpose API exception that can be thrown different
-            // places, that can easily be turned into error code?
             if (!JSONValidator.isValidMessage(message.message)) {
                 Logger.log(Logger.Level.WARN,
                         String.format("Message did not pass \"isValidMessage\" test, message: %s", message.message));
