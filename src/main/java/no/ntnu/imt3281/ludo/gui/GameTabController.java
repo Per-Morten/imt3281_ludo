@@ -9,7 +9,7 @@ import javafx.scene.image.ImageView;
 import no.ntnu.imt3281.ludo.client.Actions;
 import no.ntnu.imt3281.ludo.client.StateManager;
 
-public class TabGameController implements IController {
+public class GameTabController implements IController {
 
     private Actions mActions;
     private StateManager mState;

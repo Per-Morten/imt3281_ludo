@@ -9,7 +9,7 @@ import java.util.concurrent.ArrayBlockingQueue;
  */
 public class StateManager {
 
-    private ArrayBlockingQueue<State> mState = new ArrayBlockingQueue<State>(1);
+    private ArrayBlockingQueue<State> mState = new ArrayBlockingQueue<>(1);
 
     public StateManager(State initialState) {
         try {

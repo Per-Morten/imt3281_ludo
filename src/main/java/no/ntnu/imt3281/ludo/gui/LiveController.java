@@ -7,7 +7,7 @@ import javafx.scene.control.TabPane;
 
 import no.ntnu.imt3281.ludo.client.*;
 
-public class SceneLiveController implements IController {
+public class LiveController implements IController {
 
     private Actions mActions;
     private StateManager mState;
@@ -70,12 +70,12 @@ public class SceneLiveController implements IController {
 
     @FXML
     void initialize() {
-        assert mBtnUser != null : "fx:id=\"mBtnUser\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mBtnSearch != null : "fx:id=\"mBtnSearch\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mBtnLogout != null : "fx:id=\"mBtnLogout\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mBtnNewGame != null : "fx:id=\"mBtnNewGame\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mTabGames != null : "fx:id=\"mTabGame\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mBtnNewChat != null : "fx:id=\"mBtnNewChat\" was not injected: check your FXML file 'SceneLive.fxml'.";
-        assert mTabChats != null : "fx:id=\"mTabChat\" was not injected: check your FXML file 'SceneLive.fxml'.";
+        assert mBtnUser != null : "fx:id=\"mBtnUser\" was not injected: check your FXML file 'Live.fxml'.";
+        assert mBtnSearch != null : "fx:id=\"mBtnSearch\" was not injected: check your FXML file 'Live.fxml'.";
+        assert mBtnLogout != null : "fx:id=\"mBtnLogout\" was not injected: check your FXML file 'Live.fxml'.";
+        assert mBtnNewGame != null : "fx:id=\"mBtnNewGame\" was not injected: check your FXML file 'Live.fxml'.";
+        assert mTabGames != null : "fx:id=\"mTabGame\" was not injected: check your FXML file 'Live.fxml'.";
+        assert mBtnNewChat != null : "fx:id=\"mBtnNewChat\" was not injected: check your FXML file 'Live.fxml'.";
+        assert mTabChats != null : "fx:id=\"mTabChat\" was not injected: check your FXML file 'Live.fxml'.";
     }
 }

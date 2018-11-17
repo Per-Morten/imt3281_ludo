@@ -8,7 +8,7 @@ import javafx.scene.layout.VBox;
 import no.ntnu.imt3281.ludo.client.Actions;
 import no.ntnu.imt3281.ludo.client.StateManager;
 
-public class TabChatController implements IController {
+public class ChatTabController implements IController {
     private Actions mActions;
     private StateManager mCache;
 
@@ -38,9 +38,9 @@ public class TabChatController implements IController {
 
     @FXML
     void initialize() {
-        assert mListMessages != null : "fx:id=\"mListMessages\" was not injected: check your FXML file 'TabChat.fxml'.";
-        assert mTextSend != null : "fx:id=\"mTextSend\" was not injected: check your FXML file 'TabChat.fxml'.";
-        assert mBtnSend != null : "fx:id=\"mBtnSend\" was not injected: check your FXML file 'TabChat.fxml'.";
+        assert mListMessages != null : "fx:id=\"mListMessages\" was not injected: check your FXML file 'ChatTab.fxml'.";
+        assert mTextSend != null : "fx:id=\"mTextSend\" was not injected: check your FXML file 'ChatTab.fxml'.";
+        assert mBtnSend != null : "fx:id=\"mBtnSend\" was not injected: check your FXML file 'ChatTab.fxml'.";
 
     }
 }

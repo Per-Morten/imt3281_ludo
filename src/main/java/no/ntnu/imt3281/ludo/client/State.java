@@ -1,5 +1,6 @@
 package no.ntnu.imt3281.ludo.client;
 
+import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.common.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -27,22 +28,22 @@ public class State {
     //
 
     // Live scene
-    public Map<Integer, JSONObject> activeGames = new HashMap<Integer, JSONObject>();
-    public Map<Integer, JSONObject> activeChats = new HashMap<Integer, JSONObject>();
+    public Map<Integer, JSONObject> activeGames = new HashMap<>();
+    public Map<Integer, JSONObject> activeChats = new HashMap<>();
 
     // Search scene
-    public Set<Integer> selectedGames = new HashSet<Integer>();
-    public Set<Integer> selectedChats = new HashSet<Integer>();
-    public Set<Integer> selectedFriends = new HashSet<Integer>();
-    public Set<Integer> selectedUsers = new HashSet<Integer>();
+    public Set<Integer> selectedGames = new HashSet<>();
+    public Set<Integer> selectedChats = new HashSet<>();
+    public Set<Integer> selectedFriends = new HashSet<>();
+    public Set<Integer> selectedUsers = new HashSet<>();
 
-    public ArrayList<JSONObject> gameRange = new ArrayList<JSONObject>();
-    public ArrayList<JSONObject> chatRange = new ArrayList<JSONObject>();
-    public ArrayList<JSONObject> friendRange = new ArrayList<JSONObject>();
-    public ArrayList<JSONObject> userRange = new ArrayList<JSONObject>();
+    public ArrayList<JSONObject> gameRange = new ArrayList<>();
+    public ArrayList<JSONObject> chatRange = new ArrayList<>();
+    public ArrayList<JSONObject> friendRange = new ArrayList<>();
+    public ArrayList<JSONObject> userRange = new ArrayList<>();
 
 
-    private static final String filename = "client-state.json";
+    private static final String filepath = "client-state.json";
 
     /**
      * Deep copy of state
@@ -86,21 +87,21 @@ public class State {
         var state = new State();
 
         try {
-            String text = new String(Files.readAllBytes(Paths.get(State.filename)), StandardCharsets.UTF_8);
+            String text = new String(Files.readAllBytes(Paths.get(State.filepath)), StandardCharsets.UTF_8);
             var json = new JSONObject(text);
             try {
                 // Persistent cache
-                state.authToken = json.getString("auth_token");
-                state.username = json.getString("username");
-                state.email = json.getString("email");
-                state.userId = json.getInt("user_id");
+                state.authToken = json.getString(FieldNames.AUTH_TOKEN);
+                state.username = json.getString(FieldNames.USERNAME);
+                state.email = json.getString(FieldNames.EMAIL);
+                state.userId = json.getInt(FieldNames.USER_ID);
                 // Persistent cache
 
             } catch (JSONException e) {
-                Logger.log(Logger.Level.WARN, "Missing key in " + State.filename);
+                Logger.log(Logger.Level.WARN, "Missing key in " + State.filepath);
             }
         } catch (IOException e) {
-            Logger.log(Logger.Level.INFO, "Failed to load " + State.filename);
+            Logger.log(Logger.Level.INFO, "Failed to load " + State.filepath);
         }
         return state;
     }
@@ -114,16 +115,16 @@ public class State {
 
         var json = new JSONObject();
         // Persistent state
-        json.put("auth_token", state.authToken);
-        json.put("username", state.username);
-        json.put("email", state.email);
-        json.put("user_id", state.userId);
+        json.put(FieldNames.AUTH_TOKEN, state.authToken);
+        json.put(FieldNames.USERNAME, state.username);
+        json.put(FieldNames.EMAIL, state.email);
+        json.put(FieldNames.USER_ID, state.userId);
         // Persistent state
 
-        try (var writer = new FileWriter(State.filename)) {
+        try (var writer = new FileWriter(State.filepath)) {
             writer.write(json.toString());
         } catch (IOException e) {
-            Logger.log(Logger.Level.WARN, "Failed to write to " + State.filename + " : " + e.getCause().toString());
+            Logger.log(Logger.Level.WARN, "Failed to write to " + State.filepath + " : " + e.getCause().toString());
         }
     }
 }

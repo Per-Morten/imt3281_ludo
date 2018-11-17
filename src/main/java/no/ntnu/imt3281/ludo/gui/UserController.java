@@ -3,7 +3,7 @@ package no.ntnu.imt3281.ludo.gui;
 import no.ntnu.imt3281.ludo.client.Actions;
 import no.ntnu.imt3281.ludo.client.StateManager;
 
-public class SceneUserController implements IController {
+public class UserController implements IController {
     private Actions mActions;
     private StateManager mCache;
 
