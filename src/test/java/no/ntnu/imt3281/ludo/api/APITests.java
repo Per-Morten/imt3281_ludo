@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -36,6 +37,9 @@ public class APITests {
     private static final User USER_TO_BE_UPDATED = new User(5, "UserToBeUpdated", null, "UserToBeUpdated@mail.com", null, null, "UserToBeUpdatedPassword");
     private static final User USER_TO_BE_DELETED = new User(6, "UserToBeDeleted", null, "UserToBeDeleted@mail.com", null, null, "UserToBeDeletedPassword");
 
+    ///////////////////////////////////////////////////////
+    /// Utility Function to Simplify testing
+    ///////////////////////////////////////////////////////
     private static JSONObject createRequest(RequestType type, JSONArray payload) {
         return createRequest(type, payload, null);
     }
@@ -79,6 +83,20 @@ public class APITests {
         return createRequest(RequestType.GET_USER_REQUEST, payload, token);
     }
 
+    private static void assertError(Error desired, JSONObject object) {
+        var error = object.getJSONArray(FieldNames.ERROR);
+        assertEquals(1, error.length());
+        var firstError = error.getJSONObject(0);
+        assertEquals(0, firstError.getInt(FieldNames.ID));
+        assertEquals(desired, Error.fromInt(firstError.getJSONArray(FieldNames.CODE).getInt(0)));
+    }
+
+    // Don't want to type out the BiConsumer type all the time.
+    private static BiConsumer<TestContext, String> createCallback(BiConsumer<TestContext, String> callback)
+    {
+        return callback;
+    }
+
     private static void sendPreparationMessageToServer(JSONObject message, Consumer<JSONObject> callback) throws IOException, InterruptedException {
         var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
         final var running = new AtomicBoolean(true);
@@ -101,7 +119,6 @@ public class APITests {
             throw new RuntimeException("Didn't get response from server fast enough");
         }
         socket.stop();
-
     }
 
     @BeforeClass
@@ -121,6 +138,8 @@ public class APITests {
             }
         });
         sServerThread.start();
+        // We need to sleep a bit here to ensure that the thread is actually running.
+        Thread.sleep(250);
 
         // Creation
         sendPreparationMessageToServer(createUserRequest(USER_1.username, USER_1.email, USER_1.password), null);
@@ -211,7 +230,7 @@ public class APITests {
     ///////////////////////////////////////////////////////
     @Test
     public void canCreateUser() {
-        BiConsumer<TestContext, String> callback = (context, string) -> {
+        var callback = createCallback((context, string) -> {
             var json = new JSONObject(string);
             var msgID = json.getInt(FieldNames.ID);
             assertEquals(0, msgID);
@@ -227,7 +246,7 @@ public class APITests {
             assert (error.length() == 0);
 
             context.running.set(false);
-        };
+        });
 
         var payload = new JSONArray();
         var request = new JSONObject();
@@ -245,7 +264,7 @@ public class APITests {
 
         // Desired ID is 1 because we are logging in as the first test user.
         int desiredID = 1;
-        BiConsumer<TestContext, String> callback = (context, string) -> {
+        var callback = createCallback((context, string) -> {
             var json = new JSONObject(string);
             var msgID = json.getInt(FieldNames.ID);
             assertEquals(0, msgID);
@@ -263,7 +282,7 @@ public class APITests {
             assertEquals(0, error.length());
 
             context.running.set(false);
-        };
+        });
 
         var payload = new JSONArray();
         var request = new JSONObject();
@@ -278,7 +297,7 @@ public class APITests {
     @Test
     public void canLogOut() {
 
-        BiConsumer<TestContext, String> callback = (context, string) -> {
+        var callback = createCallback((context, string) -> {
             var json = new JSONObject(string);
             var msgID = json.getInt(FieldNames.ID);
             assertEquals(0, msgID);
@@ -293,7 +312,7 @@ public class APITests {
             assert (error.length() == 0);
 
             context.running.set(false);
-        };
+        });
 
         var payload = new JSONArray();
         var request = new JSONObject();
@@ -307,7 +326,7 @@ public class APITests {
 
     @Test
     public void canGetUser() {
-        BiConsumer<TestContext, String> callback = (context, string) -> {
+        var callback = createCallback((context, string) -> {
             var json = new JSONObject(string);
             var msgID = json.getInt(FieldNames.ID);
             assertEquals(0, msgID);
@@ -320,14 +339,13 @@ public class APITests {
             assertEquals(0, id);
             assertEquals(1, firstSuccess.getInt(FieldNames.USER_ID));
             assertEquals(USER_1.username, firstSuccess.getString(FieldNames.USERNAME));
-            // TODO: Ask Jonas, if we have a null value in the json fields, should we remove the field, or mark it as ""?
-            //assertEquals(USER_1.avatarURI, firstSuccess.getString(FieldNames.AVATAR_URI));
+            assertEquals(USER_1.avatarURI, firstSuccess.getString(FieldNames.AVATAR_URI));
 
             var error = json.getJSONArray(FieldNames.ERROR);
             assert (error.length() == 0);
 
             context.running.set(false);
-        };
+        });
 
         var payload = new JSONArray();
         var request = new JSONObject();
@@ -341,13 +359,43 @@ public class APITests {
 
     @Test
     public void canGetUserRange() {
+        var callback = createCallback((context, string) -> {
+           var json = new JSONObject(string);
+           assertEquals(ResponseType.GET_USER_RANGE_RESPONSE, ResponseType.fromString(json.getString(FieldNames.TYPE)));
+           var success = json.getJSONArray(FieldNames.SUCCESS);
+           assertEquals(1, success.length());
+           // Since the tests aren't necessarily run after each other, we only check the first 3 users, because we know what their values are supposed to be.
+           var firstPage = success.getJSONObject(0);
+           assertEquals(0, firstPage.getInt(FieldNames.ID));
+           var users = firstPage.getJSONArray(FieldNames.RANGE);
+           var userTruth = new User[]{USER_1, USER_2, USER_3,};
+           assertTrue(users.length() >= 3);
+           for (int i = 0; i < 3; i++) {
+               var user = users.getJSONObject(i);
+               assertEquals(userTruth[i].id, user.getInt(FieldNames.USER_ID));
+               assertEquals(userTruth[i].username, user.getString(FieldNames.USERNAME));
+               assertEquals(userTruth[i].avatarURI, user.getString(FieldNames.AVATAR_URI));
+           }
+
+           context.running.set(false);
+        });
+
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.PAGE_INDEX, 0);
+        payload.put(request);
+        var json = createRequest(RequestType.GET_USER_RANGE_REQUEST, payload);
+        json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
+        runTest(callback, json.toString());
+
         // TODO: Ask Jonas if we can update the API to not say friends, chats, or games for the reponses
         // to the ranges, as that isn't generic.
     }
 
     @Test
     public void canUpdateUser() {
-        BiConsumer<TestContext, String> callback = (context, string) -> {
+        var callback = createCallback((context, string) -> {
             if (context.count.get() == 0) {
                 var json = new JSONObject(string);
                 var msgID = json.getInt(FieldNames.ID);
@@ -381,7 +429,7 @@ public class APITests {
             if (context.count.get() >= 2) {
                 context.running.set(false);
             }
-        };
+        });
 
 
         var payload = new JSONArray();
@@ -393,15 +441,14 @@ public class APITests {
         request.put(FieldNames.EMAIL, USER_TO_BE_UPDATED.email);
         request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
         payload.put(0, request);
-        var json = createRequest(RequestType.UPDATE_USER_REQUEST, payload);
-        json.put(FieldNames.AUTH_TOKEN, USER_TO_BE_UPDATED.token);
+        var json = createRequest(RequestType.UPDATE_USER_REQUEST, payload, USER_TO_BE_UPDATED.token);
         runTest(callback, json.toString());
 
     }
 
     @Test
     public void canDeleteUser() {
-        BiConsumer<TestContext, String> callback = (context, string) -> {
+        var callback = createCallback((context, string) -> {
             if (context.count.get() == 0) {
                 var json = new JSONObject(string);
                 var msgID = json.getInt(FieldNames.ID);
@@ -436,7 +483,7 @@ public class APITests {
             if (context.count.get() >= 2) {
                 context.running.set(false);
             }
-        };
+        });
 
         var payload = new JSONArray();
         var request = new JSONObject();
@@ -451,40 +498,156 @@ public class APITests {
     ///////////////////////////////////////////////////////
     /// User Failing tests
     ///////////////////////////////////////////////////////
-
-
     @Test
-    public void errorOnIllegalUserID() {
+    public void errorOnGetIllegalUserID() {
+        var callback = createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            var error = json.getJSONArray(FieldNames.ERROR);
+            assertEquals(1, error.length());
+            var firstError = error.getJSONObject(0);
+            assertEquals(0, firstError.getInt(FieldNames.ID));
+            assertEquals(Error.USER_ID_NOT_FOUND, Error.fromInt(firstError.getJSONArray(FieldNames.CODE).getInt(0)));
 
+            context.running.set(false);
+        });
+
+        runTest(callback, createGetUserRequest(500, LOGGED_IN_USER.token).toString());
     }
 
     @Test
-    public void errorOnNonUniqueUserName() {
+    public void errorOnCreateNonUniqueUserName() {
+        var callback = createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            assertError(Error.NOT_UNIQUE_USERNAME, json);
+            context.running.set(false);
+        });
 
+        runTest(callback, createUserRequest(USER_1.username, "TotallyUniqueEmail1923@email", USER_1.password).toString());
     }
 
     @Test
-    public void errorOnNonUniqueEmail() {
+    public void errorOnCreateNonUniqueEmail() {
+        var callback = createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            assertError(Error.NOT_UNIQUE_EMAIL, json);
+            context.running.set(false);
+        });
 
+        runTest(callback, createUserRequest("TotallyUniqueUsername29843905", USER_1.email, USER_1.password).toString());
+    }
+
+    @Test
+    public void errorOnUpdateNonUniqueUserName() {
+        var callback = createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            assertError(Error.NOT_UNIQUE_USERNAME, json);
+            context.running.set(false);
+        });
+
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, USER_TO_BE_UPDATED.id);
+        request.put(FieldNames.USERNAME, USER_1.username);
+        request.put(FieldNames.PASSWORD, USER_TO_BE_UPDATED.password);
+        request.put(FieldNames.EMAIL, USER_TO_BE_UPDATED.email);
+        request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+        payload.put(0, request);
+        var json = createRequest(RequestType.UPDATE_USER_REQUEST, payload, USER_TO_BE_UPDATED.token);
+        runTest(callback, json.toString());
+    }
+
+    @Test
+    public void errorOnUpdateNonUniqueEmail() {
+        var callback = createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            assertError(Error.NOT_UNIQUE_EMAIL, json);
+            context.running.set(false);
+        });
+
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, USER_TO_BE_UPDATED.id);
+        request.put(FieldNames.USERNAME, USER_TO_BE_UPDATED.username);
+        request.put(FieldNames.PASSWORD, USER_TO_BE_UPDATED.password);
+        request.put(FieldNames.EMAIL, USER_1.email);
+        request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+        payload.put(0, request);
+        var json = createRequest(RequestType.UPDATE_USER_REQUEST, payload, USER_TO_BE_UPDATED.token);
+        runTest(callback, json.toString());
     }
 
     @Test
     public void getUnauthorizedErrorOnDeletingSomeoneElsesAccount() {
+        var callback = createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            assertError(Error.UNAUTHORIZED, json);
+            context.running.set(false);
+        });
 
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, USER_1.id);
+        payload.put(0, request);
+        runTest(callback, createRequest(RequestType.DELETE_USER_REQUEST, payload, LOGGED_IN_USER.token).toString());
     }
 
     @Test
     public void getUnauthorizedErrorOnUpdatingSomeoneElsesAccount() {
+        var callback = createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            assertError(Error.UNAUTHORIZED, json);
+            context.running.set(false);
+        });
+
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, USER_1.id);
+        request.put(FieldNames.USERNAME, "Something");
+        request.put(FieldNames.PASSWORD, "Something");
+        request.put(FieldNames.AVATAR_URI, "Something");
+        request.put(FieldNames.EMAIL, "Something@email.com");
+        payload.put(0, request);
+        runTest(callback, createRequest(RequestType.UPDATE_USER_REQUEST, payload, LOGGED_IN_USER.token).toString());
 
     }
 
     @Test
     public void errorOnLoggingInWithWrongPassword() {
+        var callback = createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            assertError(Error.INVALID_USERNAME_OR_PASSWORD, json);
+            context.running.set(false);
+        });
 
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.PASSWORD, "WRONG PASSWORD");
+        request.put(FieldNames.EMAIL, USER_1.email);
+        payload.put(0, request);
+
+        runTest(callback, createRequest(RequestType.LOGIN_REQUEST, payload).toString());
     }
 
     @Test
     public void errorOnLoggingInWithWrongEmail() {
+        var callback = createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            assertError(Error.INVALID_USERNAME_OR_PASSWORD, json);
+            context.running.set(false);
+        });
 
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.PASSWORD, USER_1.password);
+        request.put(FieldNames.EMAIL, "WRONG PASSWORD");
+        payload.put(0, request);
+
+        runTest(callback, createRequest(RequestType.LOGIN_REQUEST, payload).toString());
     }
 }
