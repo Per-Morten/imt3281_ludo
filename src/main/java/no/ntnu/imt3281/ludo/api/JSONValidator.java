@@ -90,11 +90,11 @@ public class JSONValidator {
                 json.getString(key);
                 return true;
             } catch(JSONException e) {
-                Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasString");
+                //Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasString");
                 return false;
             }
         }
-        Logger.log(Logger.Level.DEBUG, String.format("Didn't have string: %s, jsonObject: %s", key, json.toString()));
+        //Logger.log(Logger.Level.DEBUG, String.format("Didn't have string: %s, jsonObject: %s", key, json.toString()));
         return false;
     }
 
@@ -179,6 +179,10 @@ public class JSONValidator {
             return false;
         }
 
+        if (ResponseType.getCorrespondingResponse(type) == null) {
+            return false;
+        }
+
         if (!hasJSONArray(FieldNames.PAYLOAD, json)) {
             Logger.log(Logger.Level.DEBUG, String.format("Object didn't contain %s", FieldNames.PAYLOAD));
             return false;
@@ -200,8 +204,6 @@ public class JSONValidator {
             if (!hasInt(FieldNames.ID, item)) {
                 Logger.log(Logger.Level.DEBUG, String.format("JSONObject in payload doesn't have integer field: %s", FieldNames.ID));
                 return false;
-            } else {
-                Logger.log(Logger.Level.DEBUG, String.format("ID is: %d", item.getInt(FieldNames.ID)));
             }
 
             for (var field : sRequestTypes) {
