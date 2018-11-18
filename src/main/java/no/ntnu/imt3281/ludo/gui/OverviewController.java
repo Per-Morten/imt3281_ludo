@@ -184,7 +184,7 @@ public class OverviewController extends BaseController {
     @FXML
     void onSendGameInvite(ActionEvent event) {
         if (mSelectedGames.size() == 0 || mSelectedFriends.size() == 0) return;
-        mActions.sendGameInvite(mSelectedGames);
+        mActions.sendGameInvite(mSelectedGames, mSelectedFriends);
     }
 
     @FXML
@@ -202,7 +202,7 @@ public class OverviewController extends BaseController {
     @FXML
     void onSendChatInvite(ActionEvent event) {
         if (mSelectedChats.size() == 0 || mSelectedFriends.size() == 0) return;
-        mActions.sendChatInvite(mSelectedChats);
+        mActions.sendChatInvite(mSelectedChats, mSelectedFriends);
     }
 
     @FXML
