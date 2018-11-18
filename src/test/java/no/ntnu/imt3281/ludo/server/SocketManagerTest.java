@@ -51,7 +51,7 @@ public class SocketManagerTest {
             response.put("success", success);
             response.put("error", new JSONArray());
 
-            server.send(msg.socketID, response.toString());
+            server.sendWithSocketID(msg.socketID, response.toString());
         });
         server.start();
 

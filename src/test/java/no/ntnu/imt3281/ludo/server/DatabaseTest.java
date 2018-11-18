@@ -81,14 +81,14 @@ public class DatabaseTest {
     @Test
     public void canGetPage() throws SQLException {
         {
-            var users = sDB.getUserPage(0, 3);
+            var users = sDB.getUserRange(0, 3);
             assertEquals("User1",users.get(0).username);
             assertEquals("User2",users.get(1).username);
             assertEquals("User3",users.get(2).username);
         }
 
         {
-            var users = sDB.getUserPage(1, 3);
+            var users = sDB.getUserRange(1, 3);
             assertEquals("User4",users.get(0).username);
             assertEquals("User5",users.get(1).username);
 
