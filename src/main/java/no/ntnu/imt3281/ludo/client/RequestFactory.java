@@ -1,21 +1,23 @@
 package no.ntnu.imt3281.ludo.client;
 
-import no.ntnu.imt3281.ludo.api.RequestType;
 import org.json.JSONObject;
-
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import no.ntnu.imt3281.ludo.api.RequestType;
 
 /**
  * Makes requests in accordance to the message protocol
  * Makes sure every request has a unique id
  * Makes sure every item in payload has a unique id
  */
-public class RequestFactory {
+class RequestFactory {
+    private AtomicInteger mRequestIncrementer = new AtomicInteger();
 
-    public Request make(RequestType type, JSONObject payload, String token, RequestCallback onSuccess, RequestCallback onError) {
+     Request make(RequestType type, JSONObject payload, String token, RequestCallback onSuccess, RequestCallback onError) {
 
         var req = new Request();
-        req.id = this.nextRequestId();
+        req.id = mRequestIncrementer.getAndAdd(1);
         req.type = type;
         req.token = token;
         req.onSuccess = onSuccess;
@@ -28,11 +30,11 @@ public class RequestFactory {
         return req;
     }
 
-    public Request make(RequestType type,  ArrayList<JSONObject> payload, String token, RequestCallback onSuccess, RequestCallback onError) {
+    Request make(RequestType type,  ArrayList<JSONObject> payload, String token, RequestCallback onSuccess, RequestCallback onError) {
 
         int i = 0;
         var req = new Request();
-        req.id = this.nextRequestId();
+        req.id = mRequestIncrementer.getAndAdd(1);
         req.type = type;
         req.token = token;
         req.onSuccess = onSuccess;
@@ -44,12 +46,5 @@ public class RequestFactory {
 
         req.payload = payload;
         return req;
-    }
-
-    private int mRequestIncrementer = 0;
-
-    synchronized private int nextRequestId() {
-        mRequestIncrementer += 1;
-        return mRequestIncrementer;
     }
 }
