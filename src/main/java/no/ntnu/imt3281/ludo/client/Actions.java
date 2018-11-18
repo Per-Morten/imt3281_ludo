@@ -9,6 +9,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static no.ntnu.imt3281.ludo.api.RequestType.*;
@@ -300,12 +301,116 @@ public class Actions {
                 (req, error) -> Logger.log(Level.WARN, "Request -> CREATE_CHAT_REQUEST failed")));
     }
 
+
     /**
      *
      */
-    public void getUser() {
-        var state = this.startAction("getUser");
+    public void friend(HashSet<Integer> friends) {
+        var state = this.startAction("friend");
+
     }
+
+    /**
+     *
+     */
+    public void unfriend(HashSet<Integer> friends) {
+        var state = this.startAction("unfriend");
+
+
+    }
+
+    /**
+     *
+     */
+    public void ignore(HashSet<Integer> users) {
+        var state = this.startAction("ignore");
+    }
+
+    /**
+     *
+     */
+    public void unignore(HashSet<Integer> ignored) {
+        var state = this.startAction("unignore");
+    }
+
+    /**
+     *
+     */
+    public void joinChat(HashSet<Integer> chats) {
+        var state = this.startAction("joinChat");
+    }
+
+    /**
+     *
+     */
+    public void leaveChat(HashSet<Integer> chats) {
+        var state = this.startAction("leaveChat");
+    }
+
+
+    /**
+     *
+     */
+    public void sendChatMessage() {
+        var state = this.startAction("sendChatMessage");
+    }
+
+    /**
+     *
+     */
+    public void sendChatInvite(HashSet<Integer> chats) {
+        var state = this.startAction("sendChatInvite");
+    }
+
+    /**
+     *
+     */
+    public void joinGame(HashSet<Integer> chats) {
+        var state = this.startAction("joinGame");
+    }
+
+    /**
+     *
+     */
+    public void leaveGame(HashSet<Integer> chats) {
+        var state = this.startAction("leaveGame");
+    }
+
+    /**
+     *
+     */
+    public void sendGameInvite(HashSet<Integer> games) {
+        var state = this.startAction("sendGameInvite");
+    }
+
+    /**
+     *
+     */
+    public void declineGameInvite(HashSet<Integer> games) {
+        var state = this.startAction("declineGameInvite");
+    }
+
+    /**
+     *
+     */
+    public void startGame() {
+        var state = this.startAction("startGame");
+    }
+
+    /**
+     *
+     */
+    public void sendRollDice() {
+        var state = this.startAction("sendRollDice");
+    }
+
+    /**
+     *
+     */
+    public void movePiece() {
+        var state = this.startAction("movePiece");
+    }
+
 
     /**
      *
@@ -321,40 +426,9 @@ public class Actions {
         var state = this.startAction("deleteUser");
     }
 
-    /**
-     *
-     */
-    public void getFriend() {
-        var state = this.startAction("getFriend");
-    }
 
-    /**
-     *
-     */
-    public void friend() {
-        var state = this.startAction("friend");
-    }
 
-    /**
-     *
-     */
-    public void unfriend() {
-        var state = this.startAction("unfriend");
-    }
-
-    /**
-     *
-     */
-    public void joinChat() {
-        var state = this.startAction("joinChat");
-    }
-
-    /**
-     *
-     */
-    public void leaveChat() {
-        var state = this.startAction("leaveChat");
-    }
+    // ------------------- GET REQUESTS -------------------
 
     /**
      *
@@ -367,51 +441,14 @@ public class Actions {
     /**
      *
      */
-    public void sendChatMessage() {
-        var state = this.startAction("sendChatMessage");
+    public void getUser() {
+        var state = this.startAction("getUser");
     }
-
     /**
      *
      */
-    public void sendChatInvite() {
-        var state = this.startAction("sendChatInvite");
-    }
-
-
-    /**
-     *
-     */
-    public void joinGame() {
-        var state = this.startAction("joinGame");
-    }
-
-    /**
-     *
-     */
-    public void leaveGame() {
-        var state = this.startAction("leaveGame");
-    }
-
-    /**
-     *
-     */
-    public void sendGameInvite() {
-        var state = this.startAction("sendGameInvite");
-    }
-
-    /**
-     *
-     */
-    public void declineGameInvite() {
-        var state = this.startAction("declineGameInvite");
-    }
-
-    /**
-     *
-     */
-    public void startGame() {
-        var state = this.startAction("startGame");
+    public void getFriend() {
+        var state = this.startAction("getFriend");
     }
 
     /**
@@ -426,20 +463,6 @@ public class Actions {
      */
     public void getGameState() {
         var state = this.startAction("getGameState");
-    }
-
-    /**
-     *
-     */
-    public void sendRollDice() {
-        var state = this.startAction("sendRollDice");
-    }
-
-    /**
-     *
-     */
-    public void movePiece() {
-        var state = this.startAction("movePiece");
     }
 
 
