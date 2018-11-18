@@ -9,7 +9,9 @@ public enum Error {
     NOT_UNIQUE_USERNAME,
     INVALID_USERNAME_OR_PASSWORD,
     USER_ID_NOT_FOUND,
-    ;
+    OTHER_ID_NOT_FOUND,
+    USER_AND_OTHER_ID_IS_SAME,
+    USER_IS_FRIEND;
 
     /**
      * Utility function for going to integer, which we considered more readable than ordinal.
