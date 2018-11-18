@@ -28,7 +28,7 @@ public class StateManager {
         State copy = new State();
         try {
             State state = mState.take();
-            copy = State.deepCopy(state);
+            copy = State.shallowCopy(state);
             mState.put(state);
         } catch (InterruptedException e) {
             Platform.exit();

@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ThreadLocalRandom;
@@ -46,30 +47,40 @@ public class Actions {
     public void login(String email, String password) {
         var state = this.startAction("login");
 
-        var item = new JSONObject();
-        item.put(FieldNames.EMAIL, email);
-        item.put(FieldNames.PASSWORD, password);
+        var payload = new JSONObject();
+        payload.put(FieldNames.EMAIL, email);
+        payload.put(FieldNames.PASSWORD, password);
 
-        mAPI.send(mRequests.make(LOGIN_REQUEST, item, state.authToken,
+        mAPI.send(mRequests.make(LOGIN_REQUEST, payload, state.authToken,
             success -> {
                 Logger.log(Level.DEBUG, "Action -> LoginSuccess: " + success.toString());
 
-                var user = new User();
-                var userJson = new JSONObject();
-                userJson.put(FieldNames.USERNAME, "Jonas");
-                userJson.put(FieldNames.AVATAR_URI, "https://pickaface.net/gallery/avatar/unr_test_161024_0535_9lih90.png");
-                user.json = userJson;
-                user.avatar = new Image("https://pickaface.net/gallery/avatar/unr_test_161024_0535_9lih90.png");
+                var payload2 = new JSONObject();
+                payload.put(FieldNames.USER_ID, 1337);
 
-                mStateManager.commit(gState -> {
-                    gState.userlist.put(1337, user);
-                    // @DUMMY
-                    gState.authToken = "afaa254";
-                    // @DUMMY
-                    gState.userId = 1337;
-                });
+                mAPI.send(mRequests.make(GET_USER_REQUEST, payload2, state.authToken,
+                    success2 -> {
 
-                mTransitions.renderLive();
+                        var user = new User();
+                        var userJson = new JSONObject();
+                        userJson.put(FieldNames.USERNAME, "Jonas");
+                        userJson.put(FieldNames.EMAIL, "jonas@gmail.com");
+                        userJson.put(FieldNames.PASSWORD, "1234");
+                        userJson.put(FieldNames.AVATAR_URI, "https://pickaface.net/gallery/avatar/unr_test_161024_0535_9lih90.png");
+                        user.json = userJson;
+                        user.avatar = new Image("https://pickaface.net/gallery/avatar/unr_test_161024_0535_9lih90.png");
+
+                        mStateManager.commit(gState -> {
+                            gState.userlist.put(1337, user);
+                            // @DUMMY
+                            gState.authToken = "afaa254";
+                            // @DUMMY
+                            gState.userId = 1337;
+                        });
+
+                        mTransitions.renderUser();
+                    },
+                    error -> this.logError(GET_USER_REQUEST, error)));
             },
             error -> this.logError(LOGIN_REQUEST ,error)));
     }
@@ -130,6 +141,15 @@ public class Actions {
                 mTransitions.renderLogin();
             },
             error -> this.logError(LOGOUT_REQUEST, error)));
+    }
+
+    /**
+     *
+     */
+    public void gotoUser() {
+
+
+        mTransitions.renderUser();
     }
 
     /**
@@ -257,12 +277,6 @@ public class Actions {
             error -> this.logError(GET_USER_RANGE_REQUEST, error)));
     }
 
-    /**
-     *
-     */
-    public void gotoUser() {
-        mTransitions.renderUser();
-    }
 
     /**
      * Create game and add as active
@@ -627,8 +641,10 @@ public class Actions {
     /**
      *
      */
-    public void getUser() {
+    public void getUser(Collection<Integer> userIds) {
+
         var state = this.startAction("getUser");
+
     }
     /**
      *

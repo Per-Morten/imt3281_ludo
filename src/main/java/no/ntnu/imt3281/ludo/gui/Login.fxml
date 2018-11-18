@@ -9,25 +9,28 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="750.0" maxWidth="1600.0" minHeight="750.0" minWidth="1600.0" prefHeight="750.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.LoginController">
+<AnchorPane maxHeight="750.0" maxWidth="300.0" minHeight="750.0" minWidth="300.0" prefHeight="750.0" prefWidth="300.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.LoginController">
    <children>
-      <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="0.0" prefWidth="0.0" spacing="50.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="50.0" AnchorPane.rightAnchor="711.0" AnchorPane.topAnchor="0.0">
+      <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="0.0" prefWidth="0.0" spacing="30.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="50.0" AnchorPane.rightAnchor="50.0" AnchorPane.topAnchor="0.0">
          <children>
-            <AnchorPane prefHeight="93.0" prefWidth="1280.0">
+            <AnchorPane maxHeight="100.0" minHeight="100.0" prefHeight="100.0">
                <children>
-                  <Label layoutY="32.0" maxWidth="1.7976931348623157E308" prefHeight="82.0" prefWidth="616.0" text="Ludo - The Game" textFill="#4970a7">
+                  <Label layoutY="31.0" maxWidth="1.7976931348623157E308" prefHeight="78.0" prefWidth="152.0" text="Ludo" textFill="#4970a7">
                      <font>
                         <Font size="52.0" />
                      </font>
                   </Label>
                </children>
             </AnchorPane>
-            <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="300.0" spacing="10.0">
+            <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="12.0">
                <children>
                   <Label text="Login">
                      <font>
                         <Font size="24.0" />
                      </font>
+                     <VBox.margin>
+                        <Insets bottom="10.0" />
+                     </VBox.margin>
                   </Label>
                   <Label text="Email" />
                   <TextField fx:id="mLoginEmail" maxWidth="-Infinity" prefWidth="200.0" />
@@ -36,7 +39,7 @@
                   <Button fx:id="mButtonLogin" mnemonicParsing="false" onAction="#onClickLogin" prefWidth="200.0" text="Login" />
                </children>
             </VBox>
-            <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="300.0" spacing="10.0">
+            <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="300.0" spacing="12.0">
                <children>
                   <Label text="Create User">
                      <VBox.margin>
@@ -46,12 +49,12 @@
                         <Font size="24.0" />
                      </font>
                   </Label>
+                  <Label text="Username" />
+                  <TextField fx:id="mCreateUsername" maxWidth="-Infinity" prefWidth="200.0" />
                   <Label text="Email" />
                   <TextField fx:id="mCreateEmail" maxWidth="-Infinity" prefWidth="200.0" />
                   <Label text="Password" />
                   <PasswordField fx:id="mCreatePassword" maxWidth="-Infinity" prefWidth="200.0" />
-                  <Label text="Username" />
-                  <TextField fx:id="mCreateUsername" maxWidth="-Infinity" prefWidth="200.0" />
                   <Button fx:id="mButtonCreate" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onClickCreate" prefHeight="26.0" prefWidth="199.0" text="Create" />
                </children>
             </VBox>

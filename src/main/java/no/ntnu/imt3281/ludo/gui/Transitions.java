@@ -59,6 +59,27 @@ public class Transitions {
         });
     }
 
+
+    /**
+     *
+     */
+    public void renderUser() {
+        var user = this.loadFXML(Path.USER);
+        var userController = (UserController)user.controller;
+        var state = mStateManager.copy();
+        var userJson = state.userlist.get(state.userId).json;
+
+        Platform.runLater(()-> {
+            userController.mAvatar.setImage(new Image(userJson.getString(FieldNames.AVATAR_URI)));
+            userController.mAvatarURL.setText(userJson.getString(FieldNames.AVATAR_URI));
+            userController.mUsername.setText(userJson.getString(FieldNames.USERNAME));
+            userController.mEmail.setText(userJson.getString(FieldNames.EMAIL));
+
+            mStage.setScene(new Scene(user.root));
+            mStage.show();
+        });
+    }
+
     /**
      *
      */
@@ -126,6 +147,8 @@ public class Transitions {
             mStage.show();
         });
     }
+
+
 
 
     /**
@@ -323,18 +346,6 @@ public class Transitions {
 
     }
 
-
-    /**
-     *
-     */
-    public void renderUser() {
-        var user = this.loadFXML(Path.USER);
-
-        Platform.runLater(()-> {
-            mStage.setScene(new Scene(user.root));
-            mStage.show();
-        });
-    }
 
     public void toastError(String message) {
         int toastMsgTime = 1500;

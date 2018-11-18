@@ -28,8 +28,8 @@ public class State {
     //
     // In memory-state - cleared on every startup
     //
-    public Map<Integer, Chat> chatlist = new HashMap<>();
     public Map<Integer, User> userlist = new HashMap<>();
+    public Map<Integer, Chat> chatlist = new HashMap<>();
     public Map<Integer, JSONObject> gamelist = new HashMap<>();
     public Map<Integer, JSONObject> friendlist = new HashMap<>();
 
@@ -42,20 +42,20 @@ public class State {
 
     private static final String filepath = "client-state.json";
 
-    /**
-     * Deep copy of state
-     *
-     * @param state to be copied
-     * @return copy
-     */
-    static State deepCopy(State state) {
+    static State shallowCopy(State state) {
         var copy = new State();
-        copy = state;
         copy.authToken = state.authToken;
         copy.username = state.username;
         copy.email = state.email;
         copy.userId = state.userId;
-
+        copy.activeChats.addAll(state.activeChats);
+        copy.activeChats.addAll(state.activeChats);
+        copy.gameInvites.addAll(state.gameInvites);
+        copy.chatInvites.addAll(state.chatInvites);
+        copy.userlist.putAll(state.userlist);
+        copy.chatlist.putAll(state.chatlist);
+        copy.gamelist.putAll(state.gamelist);
+        copy.friendlist.putAll(state.gamelist);
         return copy;
     }
 
