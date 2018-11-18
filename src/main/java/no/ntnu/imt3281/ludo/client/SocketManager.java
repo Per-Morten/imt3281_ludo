@@ -77,7 +77,7 @@ public class SocketManager {
      * failure, as there isn't really anything that can be done further up in the
      * system other than suppressing this thing.
      *
-     * @param message The message to send. (Must not end with "%n" as this is added
+     * @param message The message to sendWithSocketID. (Must not end with "%n" as this is added
      *                before the message is sent.
      *
      * @throws IOException Throws IOException from the SocketWriter if it throws.

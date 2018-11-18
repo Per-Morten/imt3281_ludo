@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -23,6 +24,7 @@ import java.util.function.Consumer;
  */
 public class Connection {
     private Consumer<String> mOnReceiveMessage;
+    private Runnable mOnSocketClosed;
     private Socket mSocket;
     private BufferedWriter mSocketWriter;
     private AtomicBoolean mRunning = new AtomicBoolean(false);
@@ -47,6 +49,10 @@ public class Connection {
      */
     public void setOnReceiveCallback(Consumer<String> onReceiveCallback) {
         mOnReceiveMessage = onReceiveCallback;
+    }
+
+    public void setOnSocketClosed(Runnable onSocketClosed) {
+        mOnSocketClosed = onSocketClosed;
     }
 
     /**
@@ -90,19 +96,25 @@ public class Connection {
      * failure, as there isn't really anything that can be done further up in the
      * system other than suppressing this thing.
      *
-     * @param message The message to send. (Must not end with "%n" as this is added
+     * @param message The message to sendWithSocketID. (Must not end with "%n" as this is added
      *                before the message is sent.
      *
      * @throws IOException Throws IOException from the SocketWriter if it throws.
      */
     public void send(String message) throws IOException {
-        Logger.log(Logger.Level.DEBUG, String.format("Sending message to:%s: %d, message: %s",
-                mSocket.getInetAddress().toString(), mSocket.getPort(), message));
+//        Logger.log(Logger.Level.DEBUG, String.format("Sending message to:%s: %d, message: %s",
+//                mSocket.getInetAddress().toString(), mSocket.getPort(), message));
 
-        // Don't remove + "%n", it is needed for readLine on the other side.
-        // Tok me 5 hours to figure out.
-        mSocketWriter.write(String.format("%s%n", message));
-        mSocketWriter.flush();
+        try {
+            // Don't remove + "%n", it is needed for readLine on the other side.
+            // Tok me 5 hours to figure out.
+            mSocketWriter.write(String.format("%s%n", message));
+
+            // If we get nullptr exception here that is considered  a disconnect, need to handle that, add more callbacks.
+            mSocketWriter.flush();
+        } catch(Exception e) {
+            onException(e);
+        }
     }
 
     private void run() {
@@ -112,11 +124,20 @@ public class Connection {
                 mOnReceiveMessage.accept(line);
             }
         } catch (Exception e) {
-            if (mRunning.get()) {
-                Logger.logException(Logger.Level.WARN, e, "Connection closed unexpectedly");
-                mRunning.set(false);
-            }
+            onException(e);
+        } finally {
+            mRunning.set(false);
         }
+    }
+
+    private void onException(Exception e) {
+        if (!e.getMessage().equals("Socket closed") && !mRunning.get()) {
+            Logger.logException(Logger.Level.WARN, e, "Connection closed unexpectedly");
+        }
+        if (mOnSocketClosed != null) {
+            mOnSocketClosed.run();
+        }
+        mRunning.set(false);
     }
 
 }

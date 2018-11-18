@@ -1,7 +1,13 @@
 package no.ntnu.imt3281.ludo.server;
 
+import no.ntnu.imt3281.ludo.api.Error;
+import no.ntnu.imt3281.ludo.api.FriendStatus;
+import no.ntnu.imt3281.ludo.common.Logger;
+
+import javax.management.relation.Relation;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +30,16 @@ public class Database implements AutoCloseable {
         public static final String Password = "password";
         public static final String AvatarURI = "avatar_uri";
         public static final String Token = "token";
+        public static final String Salt = "salt";
+    }
+
+    public static class FriendFields {
+        public static final String DBName = "friend";
+        public static final String ID = "id";
+        public static final String UserID = "user_id";
+        public static final String FriendID = "friend_id";
+        public static final String Status = "status";
+
     }
 
     private static final int UnassignedID = -1;
@@ -39,16 +55,9 @@ public class Database implements AutoCloseable {
      */
     public Database(String dbFilename) throws SQLException {
         String url = "jdbc:sqlite:" + dbFilename;
-
-        String user = "CREATE TABLE IF NOT EXISTS " + UserFields.DBName + "(" + UserFields.ID
-                + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " + UserFields.Username + " text NOT NULL, "
-                + UserFields.Email + " text NOT NULL UNIQUE, " + UserFields.Password + " text NOT NULL, " // Hashed
-                                                                                                          // password!
-                + UserFields.AvatarURI + " text DEFAULT(NULL), " + UserFields.Token + " text DEFAULT(NULL)" + ");";
-
         mConnection = DriverManager.getConnection(url);
-        var statement = mConnection.createStatement();
-        statement.execute(user);
+        createUserTable();
+        createFriendsTable();
     }
 
     /**
@@ -88,22 +97,24 @@ public class Database implements AutoCloseable {
      * @return Returns the user_id of the new user
      * @throws SQLException            Throws SQLException Upon SQL Errors (Should
      *                                 not happen)
-     * @throws NotUniqueValueException Throws NotUniqueValueException in the case
+     * @throws APIErrorException Throws APIErrorException in the case
      *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see NotUniqueValueException
+     *                                 isn't unique. @see APIErrorException
+     *                                 In this case this is if the username or email isn't unique.
      */
-    public int createUser(String username, String email, String password) throws SQLException {
+    public int createUser(String username, String email, String password, String salt) throws SQLException {
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Email, email))
-            throw new NotUniqueValueException(UserFields.Email);
+            throw new APIErrorException(Error.NOT_UNIQUE_EMAIL);
 
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Username, username))
-            throw new NotUniqueValueException(UserFields.Username);
+            throw new APIErrorException(Error.NOT_UNIQUE_USERNAME);
 
-        try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s) VALUES (?, ?, ?)",
-                UserFields.DBName, UserFields.Username, UserFields.Email, UserFields.Password))) {
+        try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s, %s) VALUES (?, ?, ?, ?)",
+                UserFields.DBName, UserFields.Username, UserFields.Email, UserFields.Password, UserFields.Salt))) {
             statement.setString(1, username);
             statement.setString(2, email);
             statement.setString(3, password);
+            statement.setString(4, salt);
 
             statement.execute();
         }
@@ -127,27 +138,30 @@ public class Database implements AutoCloseable {
      * @param avatarURI The new avatar URI of the user.
      * @throws SQLException            Throws SQLException on SQL errors (should not
      *                                 happen)
-     * @throws NotUniqueValueException Throws NotUniqueValueException in the case
+     * @throws APIErrorException Throws APIErrorException in the case
      *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see NotUniqueValueException
+     *                                 isn't unique. @see APIErrorException
+     *                                 In this case this is if the username or email isn't unique.
      */
-    public void updateUser(int id, String username, String email, String password, String avatarURI)
+    public void updateUser(int id, String username, String email, String password, String avatarURI, String salt)
             throws SQLException {
         if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Email, email))
-            throw new NotUniqueValueException(UserFields.Email);
+            throw new APIErrorException(Error.NOT_UNIQUE_EMAIL);
 
-        if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Username, username))
-            throw new NotUniqueValueException(UserFields.Username);
+        if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Username, username))
+            throw new APIErrorException(Error.NOT_UNIQUE_USERNAME);
 
         try (var statement = mConnection.prepareStatement(String.format(
-                "UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ? WHERE %s=?", UserFields.DBName, UserFields.Username,
-                UserFields.Email, UserFields.Password, UserFields.AvatarURI, UserFields.ID))) {
+                "UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE %s=?", UserFields.DBName, UserFields.Username,
+                UserFields.Email, UserFields.Password, UserFields.AvatarURI, UserFields.Salt, UserFields.ID))) {
+
 
             statement.setString(1, username);
             statement.setString(2, email);
             statement.setString(3, password);
             statement.setString(4, avatarURI);
-            statement.setInt(5, id);
+            statement.setString(5, salt);
+            statement.setInt(6, id);
             statement.execute();
         }
     }
@@ -162,18 +176,13 @@ public class Database implements AutoCloseable {
      */
     public User getUserByID(int id) throws SQLException {
         try (var query = mConnection.prepareStatement(
-                String.format("SELECT %s, %s, %s, %s FROM %s WHERE %s=?", UserFields.ID, UserFields.Username,
-                        UserFields.Email, UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
+                String.format("SELECT %s, %s, %s FROM %s WHERE %s=?", UserFields.ID, UserFields.Username,
+                        UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
 
             query.setInt(1, id);
             var res = query.executeQuery();
             if (res.next()) {
-                User user = new User();
-                user.id = res.getInt(UserFields.ID);
-                user.username = res.getString(UserFields.Username);
-                user.avatarURI = res.getString(UserFields.AvatarURI);
-                user.email = res.getString(UserFields.Email);
-                return user;
+                return queryToUser(res);
             }
         }
         return null;
@@ -189,18 +198,13 @@ public class Database implements AutoCloseable {
      */
     public User getUserByToken(String token) throws SQLException {
         try (var query = mConnection.prepareStatement(
-                String.format("SELECT %s, %s, %s, %s FROM %s WHERE %s = ?", UserFields.ID, UserFields.Username,
-                        UserFields.Email, UserFields.AvatarURI, UserFields.DBName, UserFields.Token))) {
+                String.format("SELECT %s, %s, %s FROM %s WHERE %s = ?", UserFields.ID, UserFields.Username,
+                        UserFields.AvatarURI, UserFields.DBName, UserFields.Token))) {
 
             query.setString(1, token);
             var res = query.executeQuery();
             if (res.next()) {
-                User user = new User();
-                user.id = res.getInt(UserFields.ID);
-                user.username = res.getString(UserFields.Username);
-                user.avatarURI = res.getString(UserFields.AvatarURI);
-                user.email = res.getString(UserFields.Email);
-                return user;
+                return queryToUser(res);
             }
             return null;
         }
@@ -228,13 +232,13 @@ public class Database implements AutoCloseable {
      * @param token The token to give to the user.
      * @throws SQLException            Throws SQLException on SQL errors (should not
      *                                 happen)
-     * @throws NotUniqueValueException Throws NotUniqueValueException if the token
+     * @throws NotUniqueTokenException Throws NotUniqueValueException if the token
      *                                 is already in use somewhere else. @see
      *                                 NotUniqueValueException.
      */
     public void setUserToken(int id, String token) throws SQLException {
         if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Token, token))
-            throw new NotUniqueValueException(UserFields.Token);
+            throw new NotUniqueTokenException();
 
         try (var statement = mConnection.prepareStatement(String.format("UPDATE %s SET %s = ? WHERE %s = ?",
                 UserFields.DBName, UserFields.Token, UserFields.ID))) {
@@ -245,38 +249,286 @@ public class Database implements AutoCloseable {
     }
 
     /**
-     * Gets a page (up to 100 users) of users, in sorted in ascending order of their
+     * Gets a range (up to 100 users) of users, in sorted in ascending order of their
      * user_ids
      *
      * @param pageIdx The page to get
      * @return A list containing all the users within the page.
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
-    public List<User> getUserPage(int pageIdx) throws SQLException {
-        return getUserPage(pageIdx, 100);
+    public List<User> getUserRange(int pageIdx) throws SQLException {
+        return getUserRange(pageIdx, 100);
     }
 
     // Note: This should not be used outside of tests, just keeping it here because
     // I don't want to create 100+ users for test cases.
-    List<User> getUserPage(int pageIdx, int pageSize) throws SQLException {
+    List<User> getUserRange(int pageIdx, int pageSize) throws SQLException {
+        var command = String.format(
+                "SELECT %s, %s, %s FROM %s ORDER BY %s LIMIT ? OFFSET ?",
+                UserFields.ID, UserFields.Username,
+                UserFields.AvatarURI, UserFields.DBName, UserFields.ID);
         try (var query = mConnection.prepareStatement(String.format(
-                "SELECT %s, %s, %s, %s FROM %s WHERE %s BETWEEN ? AND ?", UserFields.ID, UserFields.Username,
-                UserFields.Email, UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
-            query.setInt(1, (pageIdx * pageSize) + 1);
-            query.setInt(2, (pageIdx + 1) * pageSize);
+                "SELECT %s, %s, %s FROM %s ORDER BY %s LIMIT ? OFFSET ?",
+                    UserFields.ID, UserFields.Username,
+                    UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
+            query.setInt(1, pageSize);
+            query.setInt(2, pageIdx * pageSize);
+            Logger.log(Logger.Level.DEBUG, String.format("%s pageSize: %d, Offset: %d", command, pageSize, pageIdx * pageSize));
 
             var res = query.executeQuery();
 
             var retVal = new ArrayList<User>();
             while (res.next()) {
-                User user = new User();
-                user.id = res.getInt(UserFields.ID);
-                user.username = res.getString(UserFields.Username);
-                user.avatarURI = res.getString(UserFields.AvatarURI);
-                user.email = res.getString(UserFields.Email);
-                retVal.add(user);
+                retVal.add(queryToUser(res));
             }
             return retVal;
         }
+    }
+
+    /**
+     * Gets extended information about a user which has the email email.
+     * Extended user means, in addition to the normal fields you also get: Email, password, salt, and token.
+     * NOTE: This information should be used for internal purposes only.!
+     *
+     * @param email The email of the user to get extended information on.
+     * @return A user
+     * @throws SQLException Throws SQLException on SQL errors (should not happen)
+     */
+    public User getExtendedInformationByEmail(String email) throws SQLException {
+        try (var query = mConnection.prepareStatement(String.format("SELECT * FROM %s WHERE %s = ?",
+                UserFields.DBName, UserFields.Email))) {
+
+            query.setString(1, email);
+            var res = query.executeQuery();
+
+            if (res.next()) {
+                return queryToExtendedUser(res);
+            }
+        }
+        return null;
+    }
+
+    private User queryToUser(ResultSet set) throws SQLException {
+        return new User(set.getInt(UserFields.ID),
+                set.getString(UserFields.Username),
+                set.getString(UserFields.AvatarURI));
+    }
+
+    private User queryToExtendedUser(ResultSet set) throws SQLException {
+        return new User(set.getInt(UserFields.ID),
+                set.getString(UserFields.Username),
+                set.getString(UserFields.AvatarURI),
+                set.getString(UserFields.Email),
+                set.getString(UserFields.Salt),
+                set.getString(UserFields.Token),
+                set.getString(UserFields.Password));
+    }
+
+    ///////////////////////////////////////////////////////
+    /// FRIENDS RELATED
+    ///////////////////////////////////////////////////////
+    public void createRelationship(int userID, int friendID, FriendStatus status) throws SQLException {
+        try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s) VALUES (?, ?, ?)",
+                FriendFields.DBName, FriendFields.UserID, FriendFields.FriendID, FriendFields.Status))) {
+            statement.setInt(1, userID);
+            statement.setInt(2, friendID);
+            statement.setInt(3, status.toInt());
+
+            statement.execute();
+        }
+    }
+
+    public void setRelationshipStatus(int userID, int friendID, FriendStatus status) throws SQLException {
+        try (var statement = mConnection.prepareStatement(String.format("UPDATE %s SET %s = ? WHERE %s = ? AND %s = ?",
+                FriendFields.DBName,
+                FriendFields.Status,
+                FriendFields.UserID,
+                FriendFields.FriendID))) {
+            statement.setInt(1, status.toInt());
+            statement.setInt(2, userID);
+            statement.setInt(3, friendID);
+
+            statement.execute();
+        }
+    }
+
+    /**
+     * Gets the friend pair indicating the relationship between the user the id userID, and the friend with id friendID.
+     * @param userID
+     * @param friendID
+     * @return null if the friends could not be found, an array of two elements otherwise,
+     *         the first element contains the relationship from the user with userID's viewpoint,
+     *         the second element contains the relationship from the user with friendID's viewpoint.
+     */
+    public RelationShip[] getRelationship(int userID, int friendID) throws SQLException {
+        RelationShip[] retVal = new RelationShip[2];
+        var usersToCheck = new int[]{userID, friendID};
+        for (int i = 0; i < usersToCheck.length; i++) {
+            try (var query = mConnection.prepareStatement(String.format("SELECT %s, %s, %s, %s FROM %s WHERE (%s = ? AND %s = ?)",
+                    FriendFields.ID,
+                    FriendFields.UserID, FriendFields.FriendID, FriendFields.Status, FriendFields.DBName,
+                    FriendFields.UserID, FriendFields.FriendID))) {
+                query.setInt(1, usersToCheck[i]);
+                query.setInt(2, usersToCheck[(i + 1) % usersToCheck.length]);
+
+                var res = query.executeQuery();
+
+                if (res.next()) {
+                    retVal[i] = new RelationShip(res.getInt(FriendFields.ID), res.getInt(FriendFields.UserID),
+                            res.getInt(FriendFields.FriendID),
+                            FriendStatus.fromInt(res.getInt(FriendFields.Status)));
+                }
+            }
+        }
+
+        return (retVal[0] == null) ? null : retVal;
+    }
+
+    // Note: This should not be used outside of tests, just keeping it here because
+    // I don't want to create 100+ users for test cases.
+    public List<Friend> getFriendsRange(int userID, int pageIndex) throws SQLException {
+        return getFriendsRange(userID, pageIndex, 100);
+    }
+
+    public List<Friend> getFriendsRange(int userID, int pageIndex, int pageSize) throws SQLException {
+        // Want to LIMIT and Offset, similar to these two.
+        // Merge these two together: SELECT user_id, username, avatar_uri FROM user WHERE user_id = 2 ORDER BY user_id LIMIT 100 OFFSET 0
+        //SELECT friend.friend_id, friend.status, user.username FROM friend INNER JOIN user ON friend.friend_id = user.user_id WHERE friend.user_id = ?
+        // Something like:
+        // SELECT friend.friend_id, friend.status, user.username FROM friend INNER JOIN user ON friend.friend_id = user.user_id WHERE friend.user_id = 1 AND friend.status != ? ORDER BY friend.user_id LIMIT 100 OFFSET 0
+        var queryCommand = String.format("SELECT %s.%s, %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s = %s.%s WHERE %s.%s = ? AND %s.%s != ? ORDER BY %s.%s LIMIT ? OFFSET ?",
+                FriendFields.DBName, FriendFields.FriendID,
+                FriendFields.DBName, FriendFields.Status,
+                UserFields.DBName, UserFields.Username,
+                FriendFields.DBName, UserFields.DBName,
+                FriendFields.DBName, FriendFields.FriendID,
+                UserFields.DBName, UserFields.ID,
+                FriendFields.DBName, FriendFields.UserID,
+                FriendFields.DBName, FriendFields.Status,
+                FriendFields.DBName, FriendFields.UserID);
+
+        try (var query = mConnection.prepareStatement(queryCommand)) {
+
+            query.setInt(1, userID);
+            query.setInt(2, FriendStatus.UNFRIENDED.toInt());
+            query.setInt(3, pageSize);
+            query.setInt(4, pageSize * pageIndex);
+
+            var res = query.executeQuery();
+
+            var retVal = new ArrayList<Friend>();
+            while (res.next()) {
+                retVal.add(new Friend(res.getInt(FriendFields.FriendID), res.getString(UserFields.Username), FriendStatus.fromInt(res.getInt(FriendFields.Status))));
+            }
+
+            return retVal;
+        }
+    }
+
+    ///////////////////////////////////////////////////////
+    /// TABLE CREATION RELATED
+    ///////////////////////////////////////////////////////
+    private void createUserTable() throws SQLException {
+        String command = "CREATE TABLE IF NOT EXISTS " + UserFields.DBName + "(" + UserFields.ID
+                + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " + UserFields.Username + " text NOT NULL, "
+                + UserFields.Email + " text NOT NULL UNIQUE, " + UserFields.Password + " text NOT NULL, " // Hashed password!
+                + UserFields.Salt + " text NOT NULL, "
+                + UserFields.AvatarURI + " text DEFAULT(NULL), " + UserFields.Token + " text DEFAULT(NULL)" + ");";
+
+        var statement = mConnection.createStatement();
+        statement.execute(command);
+    }
+
+    private void createFriendsTable() throws SQLException {
+        String command = "CREATE TABLE IF NOT EXISTS " + FriendFields.DBName + "("
+                + FriendFields.ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                + FriendFields.UserID + " INTEGER NOT NULL,"
+                + FriendFields.FriendID + " INTEGER NOT NULL, "
+                + FriendFields.Status + " INTEGER NOT NULL, "
+                + "FOREIGN KEY (" + FriendFields.UserID + ") REFERENCES " + UserFields.DBName + "(" + UserFields.ID + ") ON DELETE CASCADE,"
+                + "FOREIGN KEY (" + FriendFields.FriendID + ") REFERENCES " + UserFields.DBName + "(" + UserFields.ID + ") ON DELETE CASCADE"
+                + ");";
+
+        var statement = mConnection.createStatement();
+        statement.execute(command);
+    }
+
+    ///////////////////////////////////////////////////////
+    /// RETURN CLASSES
+    ///////////////////////////////////////////////////////
+    public class RelationShip {
+        public int rowID;
+        public int userID;
+        public int friendID;
+        public FriendStatus status;
+
+        RelationShip(int rowID, int userID, int friendID, FriendStatus status) {
+            this.rowID = rowID;
+            this.userID = userID;
+            this.friendID = friendID;
+            this.status = status;
+        }
+    }
+
+    public class Friend {
+        public int userID;
+        public String username;
+        public FriendStatus status;
+
+        Friend(int userID, String username, FriendStatus status) {
+            this.userID = userID;
+            this.username = username;
+            this.status = status;
+        }
+    }
+
+    /*
+     * POD for containing user data, all fields are public by intention.
+     */
+    public static class User {
+        public User(int id, String username, String avatarURI) {
+            this.id = id;
+            this.username = username;
+            this.avatarURI = (avatarURI != null) ? avatarURI : "";
+        }
+
+        public User(int id, String username, String avatarURI, String email, String salt, String token, String password) {
+            this.id = id;
+            this.username = username;
+            this.email = email;
+            this.avatarURI = (avatarURI != null) ? avatarURI : "";
+            this.salt = salt;
+            this.token = token;
+            this.password = password;
+        }
+
+        public int id = -1;
+        public String username = "";
+        public String avatarURI = "";
+
+        /**
+         * The email of the user, this will be null except when getExtendedInformation has been called.
+         * Should not be exposed to the outside world!
+         */
+        public String email = "";
+
+
+        /**
+         * The salt used to hash the password, this will be null except when getExtendedInformation has been called.
+         * Should not be exposed to the outside world!
+         */
+        public String salt = "";
+
+        /**
+         * The authentication token of the user, this will be null except when getExtendedInformation has been called.
+         * Should not be exposed to the outside world!
+         */
+        public String token = "";
+
+        /**
+         * The hashed password of the user, this will be null except when getExtendedInformation has been called.
+         * Should not be exposed to the outside world!
+         */
+        public String password = "";
     }
 }
