@@ -67,6 +67,7 @@ public class API {
             jsonResponse = new JSONObject(message);
         } catch (JSONException e) {
             Logger.log(Level.WARN, "JSONException when jsonifying message" + e.toString());
+            mPendingRequests.poll(); // Throw away request to avoid blocking
             return;
         }
 
@@ -75,22 +76,25 @@ public class API {
             messageType = jsonResponse.getString("type");
         } catch (JSONException e) {
             Logger.log(Level.WARN, "JSONException when parsing 'type':" + e.toString());
+            mPendingRequests.poll(); // Throw away request to avoid blocking
             return;
         }
 
         ResponseType reqType = ResponseType.fromString(messageType);
+        EventType eventType = EventType.fromString(messageType);
+
+        if (reqType == null && eventType == null){
+            Logger.log(Level.WARN, "Unkown message type: " + messageType);
+            mPendingRequests.poll(); // Throw away request to avoid blocking
+            return;
+        }
+
+        // Handle response or event
         if (reqType != null) {
             this.handleResponse(jsonResponse);
-            return;
-        }
-
-        EventType eventType = EventType.fromString(messageType);
-        if (eventType != null) {
+        } else {
             this.handleEvent(jsonResponse);
-            return;
         }
-
-        Logger.log(Level.WARN, "Unkown message type: " + messageType);
     }
 
     /**
