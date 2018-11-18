@@ -26,7 +26,7 @@
                         <TabPane fx:id="mTabGames" prefHeight="882.0" prefWidth="1009.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
                      </children>
                   </VBox>
-                  <VBox prefHeight="934.0" prefWidth="857.0" style="-fx-border-color: #333;" HBox.hgrow="SOMETIMES">
+                  <VBox prefHeight="934.0" prefWidth="800.0" style="-fx-border-color: #333;" HBox.hgrow="SOMETIMES">
                      <children>
                         <HBox alignment="CENTER_RIGHT" style="-fx-background-color: #ddd;">
                            <children>
