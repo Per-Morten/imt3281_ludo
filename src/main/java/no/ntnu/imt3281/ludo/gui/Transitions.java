@@ -170,7 +170,7 @@ public class Transitions {
                 itemController.mType = ListItemType.GAME;
                 itemController.mOverview = overview;
                 itemController.init(ListItemType.GAME, id, overview, name + " [" + playerCount + "/4]");
-                overview.mBoxGames.getChildren().add(item.root);
+                overview.mListGames.getChildren().add(item.root);
             });
 
             state.gameInvites.forEach(id -> {
@@ -180,7 +180,7 @@ public class Transitions {
                 var name = game.getString(FieldNames.NAME);
 
                 itemController.init(ListItemType.GAME_INVITE, id, overview, name + " invite"); // TODO i18n
-                overview.mBoxGames.getChildren().add(item.root);
+                overview.mListGames.getChildren().add(item.root);
             });
         });
     }
@@ -203,7 +203,7 @@ public class Transitions {
                 var participantCount = chat.json.getJSONArray(FieldNames.PARTICIPANT_ID).length();
 
                 itemController.init(ListItemType.CHAT, id, overview, name + " ["+ participantCount+" people]"); // TODO i18n
-                overview.mBoxChats.getChildren().add(item.root);
+                overview.mListChats.getChildren().add(item.root);
             });
 
             state.chatInvites.forEach(id -> {
@@ -214,7 +214,7 @@ public class Transitions {
                 var name = chat.json.getString(FieldNames.NAME);
 
                 itemController.init(ListItemType.CHAT_INVITE, id, overview, name + " invite");// TODO i18n
-                overview.mBoxChats.getChildren().add(item.root);
+                overview.mListChats.getChildren().add(item.root);
             });
         });
     }

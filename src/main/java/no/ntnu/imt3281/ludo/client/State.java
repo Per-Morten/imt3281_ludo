@@ -35,10 +35,8 @@ public class State {
 
     public Set<Integer> activeGames = new HashSet<>();
     public Set<Integer> activeChats = new HashSet<>();
-
     public Set<Integer> chatInvites = new HashSet<>();
     public Set<Integer> gameInvites = new HashSet<>();
-
 
     private static final String filepath = "client-state.json";
 
