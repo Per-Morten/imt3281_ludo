@@ -23,10 +23,10 @@ public class State {
     public String username = "";
     public String email = "";
     public int userId = -1;
-
+    public String avatarURI = "@../../../../../images/basic-avatar.png";
 
     //
-    // In memory-state - cleared on every startup
+    // In-memory state- cleared on every startup
     //
     public Map<Integer, User> userlist = new HashMap<>();
     public Map<Integer, Chat> chatlist = new HashMap<>();
@@ -48,6 +48,7 @@ public class State {
         copy.username = state.username;
         copy.email = state.email;
         copy.userId = state.userId;
+        copy.avatarURI = state.avatarURI;
         copy.activeChats.addAll(state.activeChats);
         copy.activeChats.addAll(state.activeChats);
         copy.gameInvites.addAll(state.gameInvites);
@@ -76,7 +77,7 @@ public class State {
                 state.username = json.getString(FieldNames.USERNAME);
                 state.email = json.getString(FieldNames.EMAIL);
                 state.userId = json.getInt(FieldNames.USER_ID);
-
+                state.avatarURI = json.getString(FieldNames.AVATAR_URI);
             } catch (JSONException e) {
                 Logger.log(Logger.Level.WARN, "Missing key in " + State.filepath);
             }
@@ -98,6 +99,7 @@ public class State {
         json.put(FieldNames.USERNAME, state.username);
         json.put(FieldNames.EMAIL, state.email);
         json.put(FieldNames.USER_ID, state.userId);
+        json.put(FieldNames.AVATAR_URI, state.avatarURI);
 
         try (var writer = new FileWriter(State.filepath)) {
             writer.write(json.toString());

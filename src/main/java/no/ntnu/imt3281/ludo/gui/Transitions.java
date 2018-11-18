@@ -59,9 +59,8 @@ public class Transitions {
         });
     }
 
-
     /**
-     *
+     * Renders the user scene
      */
     public void renderUser() {
         var user = this.loadFXML(Path.USER);

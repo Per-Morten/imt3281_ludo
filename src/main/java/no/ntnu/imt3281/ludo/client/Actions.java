@@ -72,9 +72,7 @@ public class Actions {
 
                         mStateManager.commit(gState -> {
                             gState.userlist.put(1337, user);
-                            // @DUMMY
                             gState.authToken = "afaa254";
-                            // @DUMMY
                             gState.userId = 1337;
                         });
 
@@ -130,25 +128,67 @@ public class Actions {
         item.put(FieldNames.USER_ID, state.userId);
 
         mAPI.send(mRequests.make(LOGOUT_REQUEST, item, state.authToken,
-            success -> {
-                Logger.log(Level.DEBUG, "Action -> LogoutSucces");
-                mStateManager.commit(gState -> {
-                    gState.userId = -1;
-                    gState.email = "";
-                    gState.authToken = "";
-                    gState.username = "";
-                });
-                mTransitions.renderLogin();
-            },
+            success -> {},
             error -> this.logError(LOGOUT_REQUEST, error)));
+
+        mStateManager.commit(gState -> {
+            gState.userId = -1;
+            gState.email = "";
+            gState.authToken = "";
+            gState.username = "";
+            gState.gamelist.clear();
+            gState.chatlist.clear();
+            gState.activeChats.clear();
+            gState.activeGames.clear();
+        });
+        mTransitions.renderLogin();
+    }
+
+    /**
+     *
+     */
+    public void updateUser(String username, String email, String password, String avatarURI) {
+        var state = this.startAction("updateUser");
+
+        var payload = new JSONObject();
+        payload.put(FieldNames.USERNAME, username);
+        payload.put(FieldNames.EMAIL, email);
+        payload.put(FieldNames.PASSWORD, password);
+        payload.put(FieldNames.AVATAR_URI, avatarURI);
+
+        mAPI.send(mRequests.make(UPDATE_USER_REQUEST, payload, state.authToken, success -> {
+
+            mStateManager.commit(gState -> {
+                gState.username = username;
+                gState.email = email;
+                gState.avatarURI = avatarURI;
+            });
+
+            mTransitions.renderUser();
+
+        }, error -> this.logError(UPDATE_USER_REQUEST, error)));
+    }
+
+    /**
+     *
+     */
+    public void deleteUser() {
+        var state = this.startAction("deleteUser");
+
+        var payload = new JSONObject();
+        payload.put(FieldNames.USER_ID, state.userId);
+
+        mAPI.send(mRequests.make(DELETE_USER_REQUEST, payload, state.authToken, success -> {
+
+            this.logout();
+
+        }, error -> this.logError(DELETE_USER_REQUEST, error)));
     }
 
     /**
      *
      */
     public void gotoUser() {
-
-
         mTransitions.renderUser();
     }
 
@@ -292,9 +332,7 @@ public class Actions {
         mAPI.send(mRequests.make(CREATE_GAME_REQUEST, payload, state.authToken,
                 success -> {
                     // TODO
-                    var game = new JSONObject();
-                    game.put(FieldNames.NAME, "Game " + newGameId);
-                    game.put(FieldNames.PLAYER_ID, new JSONArray(new int[]{}));
+                    var game = makeGame();
                     mStateManager.commit(gState -> {
                         gState.gamelist.put(newGameId, game);
                         gState.activeGames.add(newGameId);
@@ -305,29 +343,28 @@ public class Actions {
                 error -> this.logError(CREATE_GAME_REQUEST, error)));
     }
 
+
     /**
      * Create chat and add as active
      */
     public void createChat(/* TODO pass name*/) {
         var state = this.startAction("createChat");
 
-        var newChatId = randomId();
         var payload = new JSONObject();
+        var chat = makeChat();
+        var chatId = chat.json.getInt(FieldNames.CHAT_ID);
         payload.put(FieldNames.USER_ID, state.userId);
-        payload.put(FieldNames.NAME, "Chat " + newChatId);
+        payload.put(FieldNames.NAME, "Chat " + chatId);
 
         mAPI.send(mRequests.make(CREATE_CHAT_REQUEST, payload, state.authToken,
             success -> {
                 // TODO
-                var chat = new Chat();
-                chat.json.put(FieldNames.NAME, "Chat "+newChatId);
-                chat.json.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
 
                 mStateManager.commit(gState -> {
-                    gState.chatlist.put(newChatId, chat);
-                    gState.activeChats.add(newChatId);
+                    gState.chatlist.put(chatId, chat);
+                    gState.activeChats.add(chatId);
                 });
-                mTransitions.newChat(newChatId);
+                mTransitions.newChat(chatId);
             },
             error -> this.logError(CREATE_CHAT_REQUEST , error)));
     }
@@ -612,19 +649,6 @@ public class Actions {
     }
 
 
-    /**
-     *
-     */
-    public void updateUser() {
-        var state = this.startAction("updateUser");
-    }
-
-    /**
-     *
-     */
-    public void deleteUser() {
-        var state = this.startAction("deleteUser");
-    }
 
 
 
@@ -689,7 +713,24 @@ public class Actions {
     }
 
     private static int randomId() {
-        return ThreadLocalRandom.current().nextInt(100000, 10000000);
+        return ThreadLocalRandom.current().nextInt(1000000, 9999999);
     }
 
+    private static JSONObject makeGame() {
+        var gameId = randomId();
+        var game = new JSONObject();
+        game.put(FieldNames.GAME_ID, gameId);
+        game.put(FieldNames.NAME, "Game " + gameId);
+        game.put(FieldNames.PLAYER_ID, new JSONArray(new int[]{}));
+        return game;
+    }
+
+    private static Chat makeChat() {
+        var chatId = randomId();
+        var chat = new Chat();
+        chat.json.put(FieldNames.CHAT_ID, chatId);
+        chat.json.put(FieldNames.NAME, "Chat " + chatId);
+        chat.json.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
+        return chat;
+    }
 }

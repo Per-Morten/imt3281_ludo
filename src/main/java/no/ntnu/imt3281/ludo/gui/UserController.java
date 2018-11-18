@@ -35,8 +35,16 @@ public class UserController extends BaseController {
     private Button mBtnLogout;
 
     @FXML
-    void onClickUpdate(ActionEvent event) {
-        mAC
+    private Button mBtnDelete;
+
+    @FXML
+    void onUpdate(ActionEvent event) {
+        mActions.updateUser(mUsername.getText(), mEmail.getText(), mPassword.getText(), mAvatarURL.getText());
+    }
+
+    @FXML
+    void onDelete(ActionEvent event) {
+        mActions.deleteUser();
     }
 
     @FXML
