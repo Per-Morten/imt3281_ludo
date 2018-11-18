@@ -46,4 +46,5 @@ public class FieldNames {
    public static final String PIECE_POSITIONS = "piece_positions";
    public static final String PIECE_INDEX = "piece_index";
 
+    public static final String STATUS = "status";
 }
