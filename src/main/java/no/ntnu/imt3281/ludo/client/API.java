@@ -39,6 +39,7 @@ public class API {
             }
 
             try {
+                Logger.log(Level.DEBUG, "Sending request: " + request.toJSON().toString());
                 mSocketManager.send(request.toJSON().toString());
             } catch (NullPointerException | IOException e) {
                 Logger.log(Level.WARN, "No connection with server: " + e.toString());
@@ -55,7 +56,7 @@ public class API {
      */
     private void read(String message) {
 
-        Logger.log(Level.DEBUG, "Got a message: " + message);
+        Logger.log(Level.DEBUG, "Got response|event: " + message);
 
         var jsonResponse = new JSONObject();
         try {

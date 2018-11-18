@@ -45,42 +45,22 @@ public class Actions {
      * @param password valid password
      */
     public void login(String email, String password) {
-        var state = this.startAction("login");
+        this.startAction("login");
 
         var payload = new JSONObject();
         payload.put(FieldNames.EMAIL, email);
         payload.put(FieldNames.PASSWORD, password);
 
-        mAPI.send(mRequests.make(LOGIN_REQUEST, payload, state.authToken,
-            success -> {
-                Logger.log(Level.DEBUG, "Action -> LoginSuccess: " + success.toString());
+        mAPI.send(mRequests.make(LOGIN_REQUEST, payload, "", success -> {
 
-                var payload2 = new JSONObject();
-                payload.put(FieldNames.USER_ID, 1337);
+            mStateManager.commit(gState -> {
+                gState.userId = success.getInt(FieldNames.USER_ID);
+                gState.authToken = success.getString(FieldNames.AUTH_TOKEN);
+            });
 
-                mAPI.send(mRequests.make(GET_USER_REQUEST, payload2, state.authToken,
-                    success2 -> {
-
-                        var user = new User();
-                        var userJson = new JSONObject();
-                        userJson.put(FieldNames.USERNAME, "Jonas");
-                        userJson.put(FieldNames.EMAIL, "jonas@gmail.com");
-                        userJson.put(FieldNames.PASSWORD, "1234");
-                        userJson.put(FieldNames.AVATAR_URI, "https://pickaface.net/gallery/avatar/unr_test_161024_0535_9lih90.png");
-                        user.json = userJson;
-                        user.avatar = new Image("https://pickaface.net/gallery/avatar/unr_test_161024_0535_9lih90.png");
-
-                        mStateManager.commit(gState -> {
-                            gState.userlist.put(1337, user);
-                            gState.authToken = "afaa254";
-                            gState.userId = 1337;
-                        });
-
-                        mTransitions.renderUser();
-                    },
-                    error -> this.logError(GET_USER_REQUEST, error)));
-            },
-            error -> this.logError(LOGIN_REQUEST ,error)));
+            this.gotoUser();
+        },
+        error -> this.logError(LOGIN_REQUEST ,error)));
     }
 
     /**
@@ -100,7 +80,7 @@ public class Actions {
         item.put(FieldNames.PASSWORD, password);
         item.put(FieldNames.USERNAME, username);
 
-        mAPI.send(mRequests.make(CREATE_USER_REQUEST, item, state.authToken,
+        mAPI.send(mRequests.make(CREATE_USER_REQUEST, item, "",
             success -> {
                 Logger.log(Level.DEBUG, "Action -> CreateUserSuccess");
                 mStateManager.commit(gState -> {
@@ -164,7 +144,7 @@ public class Actions {
                 gState.avatarURI = avatarURI;
             });
 
-            mTransitions.renderUser();
+            this.gotoUser();
 
         }, error -> this.logError(UPDATE_USER_REQUEST, error)));
     }
@@ -186,14 +166,34 @@ public class Actions {
     }
 
     /**
-     *
+     * Goto the user scene
      */
     public void gotoUser() {
-        mTransitions.renderUser();
+        var state = this.startAction("gotoUser");
+
+        var payload = new JSONObject();
+        payload.put(FieldNames.USER_ID, state.userId);
+
+        mAPI.send(mRequests.make(GET_USER_REQUEST, payload, state.authToken, success -> {
+            Logger.log(Level.DEBUG, "Get_user_success");
+
+            var user = new User();
+            user.json = success;
+
+            mStateManager.commit(gState -> {
+                gState.username = success.getString(FieldNames.USERNAME);
+                gState.avatarURI = success.getString(FieldNames.AVATAR_URI);
+                // TODO Email does not exist in get_user_request.
+
+            });
+
+            mTransitions.renderUser(user);
+        },
+        error -> this.logError(GET_USER_REQUEST, error)));
     }
 
     /**
-     *
+     * Goto the live scene
      */
     public void gotoLive() {
         mTransitions.renderLive();
@@ -202,7 +202,7 @@ public class Actions {
     }
 
     /**
-     *
+     * Goto the overview scene
      */
     public void gotoOverview() {
         var state = this.startAction("gotoOverview");

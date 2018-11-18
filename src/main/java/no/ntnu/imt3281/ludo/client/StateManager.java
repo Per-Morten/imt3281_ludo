@@ -1,6 +1,7 @@
 package no.ntnu.imt3281.ludo.client;
 
 import javafx.application.Platform;
+import no.ntnu.imt3281.ludo.common.Logger;
 
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -45,7 +46,14 @@ public class StateManager {
     public void commit(Mutation mutation) {
         try {
             State state = mState.take();
-            mutation.run(state);
+
+            try {
+                mutation.run(state);
+            } catch(Exception e) {
+                Logger.logException(Logger.Level.WARN, e, "Exception in mutation");
+                mState.put(state);
+                return;
+            }
             mState.put(state);
         } catch (InterruptedException e) {
             Platform.exit();

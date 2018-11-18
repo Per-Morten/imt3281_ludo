@@ -1,6 +1,9 @@
 package no.ntnu.imt3281.ludo.client;
 
+import no.ntnu.imt3281.ludo.api.FieldNames;
 import org.json.JSONObject;
+
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -24,7 +27,7 @@ class RequestFactory {
         req.onError = onError;
 
         var array = new ArrayList<JSONObject>();
-        payload.put("id", 0);
+        payload.put(FieldNames.ID, 0);
         array.add(payload);
         req.payload = array;
         return req;
@@ -41,7 +44,7 @@ class RequestFactory {
         req.onError = onError;
 
         for (var item : payload) {
-            item.put("id", i++);
+            item.put(FieldNames.ID, i++);
         }
 
         req.payload = payload;

@@ -19,6 +19,7 @@ import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
 import no.ntnu.imt3281.ludo.client.Actions;
 import no.ntnu.imt3281.ludo.client.StateManager;
+import no.ntnu.imt3281.ludo.client.User;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 
@@ -60,21 +61,24 @@ public class Transitions {
     }
 
     /**
-     * Renders the user scene
+     * Loads and renders the user scene
+     *
+     * @param user logged in user
      */
-    public void renderUser() {
-        var user = this.loadFXML(Path.USER);
-        var userController = (UserController)user.controller;
-        var state = mStateManager.copy();
-        var userJson = state.userlist.get(state.userId).json;
+    public void renderUser(User user) {
+        Logger.log(Level.INFO, "Transition -> Render User");
+
+        var userDoc = this.loadFXML(Path.USER);
+        var userController = (UserController)userDoc.controller;
 
         Platform.runLater(()-> {
-            userController.mAvatar.setImage(new Image(userJson.getString(FieldNames.AVATAR_URI)));
-            userController.mAvatarURL.setText(userJson.getString(FieldNames.AVATAR_URI));
-            userController.mUsername.setText(userJson.getString(FieldNames.USERNAME));
-            userController.mEmail.setText(userJson.getString(FieldNames.EMAIL));
+            userController.mAvatarURL.setText(user.json.getString(FieldNames.AVATAR_URI));
+            userController.mUsername.setText(user.json.getString(FieldNames.USERNAME));
 
-            mStage.setScene(new Scene(user.root));
+            // TODO Email does not exist in get_user_request.
+            //userController.mEmail.setText(user.json.getString(FieldNames.EMAIL));
+
+            mStage.setScene(new Scene(userDoc.root));
             mStage.show();
         });
     }
@@ -132,7 +136,6 @@ public class Transitions {
         });
     }
 
-
     /**
      *
      */
@@ -146,9 +149,6 @@ public class Transitions {
             mStage.show();
         });
     }
-
-
-
 
     /**
      *
