@@ -17,7 +17,7 @@ import static org.junit.Assert.fail;
 
 class TestUtility {
 
-    private static final long TIMEOUT_TIME_MS = 5000;
+    private static final long TIMEOUT_TIME_MS = 1000;
 
     ///////////////////////////////////////////////////////
     /// Utility Function to Simplify testing
@@ -65,12 +65,38 @@ class TestUtility {
         return createRequest(RequestType.GET_USER_REQUEST, payload, token);
     }
 
+    static JSONObject createGetFriendRangeRequest(int userID, String token, int page) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.PAGE_INDEX, page);
+        payload.put(request);
+        return TestUtility.createRequest(RequestType.GET_FRIEND_RANGE_REQUEST, payload, token);
+    }
+
+    static JSONObject createFriendRelationshipRequest(RequestType type, int userID, int otherID, String token) {
+        // Setup friend message
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.OTHER_ID, otherID);
+        payload.put(0, request);
+        return TestUtility.createRequest(type, payload, token);
+    }
+
     static void assertError(Error desired, JSONObject object) {
         var error = object.getJSONArray(FieldNames.ERROR);
         assertEquals(1, error.length());
         var firstError = error.getJSONObject(0);
         assertEquals(0, firstError.getInt(FieldNames.ID));
         assertEquals(desired, Error.fromInt(firstError.getJSONArray(FieldNames.CODE).getInt(0)));
+    }
+
+    static void assertType(String type, JSONObject object) {
+        var field = object.getString(FieldNames.TYPE);
+        assertEquals(type, field);
     }
 
     // Don't want to type out the BiConsumer type all the time.
@@ -103,7 +129,7 @@ class TestUtility {
         socket.stop();
     }
 
-    static void runTest(BiConsumer<TestContext, String> onReceiveCallback, String firstMessage) {
+    static void runTest(String firstMessage, BiConsumer<TestContext, String> onReceiveCallback) {
         final var context = new TestContext();
 
         context.running = new AtomicBoolean(true);
@@ -112,11 +138,16 @@ class TestUtility {
 
         context.socket.setOnReceiveCallback((string) -> {
             try {
-                onReceiveCallback.accept(context, string);
+                if (onReceiveCallback != null) {
+                    onReceiveCallback.accept(context, string);
+                } else {
+                    context.running.set(false);
+                }
             } catch (Exception e) {
                 fail(e.getMessage());
             }
         });
+
         try {
             context.socket.start();
             context.socket.send(firstMessage);

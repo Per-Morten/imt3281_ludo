@@ -1,8 +1,7 @@
 package no.ntnu.imt3281.ludo.api;
 
 import no.ntnu.imt3281.ludo.common.Logger;
-import no.ntnu.imt3281.ludo.server.Server;
-import no.ntnu.imt3281.ludo.server.User;
+import no.ntnu.imt3281.ludo.server.Database;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.AfterClass;
@@ -10,21 +9,18 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.sql.SQLException;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class UserAPITests {
-    private static final User USER_1 = new User(1, "User1", null, "User1@mail.com", null, null, "User1Password");
-    private static final User USER_2 = new User(2, "User2", null, "User2@mail.com", null, null, "User2Password");
-    private static final User USER_3 = new User(3, "User3", null, "User3@mail.com", null, null, "User3Password");
-    private static final User LOGGED_IN_USER = new User(4, "LoggedInUser", null, "LoggedInUser@mail.com", null, null, "LoggedInPassword");
-    private static final User USER_TO_BE_UPDATED = new User(5, "UserToBeUpdated", null, "UserToBeUpdated@mail.com", null, null, "UserToBeUpdatedPassword");
-    private static final User USER_TO_BE_DELETED = new User(6, "UserToBeDeleted", null, "UserToBeDeleted@mail.com", null, null, "UserToBeDeletedPassword");
+    private static final Database.User USER_1 = new Database.User(1, "User1", null, "User1@mail.com", null, null, "User1Password");
+    private static final Database.User USER_2 = new Database.User(2, "User2", null, "User2@mail.com", null, null, "User2Password");
+    private static final Database.User USER_3 = new Database.User(3, "User3", null, "User3@mail.com", null, null, "User3Password");
+    private static final Database.User LOGGED_IN_USER = new Database.User(4, "LoggedInUser", null, "LoggedInUser@mail.com", null, null, "LoggedInPassword");
+    private static final Database.User USER_TO_BE_UPDATED = new Database.User(5, "UserToBeUpdated", null, "UserToBeUpdated@mail.com", null, null, "UserToBeUpdatedPassword");
+    private static final Database.User USER_TO_BE_DELETED = new Database.User(6, "UserToBeDeleted", null, "UserToBeDeleted@mail.com", null, null, "UserToBeDeletedPassword");
 
 
     @BeforeClass
@@ -33,7 +29,7 @@ public class UserAPITests {
 
         TestServer.start();
 
-        var usersToCreate = new User[] {
+        var usersToCreate = new Database.User[] {
                 USER_1, USER_2, USER_3, LOGGED_IN_USER, USER_TO_BE_UPDATED, USER_TO_BE_DELETED,
         };
 
@@ -41,7 +37,7 @@ public class UserAPITests {
             TestUtility.sendPreparationMessageToServer(TestUtility.createUserRequest(user.username, user.email, user.password), null);
         }
 
-        var usersToLogIn = new User[] {
+        var usersToLogIn = new Database.User[] {
             LOGGED_IN_USER, USER_TO_BE_UPDATED, USER_TO_BE_DELETED,
         };
 
@@ -93,7 +89,7 @@ public class UserAPITests {
         request.put(FieldNames.EMAIL, "john.doe@ubermail.com");
         payload.put(0, request);
 
-        TestUtility.runTest(callback, TestUtility.createRequest(RequestType.CREATE_USER_REQUEST, payload).toString());
+        TestUtility.runTest(TestUtility.createRequest(RequestType.CREATE_USER_REQUEST, payload).toString(), callback);
     }
 
     @Test
@@ -128,7 +124,7 @@ public class UserAPITests {
         request.put(FieldNames.EMAIL, USER_1.email);
         payload.put(0, request);
 
-        TestUtility.runTest(callback, TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString());
+        TestUtility.runTest(TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString(), callback);
     }
 
     @Test
@@ -158,7 +154,7 @@ public class UserAPITests {
         payload.put(0, request);
         var json = TestUtility.createRequest(RequestType.LOGOUT_REQUEST, payload);
         json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
-        TestUtility.runTest(callback, json.toString());
+        TestUtility.runTest(json.toString(), callback);
     }
 
     @Test
@@ -191,7 +187,7 @@ public class UserAPITests {
         payload.put(0, request);
         var json = TestUtility.createRequest(RequestType.GET_USER_REQUEST, payload);
         json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
-        TestUtility.runTest(callback, json.toString());
+        TestUtility.runTest(json.toString(), callback);
     }
 
     @Test
@@ -205,7 +201,7 @@ public class UserAPITests {
            var firstPage = success.getJSONObject(0);
            assertEquals(0, firstPage.getInt(FieldNames.ID));
            var users = firstPage.getJSONArray(FieldNames.RANGE);
-           var userTruth = new User[]{USER_1, USER_2, USER_3,};
+           var userTruth = new Database.User[]{USER_1, USER_2, USER_3,};
            assertTrue(users.length() >= 3);
            for (int i = 0; i < 3; i++) {
                var user = users.getJSONObject(i);
@@ -224,7 +220,7 @@ public class UserAPITests {
         payload.put(request);
         var json = TestUtility.createRequest(RequestType.GET_USER_RANGE_REQUEST, payload);
         json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
-        TestUtility.runTest(callback, json.toString());
+        TestUtility.runTest(json.toString(), callback);
 
         // TODO: Ask Jonas if we can update the API to not say friends, chats, or games for the reponses
         // to the ranges, as that isn't generic.
@@ -279,7 +275,7 @@ public class UserAPITests {
         request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
         payload.put(0, request);
         var json = TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, USER_TO_BE_UPDATED.token);
-        TestUtility.runTest(callback, json.toString());
+        TestUtility.runTest(json.toString(), callback);
 
     }
 
@@ -329,7 +325,7 @@ public class UserAPITests {
         payload.put(0, request);
         var json = TestUtility.createRequest(RequestType.DELETE_USER_REQUEST, payload);
         json.put(FieldNames.AUTH_TOKEN, USER_TO_BE_DELETED.token);
-        TestUtility.runTest(callback, json.toString());
+        TestUtility.runTest(json.toString(), callback);
     }
 
     ///////////////////////////////////////////////////////
@@ -348,7 +344,7 @@ public class UserAPITests {
             context.running.set(false);
         });
 
-        TestUtility.runTest(callback, TestUtility.createGetUserRequest(500, LOGGED_IN_USER.token).toString());
+        TestUtility.runTest(TestUtility.createGetUserRequest(500, LOGGED_IN_USER.token).toString(), callback);
     }
 
     @Test
@@ -359,7 +355,7 @@ public class UserAPITests {
             context.running.set(false);
         });
 
-        TestUtility.runTest(callback, TestUtility.createUserRequest(USER_1.username, "TotallyUniqueEmail1923@email", USER_1.password).toString());
+        TestUtility.runTest(TestUtility.createUserRequest(USER_1.username, "TotallyUniqueEmail1923@email", USER_1.password).toString(), callback);
     }
 
     @Test
@@ -370,7 +366,7 @@ public class UserAPITests {
             context.running.set(false);
         });
 
-        TestUtility.runTest(callback, TestUtility.createUserRequest("TotallyUniqueUsername29843905", USER_1.email, USER_1.password).toString());
+        TestUtility.runTest(TestUtility.createUserRequest("TotallyUniqueUsername29843905", USER_1.email, USER_1.password).toString(), callback);
     }
 
     @Test
@@ -391,7 +387,7 @@ public class UserAPITests {
         request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
         payload.put(0, request);
         var json = TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, USER_TO_BE_UPDATED.token);
-        TestUtility.runTest(callback, json.toString());
+        TestUtility.runTest(json.toString(), callback);
     }
 
     @Test
@@ -412,7 +408,7 @@ public class UserAPITests {
         request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
         payload.put(0, request);
         var json = TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, USER_TO_BE_UPDATED.token);
-        TestUtility.runTest(callback, json.toString());
+        TestUtility.runTest(json.toString(), callback);
     }
 
     @Test
@@ -428,7 +424,7 @@ public class UserAPITests {
         request.put(FieldNames.ID, 0);
         request.put(FieldNames.USER_ID, USER_1.id);
         payload.put(0, request);
-        TestUtility.runTest(callback, TestUtility.createRequest(RequestType.DELETE_USER_REQUEST, payload, LOGGED_IN_USER.token).toString());
+        TestUtility.runTest(TestUtility.createRequest(RequestType.DELETE_USER_REQUEST, payload, LOGGED_IN_USER.token).toString(), callback);
     }
 
     @Test
@@ -448,7 +444,7 @@ public class UserAPITests {
         request.put(FieldNames.AVATAR_URI, "Something");
         request.put(FieldNames.EMAIL, "Something@email.com");
         payload.put(0, request);
-        TestUtility.runTest(callback, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, LOGGED_IN_USER.token).toString());
+        TestUtility.runTest(TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, LOGGED_IN_USER.token).toString(), callback);
 
     }
 
@@ -467,7 +463,7 @@ public class UserAPITests {
         request.put(FieldNames.EMAIL, USER_1.email);
         payload.put(0, request);
 
-        TestUtility.runTest(callback, TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString());
+        TestUtility.runTest(TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString(), callback);
     }
 
     @Test
@@ -485,6 +481,6 @@ public class UserAPITests {
         request.put(FieldNames.EMAIL, "WRONG PASSWORD");
         payload.put(0, request);
 
-        TestUtility.runTest(callback, TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString());
+        TestUtility.runTest(TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString(), callback);
     }
 }
