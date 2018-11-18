@@ -11,6 +11,8 @@ import no.ntnu.imt3281.ludo.client.StateManager;
 
 public class GameTabController extends BaseController {
 
+    int mId;
+
     @FXML
     Label player1Name;
 

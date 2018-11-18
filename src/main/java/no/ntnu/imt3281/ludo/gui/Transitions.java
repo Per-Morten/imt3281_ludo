@@ -5,9 +5,11 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
+import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -82,7 +84,7 @@ public class Transitions {
             liveController.mTabGames.getTabs().clear();
 
             state.activeGames.forEach(id -> {
-                var gameTab = this.loadFXML(Path.GAME_TAB);
+                var gameTab = this.loadFXML(Path.GAME_TAB, id);
                 Tab tab = new Tab("Game" + id);
                 tab.setContent(gameTab.root);
                 liveController.mTabGames.getTabs().add(tab);
@@ -102,7 +104,7 @@ public class Transitions {
             liveController.mTabChats.getTabs().clear();
 
             state.activeChats.forEach(id -> {
-                var chatTab = this.loadFXML(Path.CHAT_TAB);
+                var chatTab = this.loadFXML(Path.CHAT_TAB, id);
                 Tab tab = new Tab("Chat" + id);
                 tab.setContent(chatTab.root);
                 liveController.mTabChats.getTabs().add(tab);
@@ -175,8 +177,8 @@ public class Transitions {
                 var itemController = (ListItemController) item.controller;
 
                 var chat = state.chatlist.get(id);
-                var name = chat.getString(FieldNames.NAME);
-                var participantCount = chat.getJSONArray(FieldNames.PARTICIPANT_ID).length();
+                var name = chat.json.getString(FieldNames.NAME);
+                var participantCount = chat.json.getJSONArray(FieldNames.PARTICIPANT_ID).length();
 
                 itemController.init(ListItemType.CHAT, id, overview, name + " ["+ participantCount+" people]"); // TODO i18n
                 overview.mBoxChats.getChildren().add(item.root);
@@ -187,7 +189,7 @@ public class Transitions {
                 var itemController = (ListItemController) item.controller;
 
                 var chat = state.chatlist.get(id);
-                var name = chat.getString(FieldNames.NAME);
+                var name = chat.json.getString(FieldNames.NAME);
 
                 itemController.init(ListItemType.CHAT_INVITE, id, overview, name + " invite");// TODO i18n
                 overview.mBoxChats.getChildren().add(item.root);
@@ -240,7 +242,7 @@ public class Transitions {
             state.userlist.forEach((id, user) -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController)item.controller;
-                var name = user.getString(FieldNames.USERNAME);
+                var name = user.json.getString(FieldNames.USERNAME);
 
                 itemController.init(ListItemType.USER, id, overview, name);
                 overview.mBoxUsers.getChildren().add(item.root);
@@ -273,7 +275,7 @@ public class Transitions {
         var live = (LiveController)this.getController(Path.LIVE);
 
         Platform.runLater(() -> {
-            var gameTab = this.loadFXML(Path.GAME_TAB);
+            var gameTab = this.loadFXML(Path.GAME_TAB, id);
             Tab tab = new Tab("Game " + id);
             tab.setContent(gameTab.root);
             live.mTabGames.getTabs().add(tab);
@@ -282,14 +284,45 @@ public class Transitions {
 
     public void newChat(int id) {
         var live = (LiveController)this.getController(Path.LIVE);
+        var chatTab = this.loadFXML(Path.CHAT_TAB, id);
+        var chatTabController = (ChatTabController)chatTab.controller;
+        chatTabController.mId = id;
 
         Platform.runLater(() -> {
-            var chatTab = this.loadFXML(Path.CHAT_TAB);
             Tab tab = new Tab("Chat " + id);
             tab.setContent(chatTab.root);
             live.mTabChats.getTabs().add(tab);
         });
     }
+
+    /**
+     *
+     */
+    public void newMessage(int chatId, int userId, String message) {
+        var chat = (ChatTabController)this.getController(Path.CHAT_TAB, chatId);
+        var state = mStateManager.copy();
+
+        Platform.runLater(() -> {
+            var user = state.userlist.get(userId);
+            var username = user.json.getString(FieldNames.USERNAME);
+            var avatarURI = user.json.getString(FieldNames.AVATAR_URI);
+
+            var chatItem = this.loadFXML(Path.CHAT_ITEM);
+            var chatItemController = (ChatItemController)chatItem.controller;
+            chatItemController.mMessage.setText(username + ": " + message);
+            chat.mMessageList.getChildren().add(chatItem.root);
+            chatItemController.mAvatar.setImage(user.avatar);
+        });
+    }
+
+
+    /**
+     *
+     */
+    public void renderGame(int id) {
+
+    }
+
 
     /**
      *
@@ -303,7 +336,7 @@ public class Transitions {
         });
     }
 
-    private void toastError(String message) {
+    public void toastError(String message) {
         int toastMsgTime = 1500;
         int fadeInTime = 100;
         int fadeOutTime = 100;
@@ -313,6 +346,10 @@ public class Transitions {
     }
 
     private FXMLDocument loadFXML(String filename) {
+        return loadFXML(filename, -1);
+    }
+
+    private FXMLDocument loadFXML(String filename, int id) {
         var fxmlDocument = new FXMLDocument();
 
         var fxmlLoader = new FXMLLoader(getClass().getResource(filename));
@@ -322,13 +359,20 @@ public class Transitions {
             fxmlDocument.root = fxmlLoader.load();
             fxmlDocument.controller = fxmlLoader.getController();
             fxmlDocument.controller.bind(mActions, mStateManager);
-            mDocuments.put(filename, fxmlDocument);
+
+            if (id != -1) {
+                mDocuments.put(filename + String.valueOf(id), fxmlDocument);
+            } else {
+                mDocuments.put(filename, fxmlDocument);
+            }
+
         } catch (IOException e) {
             Logger.log(Level.ERROR, "IOException loading .fxml file:" + e.toString());
         }
 
         return fxmlDocument;
     }
+
 
     /**
      * Shortcut function for getting a controller
@@ -339,5 +383,9 @@ public class Transitions {
      */
     private BaseController getController(String path) {
         return this.mDocuments.get(path).controller;
+    }
+
+    private BaseController getController(String path, int id) {
+        return this.mDocuments.get(path + String.valueOf(id)).controller;
     }
 }

@@ -17,7 +17,7 @@ import java.util.*;
  */
 public class State {
     //
-    // Persistent state
+    // Persistent state - stored in file between client sessions
     //
     public String authToken = "";
     public String username = "";
@@ -26,18 +26,19 @@ public class State {
 
 
     //
-    // In memory-state
+    // In memory-state - cleared on every startup
     //
+    public Map<Integer, Chat> chatlist = new HashMap<>();
+    public Map<Integer, User> userlist = new HashMap<>();
     public Map<Integer, JSONObject> gamelist = new HashMap<>();
-    public Map<Integer, JSONObject> chatlist = new HashMap<>();
     public Map<Integer, JSONObject> friendlist = new HashMap<>();
-    public Map<Integer, JSONObject> userlist = new HashMap<>();
 
     public Set<Integer> activeGames = new HashSet<>();
     public Set<Integer> activeChats = new HashSet<>();
 
     public Set<Integer> chatInvites = new HashSet<>();
     public Set<Integer> gameInvites = new HashSet<>();
+
 
     private static final String filepath = "client-state.json";
 
@@ -49,28 +50,11 @@ public class State {
      */
     static State deepCopy(State state) {
         var copy = new State();
-
-        //
-        // Persistent state
-        //
+        copy = state;
         copy.authToken = state.authToken;
         copy.username = state.username;
         copy.email = state.email;
         copy.userId = state.userId;
-
-        //
-        // In-memory state
-        //
-        copy.gamelist.putAll(state.gamelist);
-        copy.chatlist.putAll(state.chatlist);
-        copy.friendlist.putAll(state.friendlist);
-        copy.userlist.putAll(state.userlist);
-
-        copy.activeGames.addAll(state.activeGames);
-        copy.activeChats.addAll(state.activeChats);
-
-        copy.gameInvites.addAll(state.gameInvites);
-        copy.chatInvites.addAll(state.chatInvites);
 
         return copy;
     }
@@ -88,12 +72,10 @@ public class State {
             String text = new String(Files.readAllBytes(Paths.get(State.filepath)), StandardCharsets.UTF_8);
             var json = new JSONObject(text);
             try {
-                // Persistent cache
                 state.authToken = json.getString(FieldNames.AUTH_TOKEN);
                 state.username = json.getString(FieldNames.USERNAME);
                 state.email = json.getString(FieldNames.EMAIL);
                 state.userId = json.getInt(FieldNames.USER_ID);
-                // Persistent cache
 
             } catch (JSONException e) {
                 Logger.log(Logger.Level.WARN, "Missing key in " + State.filepath);
@@ -112,12 +94,10 @@ public class State {
     static void dump(State state) {
 
         var json = new JSONObject();
-        // Persistent state
         json.put(FieldNames.AUTH_TOKEN, state.authToken);
         json.put(FieldNames.USERNAME, state.username);
         json.put(FieldNames.EMAIL, state.email);
         json.put(FieldNames.USER_ID, state.userId);
-        // Persistent state
 
         try (var writer = new FileWriter(State.filepath)) {
             writer.write(json.toString());

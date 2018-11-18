@@ -8,8 +8,10 @@ import javafx.scene.layout.VBox;
 
 public class ChatTabController extends BaseController {
 
+    int mId;
+
     @FXML
-    private VBox mListMessages;
+    public VBox mMessageList;
 
     @FXML
     private TextField mTextSend;
@@ -20,13 +22,14 @@ public class ChatTabController extends BaseController {
     @FXML
     void onSend(ActionEvent event) {
 
+        if (mTextSend.getText().equals("")) return;
+        mActions.sendChatMessage(mId, mTextSend.getText());
     }
 
     @FXML
     void initialize() {
-        assert mListMessages != null : "fx:id=\"mListMessages\" was not injected: check your FXML file 'ChatTab.fxml'.";
+        assert mMessageList != null : "fx:id=\"mMessageList\" was not injected: check your FXML file 'ChatTab.fxml'.";
         assert mTextSend != null : "fx:id=\"mTextSend\" was not injected: check your FXML file 'ChatTab.fxml'.";
         assert mBtnSend != null : "fx:id=\"mBtnSend\" was not injected: check your FXML file 'ChatTab.fxml'.";
-
     }
 }

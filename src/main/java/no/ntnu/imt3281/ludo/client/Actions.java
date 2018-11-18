@@ -1,13 +1,16 @@
 package no.ntnu.imt3281.ludo.client;
 
+import javafx.scene.image.Image;
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
+import no.ntnu.imt3281.ludo.api.RequestType;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,19 +51,27 @@ public class Actions {
         item.put(FieldNames.PASSWORD, password);
 
         mAPI.send(mRequests.make(LOGIN_REQUEST, item, state.authToken,
-                (req, success) -> {
-                    Logger.log(Level.DEBUG, "Action -> LoginSuccess: " + success.toString());
+            success -> {
+                Logger.log(Level.DEBUG, "Action -> LoginSuccess: " + success.toString());
 
-                    mStateManager.commit(gState -> {
-                        // @DUMMY
-                        gState.authToken = "afaa254";
-                        // @DUMMY
-                        gState.userId = 2;
-                    });
+                var user = new User();
+                var userJson = new JSONObject();
+                userJson.put(FieldNames.USERNAME, "Jonas");
+                userJson.put(FieldNames.AVATAR_URI, "https://pickaface.net/gallery/avatar/unr_test_161024_0535_9lih90.png");
+                user.json = userJson;
+                user.avatar = new Image("https://pickaface.net/gallery/avatar/unr_test_161024_0535_9lih90.png");
 
-                    mTransitions.renderLive();
-                },
-                (req, error) -> Logger.log(Level.WARN, "Action -> LoginError: " + error.toString())));
+                mStateManager.commit(gState -> {
+                    gState.userlist.put(1337, user);
+                    // @DUMMY
+                    gState.authToken = "afaa254";
+                    // @DUMMY
+                    gState.userId = 1337;
+                });
+
+                mTransitions.renderLive();
+            },
+            error -> this.logError(LOGIN_REQUEST ,error)));
     }
 
     /**
@@ -72,7 +83,7 @@ public class Actions {
      */
     public void createUser(String email, String password, String username) {
         var state = this.startAction("createUser");
-        
+
         mTransitions.renderLogin();
 
         var item = new JSONObject();
@@ -81,20 +92,20 @@ public class Actions {
         item.put(FieldNames.USERNAME, username);
 
         mAPI.send(mRequests.make(CREATE_USER_REQUEST, item, state.authToken,
-                (req, success) -> {
-                    Logger.log(Level.DEBUG, "Action -> CreateUserSuccess");
-                    mStateManager.commit(gState -> {
-                        // @DUMMY
-                        gState.userId = 2;
-                        // @DUMMY
-                        gState.email = "jonas.solsvik@gmail.com";
-                        // @DUMMY
-                        gState.username = "jonasjso";
-                    });
+            success -> {
+                Logger.log(Level.DEBUG, "Action -> CreateUserSuccess");
+                mStateManager.commit(gState -> {
+                    // @DUMMY
+                    gState.userId = 2;
+                    // @DUMMY
+                    gState.email = "jonas.solsvik@gmail.com";
+                    // @DUMMY
+                    gState.username = "jonasjso";
+                });
 
-                    mTransitions.renderLogin();
-                },
-                (req, error) -> Logger.log(Level.WARN, "Action -> CreateUserError")));
+                mTransitions.renderLogin();
+            },
+            error -> this.logError(CREATE_USER_REQUEST, error)));
 
     }
 
@@ -108,17 +119,17 @@ public class Actions {
         item.put(FieldNames.USER_ID, state.userId);
 
         mAPI.send(mRequests.make(LOGOUT_REQUEST, item, state.authToken,
-                (req, success) -> {
-                    Logger.log(Level.DEBUG, "Action -> LogoutSucces");
-                    mStateManager.commit(gState -> {
-                        gState.userId = -1;
-                        gState.email = "";
-                        gState.authToken = "";
-                        gState.username = "";
-                    });
-                    mTransitions.renderLogin();
-                },
-                (req, error) -> Logger.log(Level.WARN, "Action -> LogoutError")));
+            success -> {
+                Logger.log(Level.DEBUG, "Action -> LogoutSucces");
+                mStateManager.commit(gState -> {
+                    gState.userId = -1;
+                    gState.email = "";
+                    gState.authToken = "";
+                    gState.username = "";
+                });
+                mTransitions.renderLogin();
+            },
+            error -> this.logError(LOGOUT_REQUEST, error)));
     }
 
     /**
@@ -142,103 +153,108 @@ public class Actions {
         payload.put("page_index", 0);
 
         mAPI.send(mRequests.make(GET_GAME_RANGE_REQUEST, payload, state.authToken,
-                (req, success) -> {
-                    Logger.log(Level.DEBUG, "Request -> GET_GAME_RANGE_REQUEST Success");
+            success -> {
+                Logger.log(Level.DEBUG, "Request -> GET_GAME_RANGE_REQUEST Success");
 
-                    // TODO
-                    var gamelist = new HashMap<Integer, JSONObject>();
+                // TODO
+                var gamelist = new HashMap<Integer, JSONObject>();
 
-                    mStateManager.commit(gState -> {
-                        gState.gamelist.putAll(gamelist);
-                    });
+                mStateManager.commit(gState -> {
+                    gState.gamelist.putAll(gamelist);
+                });
 
-                    mTransitions.renderGameList();
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> GET_GAME_RANGE_REQUEST failed")));
+                mTransitions.renderGameList();
+            },
+            error -> this.logError(GET_GAME_RANGE_REQUEST, error)));
 
 
         final var payload3 = new JSONObject();
         payload3.put("page_index", 0);
 
         mAPI.send(mRequests.make(GET_CHAT_RANGE_REQUEST, payload3, state.authToken,
-                (req, success) -> {
-                    Logger.log(Level.DEBUG, "Request -> GET_CHAT_RANGE_REQUEST Success");
+            success -> {
+                Logger.log(Level.DEBUG, "Request -> GET_CHAT_RANGE_REQUEST Success");
 
-                    // TODO
-                    var chatlist = new HashMap<Integer,JSONObject>();
+                // TODO
+                var chatlist = new HashMap<Integer,Chat>();
 
-                    mStateManager.commit(gState -> {
-                        gState.chatlist.putAll(chatlist);
-                    });
-                    mTransitions.renderChatList();
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> GET_CHAT_RANGE_REQUEST failed")));
+                mStateManager.commit(gState -> {
+                    gState.chatlist.putAll(chatlist);
+                });
+                mTransitions.renderChatList();
+            },
+            error -> this.logError(GET_CHAT_RANGE_REQUEST , error)));
 
 
         final var payload4 = new JSONObject();
         payload4.put("page_index", 0);
 
         mAPI.send(mRequests.make(GET_FRIEND_RANGE_REQUEST, payload4, state.authToken,
-                (req, success) -> {
-                    Logger.log(Level.DEBUG, "Request -> GET_FRIEND_RANGE_REQUEST Success");
+            success -> {
+                Logger.log(Level.DEBUG, "Request -> GET_FRIEND_RANGE_REQUEST Success");
 
-                    var friendlist = new HashMap<Integer, JSONObject>();
+                var friendlist = new HashMap<Integer, JSONObject>();
 
-                    // TODO
-                    var friend = new JSONObject();
-                    friend.put(FieldNames.USER_ID, 0);
-                    friend.put(FieldNames.USERNAME, "Patrick Patriot");
-                    friend.put(FieldNames.STATUS, FriendStatus.FRIENDED.toInt());
-                    friendlist.put(0,friend);
+                // TODO
+                var friend = new JSONObject();
+                friend.put(FieldNames.USER_ID, 0);
+                friend.put(FieldNames.USERNAME, "Patrick Patriot");
+                friend.put(FieldNames.STATUS, FriendStatus.FRIENDED.toInt());
+                friendlist.put(0,friend);
 
-                    var friend2 = new JSONObject();
-                    friend2.put(FieldNames.USER_ID, 1);
-                    friend2.put(FieldNames.USERNAME, "Senna Sanoi");
-                    friend2.put(FieldNames.STATUS, FriendStatus.PENDING.toInt());
-                    friendlist.put(1,friend2);
+                var friend2 = new JSONObject();
+                friend2.put(FieldNames.USER_ID, 1);
+                friend2.put(FieldNames.USERNAME, "Senna Sanoi");
+                friend2.put(FieldNames.STATUS, FriendStatus.PENDING.toInt());
+                friendlist.put(1,friend2);
 
-                    var friend3 = new JSONObject();
-                    friend3.put(FieldNames.USER_ID, 1);
-                    friend3.put(FieldNames.USERNAME, "Ignore-me Ignored");
-                    friend3.put(FieldNames.STATUS, FriendStatus.IGNORED.toInt());
-                    friendlist.put(2,friend3);
+                var friend3 = new JSONObject();
+                friend3.put(FieldNames.USER_ID, 1);
+                friend3.put(FieldNames.USERNAME, "Ignore-me Ignored");
+                friend3.put(FieldNames.STATUS, FriendStatus.IGNORED.toInt());
+                friendlist.put(2,friend3);
 
-                    mStateManager.commit(gState -> {
-                        gState.friendlist.putAll(friendlist);
-                    });
-                    mTransitions.renderFriendList();
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> GET_FRIEND_RANGE_REQUEST failed")));
+                mStateManager.commit(gState -> {
+                    gState.friendlist.putAll(friendlist);
+                });
+                mTransitions.renderFriendList();
+            },
+            error -> this.logError(GET_FRIEND_RANGE_REQUEST , error)));
 
 
         final var payload2 = new JSONObject();
         payload2.put("page_index", 0);
 
         mAPI.send(mRequests.make(GET_USER_RANGE_REQUEST, payload2, state.authToken,
-                (req, success) -> {
-                    Logger.log(Level.DEBUG, "Request -> GET_USER_RANGE_REQUEST Success");
+            success -> {
+                Logger.log(Level.DEBUG, "Request -> GET_USER_RANGE_REQUEST Success");
 
-                    // TODO
-                    var userlist = new HashMap<Integer, JSONObject>();
+                // TODO
+                var userlist = new HashMap<Integer, User>();
 
-                    // @DUMMY
-                    var user = new JSONObject();
-                    user.put(FieldNames.USER_ID, 0);
-                    user.put(FieldNames.USERNAME, "Nalle Bordvik");
-                    userlist.put(0,user);
+                // @DUMMY
+                var userJson = new JSONObject();
+                userJson.put(FieldNames.USER_ID, 0);
+                userJson.put(FieldNames.USERNAME, "Nalle Bordvik");
+                var user = new User();
+                user.json = userJson;
 
-                    // @DUMMY
-                    var user2 = new JSONObject();
-                    user2.put(FieldNames.USER_ID, 1);
-                    user2.put(FieldNames.USERNAME, "Jonas Solsvik");
-                    userlist.put(1,user2);
+                // @DUMMY
+                var user2json = new JSONObject();
+                user2json.put(FieldNames.USER_ID, 1);
+                user2json.put(FieldNames.USERNAME, "Jonas Solsvik");
+                var user2 = new User();
+                user2.json = user2json;
 
-                    mStateManager.commit(gState -> {
-                        gState.userlist.putAll(userlist);
-                    });
-                    mTransitions.renderUserList();
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> GET_USER_RANGE_REQUEST failed")));
+                userlist.put(0,user);
+                userlist.put(1,user2);
+
+                mStateManager.commit(gState -> {
+                    gState.userlist.putAll(userlist);
+                });
+                mTransitions.renderUserList();
+            },
+            error -> this.logError(GET_USER_RANGE_REQUEST, error)));
     }
 
     /**
@@ -257,10 +273,10 @@ public class Actions {
         var newGameId = randomId();
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, state.userId);
-        payload.put(FieldNames.NAME, "Game "+newGameId);
+        payload.put(FieldNames.NAME, "Game " + newGameId);
 
         mAPI.send(mRequests.make(CREATE_GAME_REQUEST, payload, state.authToken,
-                (req, success) -> {
+                success -> {
                     // TODO
                     var game = new JSONObject();
                     game.put(FieldNames.NAME, "Game " + newGameId);
@@ -272,35 +288,34 @@ public class Actions {
 
                     mTransitions.newGame(newGameId);
                 },
-                (req, error) -> Logger.log(Level.WARN, "Request -> CREATE_GAME_REQUEST failed")));
+                error -> this.logError(CREATE_GAME_REQUEST, error)));
     }
-
 
     /**
      * Create chat and add as active
      */
     public void createChat(/* TODO pass name*/) {
         var state = this.startAction("createChat");
-        
+
         var newChatId = randomId();
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, state.userId);
         payload.put(FieldNames.NAME, "Chat " + newChatId);
 
         mAPI.send(mRequests.make(CREATE_CHAT_REQUEST, payload, state.authToken,
-                (req, success) -> {
-                    // TODO
-                    var chat = new JSONObject();
-                    chat.put(FieldNames.NAME, "Chat "+newChatId);
-                    chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
+            success -> {
+                // TODO
+                var chat = new Chat();
+                chat.json.put(FieldNames.NAME, "Chat "+newChatId);
+                chat.json.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
 
-                    mStateManager.commit(gState -> {
-                        gState.chatlist.put(newChatId, chat);
-                        gState.activeChats.add(newChatId);
-                    });
-                    mTransitions.newChat(newChatId);
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> CREATE_CHAT_REQUEST failed")));
+                mStateManager.commit(gState -> {
+                    gState.chatlist.put(newChatId, chat);
+                    gState.activeChats.add(newChatId);
+                });
+                mTransitions.newChat(newChatId);
+            },
+            error -> this.logError(CREATE_CHAT_REQUEST , error)));
     }
 
 
@@ -309,7 +324,7 @@ public class Actions {
      */
     public void friend(HashSet<Integer> friendsId) {
         var state = this.startAction("friend");
-        
+
         var payload = new ArrayList<JSONObject>();
         friendsId.forEach(friendId -> {
             var item = new JSONObject();
@@ -319,10 +334,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(FRIEND_REQUEST, payload, state.authToken,
-                (req, success) -> {
+            success -> {
 
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> FRIEND_REQUEST failed")));
+            },
+            error -> this.logError(FRIEND_REQUEST, error)));
     }
 
     /**
@@ -330,7 +345,7 @@ public class Actions {
      */
     public void unfriend(HashSet<Integer> friendsId) {
         var state = this.startAction("unfriend");
-        
+
         var payload = new ArrayList<JSONObject>();
         friendsId.forEach(friendId -> {
             var item = new JSONObject();
@@ -340,10 +355,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(UNFRIEND_REQUEST, payload, state.authToken,
-                (req, success) -> {
+            success -> {
 
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> UNFRIEND_REQUEST failed")));
+            },
+            error -> this.logError(UNFRIEND_REQUEST , error)));
     }
 
     /**
@@ -351,7 +366,7 @@ public class Actions {
      */
     public void ignore(HashSet<Integer> usersId) {
         var state = this.startAction("ignore");
-        
+
         var payload = new ArrayList<JSONObject>();
         usersId.forEach(userId -> {
             var item = new JSONObject();
@@ -361,10 +376,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(IGNORE_REQUEST, payload, state.authToken,
-                (req, success) -> {
+            success -> {
 
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> IGNORE_REQUEST failed")));
+            },
+            error -> this.logError(IGNORE_REQUEST , error)));
     }
 
     /**
@@ -372,7 +387,7 @@ public class Actions {
      */
     public void unignore(HashSet<Integer> usersId) {
         var state = this.startAction("unignore");
-        
+
         var payload = new ArrayList<JSONObject>();
         usersId.forEach(userId -> {
             var item = new JSONObject();
@@ -382,10 +397,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(UNIGNORE_REQUEST, payload, state.authToken,
-                (req, success) -> {
+            success -> {
 
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> UNIGNORE_REQUEST failed")));
+            },
+            error -> this.logError(UNIGNORE_REQUEST , error)));
     }
 
     /**
@@ -393,7 +408,7 @@ public class Actions {
      */
     public void joinChat(HashSet<Integer> chatsId) {
         var state = this.startAction("joinChat");
-        
+
         var payload = new ArrayList<JSONObject>();
         chatsId.forEach(chatId -> {
             var item = new JSONObject();
@@ -403,10 +418,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(JOIN_CHAT_REQUEST, payload, state.authToken,
-                (req, success) -> {
+            success -> {
 
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> JOIN_CHAT_REQUEST failed")));
+            },
+            error -> this.logError(JOIN_CHAT_REQUEST , error)));
     }
 
     /**
@@ -414,7 +429,7 @@ public class Actions {
      */
     public void leaveChat(HashSet<Integer> chatsId) {
         var state = this.startAction("leaveChat");
-        
+
         var payload = new ArrayList<JSONObject>();
         chatsId.forEach(chatId -> {
             var item = new JSONObject();
@@ -424,17 +439,31 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(LEAVE_CHAT_REQUEST, payload, state.authToken,
-                (req, success) -> {
+            success -> {
 
-                },
-                (req, error) -> Logger.log(Level.WARN, "Request -> LEAVE_CHAT_REQUEST failed")));
+            },
+            error -> this.logError(LEAVE_CHAT_REQUEST , error)));
     }
 
     /**
      *
      */
-    public void sendChatMessage() {
+    public void sendChatMessage(int chatId, String message) {
         var state = this.startAction("sendChatMessage");
+
+        var payload = new JSONObject();
+        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.CHAT_ID, chatId);
+        payload.put(FieldNames.MESSAGE, message);
+
+        mAPI.send(mRequests.make(SEND_CHAT_MESSAGE_REQUEST, payload, state.authToken,
+            success -> {
+                var messageObj = new JSONObject();
+                messageObj.put(FieldNames.USER_ID, state.userId);
+                messageObj.put(FieldNames.MESSAGE, message);
+                mTransitions.newMessage(chatId, state.userId, message);
+            },
+            error -> this.logError(SEND_CHAT_MESSAGE_REQUEST, error)));
     }
 
     /**
@@ -442,7 +471,7 @@ public class Actions {
      */
     public void sendChatInvite(HashSet<Integer> chatsId, HashSet<Integer> friendsId) {
         var state = this.startAction("sendChatInvite");
-        
+
         var payload = new ArrayList<JSONObject>();
         chatsId.forEach(chatId -> {
             friendsId.forEach(friendId -> {
@@ -455,10 +484,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(SEND_CHAT_INVITE_REQUEST, payload, state.authToken,
-        (req, success) -> {
+        success -> {
 
         },
-        (req, error) -> Logger.log(Level.WARN, "Request -> CHAT_INVITE_REQUEST failed")));
+        error -> this.logError(SEND_CHAT_INVITE_REQUEST , error)));
     }
 
     /**
@@ -466,7 +495,7 @@ public class Actions {
      */
     public void joinGame(HashSet<Integer> gamesId) {
         var state = this.startAction("joinGame");
-        
+
         var payload = new ArrayList<JSONObject>();
         gamesId.forEach(gameId -> {
             var item = new JSONObject();
@@ -476,10 +505,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(JOIN_GAME_REQUEST, payload, state.authToken,
-        (req, success) -> {
+        success -> {
 
         },
-        (req, error) -> Logger.log(Level.WARN, "Request -> JOIN_GAME_REQUEST failed")));
+        error -> this.logError(JOIN_GAME_REQUEST , error)));
     }
 
     /**
@@ -487,7 +516,7 @@ public class Actions {
      */
     public void leaveGame(HashSet<Integer> gamesId) {
         var state = this.startAction("leaveGame");
-        
+
         var payload = new ArrayList<JSONObject>();
         gamesId.forEach(gameId -> {
             var item = new JSONObject();
@@ -497,10 +526,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(LEAVE_GAME_REQUEST, payload, state.authToken,
-        (req, success) -> {
+        success -> {
 
         },
-        (req, error) -> Logger.log(Level.WARN, "Request -> LEAVE_GAME failed")));
+        error -> this.logError(LEAVE_GAME_REQUEST, error)));
     }
 
     /**
@@ -508,7 +537,7 @@ public class Actions {
      */
     public void sendGameInvite(HashSet<Integer> gamesId, HashSet<Integer> friendsId) {
         var state = this.startAction("sendGameInvite");
-        
+
         var payload = new ArrayList<JSONObject>();
         gamesId.forEach(gameId -> {
             friendsId.forEach(friendId -> {
@@ -521,10 +550,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(SEND_GAME_INVITE_REQUEST, payload, state.authToken,
-        (req, success) -> {
+        success -> {
 
         },
-        (req, error) -> Logger.log(Level.WARN, "Request -> GAME_INVITE_REQUEST failed")));
+        error -> this.logError(SEND_GAME_INVITE_REQUEST, error)));
     }
 
     /**
@@ -532,7 +561,7 @@ public class Actions {
      */
     public void declineGameInvite(HashSet<Integer> gamesId) {
         var state = this.startAction("declineGameInvite");
-        
+
         var payload = new ArrayList<JSONObject>();
         gamesId.forEach(gameId -> {
             var item = new JSONObject();
@@ -541,10 +570,10 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(DECLINE_GAME_INVITE_REQUEST, payload, state.authToken,
-        (req, success) -> {
+        success -> {
 
         },
-        (req, error) -> Logger.log(Level.WARN, "Request -> DECLINE_GAME_REQUEST failed")));
+        error -> this.logError(DECLINE_GAME_INVITE_REQUEST, error)));
     }
 
     /**
@@ -624,7 +653,7 @@ public class Actions {
 
 
     /**
-     * Do prep-work and log action.
+     * Do prep-work for each action.
      *
      * @param methodName name of callee
      */
@@ -633,7 +662,18 @@ public class Actions {
         return mStateManager.copy();
     }
 
+    private void logError(RequestType type, JSONObject error) {
+
+        // TODO Get error codes strings
+
+        var errorString = "Response error -> " + RequestType.toLowerCaseString(type);
+        Logger.log(Level.WARN, errorString);
+        // TODO Enable in production
+        //mTransitions.toastError(errorString.toString());
+    }
+
     private static int randomId() {
         return ThreadLocalRandom.current().nextInt(100000, 10000000);
     }
+
 }

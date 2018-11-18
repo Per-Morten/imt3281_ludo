@@ -42,12 +42,7 @@ public class API {
                 mSocketManager.send(request.toJSON().toString());
             } catch (NullPointerException | IOException e) {
                 Logger.log(Level.WARN, "No connection with server: " + e.toString());
-                try {
-                    mPendingRequests.take();
-                    // ... Request failed, so we throw it away, to avoid blocking new requests.
-                } catch (InterruptedException e2) {
-                    Logger.log(Logger.Level.INFO, "mPendingRequests.take() interrupted" + e.toString());
-                }
+                mPendingRequests.poll(); // Throw away request to avoid blocking
             }
         }).start();
     }
@@ -71,7 +66,7 @@ public class API {
             return;
         }
 
-        String messageType = new String();
+        String messageType;
         try {
             messageType = jsonResponse.getString("type");
         } catch (JSONException e) {
@@ -108,9 +103,10 @@ public class API {
 
         if (request == null) {
             Logger.log(Level.ERROR, "No matching request found when handling response");
+            return;
         }
 
-        var response = new Response();
+        Response response;
         try {
             response = Response.fromJSON(jsonResponse);
         } catch (JSONException e) {
@@ -120,32 +116,15 @@ public class API {
 
         if (request.id != response.id) {
             Logger.log(Level.ERROR, "requestId != responseId Request id and response id should match");
+            return;
         }
 
         response.success.forEach(successItem -> {
-
-            var requestItem = new JSONObject();
-            for (int i = 0; i < request.payload.size(); ++i) {
-                var reqItem = request.payload.get(i);
-                if (reqItem.getInt("id") == successItem.getInt("id")) {
-                    requestItem = reqItem;
-                    break;
-                }
-            };
-            request.onSuccess.run(requestItem, successItem);
+            request.onSuccess.run(successItem);
         });
 
         response.error.forEach(errorItem -> {
-
-            var requestItem = new JSONObject();
-            for (int i = 0; i < request.payload.size(); ++i) {
-                var reqItem = request.payload.get(i);
-                if (reqItem.getInt("id") == errorItem.getInt("id")) {
-                    requestItem = reqItem;
-                    break;
-                }
-            };
-            request.onError.run(requestItem, errorItem);
+            request.onError.run(errorItem);
         });
     }
 
@@ -154,5 +133,8 @@ public class API {
      *
      * @param event event as json
      */
-    private void handleEvent(JSONObject event) {}
+    private void handleEvent(JSONObject event) {
+        Request request = mPendingRequests.poll();
+
+    }
 }
