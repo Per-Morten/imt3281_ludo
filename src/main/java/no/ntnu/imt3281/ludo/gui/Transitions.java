@@ -16,6 +16,7 @@ import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
 import no.ntnu.imt3281.ludo.client.Actions;
+import no.ntnu.imt3281.ludo.client.Chat;
 import no.ntnu.imt3281.ludo.client.StateManager;
 import no.ntnu.imt3281.ludo.client.User;
 import no.ntnu.imt3281.ludo.common.Logger;
@@ -98,16 +99,15 @@ public class Transitions {
     /**
      *
      */
-    public void renderGameTabs() {
+    public void renderGameTabs(Map<Integer, JSONObject> activeGames) {
 
         var live = this.mDocuments.get(Path.LIVE);
         var liveController = (LiveController)live.controller;
-        var state = mStateManager.copy();
 
         Platform.runLater(()-> {
             liveController.mTabGames.getTabs().clear();
 
-            state.activeGames.forEach((id, game) -> {
+            activeGames.forEach((id, game) -> {
                 var gameTab = this.loadFXML(Path.GAME_TAB, id);
                 Tab tab = new Tab("Game" + id);
                 tab.setContent(gameTab.root);
@@ -119,19 +119,30 @@ public class Transitions {
     /**
      *
      */
-    public void renderChatTabs() {
+    public void renderChatTabs(Map<Integer, Chat> activeChats) {
 
         var liveController = (LiveController)this.mDocuments.get(Path.LIVE).controller;
-        var state = mStateManager.copy();
 
         Platform.runLater(()-> {
             liveController.mTabChats.getTabs().clear();
 
-            state.activeChats.forEach((id, chat) -> {
+            activeChats.forEach((id, chat) -> {
                 var chatTab = this.loadFXML(Path.CHAT_TAB, id);
+                var chatTabController = (ChatTabController)chatTab.controller;
                 Tab tab = new Tab("Chat" + id);
                 tab.setContent(chatTab.root);
                 liveController.mTabChats.getTabs().add(tab);
+
+                chatTabController.mId = id;
+
+                chat.messages.forEach(messageJSON -> {
+                    var message = messageJSON.getString(FieldNames.MESSAGE);
+                    var username = messageJSON.getString(FieldNames.USERNAME);
+                    var chatItem = this.loadFXML(Path.CHAT_ITEM);
+                    var chatItemController = (ChatItemController)chatItem.controller;
+                    chatItemController.mMessage.setText(username + ": " + message);
+                    chatTabController.mMessageList.getChildren().add(chatItem.root);
+                });
             });
         });
     }
@@ -189,7 +200,7 @@ public class Transitions {
     /**
      *
      */
-    public void renderChatsList(Map<Integer, JSONObject> activeChats, Map<Integer, JSONObject> chatInvites) {
+    public void renderChatsList(Map<Integer, Chat> activeChats, Map<Integer, JSONObject> chatInvites) {
         var overview = (OverviewController)this.getController(Path.OVERVIEW);
 
         Platform.runLater(()-> {
@@ -202,8 +213,8 @@ public class Transitions {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
-                var name = chat.getString(FieldNames.NAME);
-                var participantCount = chat.getJSONArray(FieldNames.PARTICIPANT_ID).length();
+                var name = chat.json.getString(FieldNames.NAME);
+                var participantCount = chat.json.getJSONArray(FieldNames.PARTICIPANT_ID).length();
 
                 itemController.init(ListItemType.CHAT, id, overview, name + " ["+ participantCount+" people]"); // TODO i18n
                 overview.mListChats.getChildren().add(item.root);
@@ -331,7 +342,6 @@ public class Transitions {
      */
     public void newMessage(int chatId, String username, String message) {
         var chat = (ChatTabController)this.getController(Path.CHAT_TAB, chatId);
-        var state = mStateManager.copy();
 
         Platform.runLater(() -> {
 
@@ -339,7 +349,6 @@ public class Transitions {
             var chatItemController = (ChatItemController)chatItem.controller;
             chatItemController.mMessage.setText(username + ": " + message);
             chat.mMessageList.getChildren().add(chatItem.root);
-            chatItemController.mAvatar.setImage(new Image(Path.DEFAULT_AVATAR));
         });
     }
 

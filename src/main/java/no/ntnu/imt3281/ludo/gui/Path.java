@@ -11,5 +11,4 @@ public class Path {
     static final String GAME_TAB = "GameTab.fxml";
 
     static final String RESOURCE_BUNDLE = "no.ntnu.imt3281.I18N.i18n";
-    static final String DEFAULT_AVATAR = "@../../../../../images/basic-avatar.png";
 }

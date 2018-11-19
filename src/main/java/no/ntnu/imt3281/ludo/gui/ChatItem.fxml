@@ -15,7 +15,7 @@
          <children>
             <ImageView fx:id="mAvatar" fitHeight="30.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true" style="-: 20;">
                <image>
-                  <Image url="https://pickaface.net/gallery/avatar/unr_test_161024_0535_9lih90.png" />
+                  <Image url="@../../../../../images/basic-avatar.png" />
                </image>
                <HBox.margin>
                   <Insets left="10.0" />

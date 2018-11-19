@@ -29,7 +29,7 @@ public class State {
     // In-memory state- cleared on every startup
     //
     public Map<Integer, JSONObject> activeGames = new HashMap<>();
-    public Map<Integer, JSONObject> activeChats = new HashMap<>();
+    public Map<Integer, Chat> activeChats = new HashMap<>();
     public Map<Integer, JSONObject> gameInvites = new HashMap<>();
     public Map<Integer, JSONObject> chatInvites = new HashMap<>();
 

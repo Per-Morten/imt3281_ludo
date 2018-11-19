@@ -8,6 +8,7 @@ import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -194,9 +195,11 @@ public class Actions {
      * Goto the live scene
      */
     public void gotoLive() {
+        var state = this.startAction("gotoLive");
+
         mTransitions.renderLive();
-        mTransitions.renderGameTabs();
-        mTransitions.renderChatTabs();
+        mTransitions.renderGameTabs(state.activeGames);
+        mTransitions.renderChatTabs(state.activeChats);
     }
 
     /**
@@ -284,8 +287,8 @@ public class Actions {
     public void createChat(/* TODO pass name*/) {
         var state = this.startAction("createChat");
 
-        var chat = makeChat();
-        var clientChatId = chat.getInt(CHAT_ID);
+        var chatJSON = makeChat();
+        var clientChatId = chatJSON.getInt(CHAT_ID);
 
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, state.userId);
@@ -296,10 +299,12 @@ public class Actions {
         },
         this::logError));
 
+        var chat = new Chat();
+        chat.json = chatJSON;
         mStateManager.commit(gState -> {
             gState.activeChats.put(clientChatId , chat);
         });
-        mTransitions.newChat(clientChatId, chat);
+        mTransitions.newChat(clientChatId, chat.json);
     }
 
 
@@ -453,6 +458,14 @@ public class Actions {
             },
             this::logError));
 
+        var messageJSON = new JSONObject();
+        messageJSON.put(FieldNames.MESSAGE, message);
+        messageJSON.put(FieldNames.USERNAME, state.username);
+
+        mStateManager.commit(gState -> {
+            Logger.log(Level.DEBUG, "!!!chatId: " + String.valueOf(chatId));
+            gState.activeChats.get(chatId).messages.add(messageJSON);
+        });
         mTransitions.newMessage(chatId, state.username, message);
     }
 

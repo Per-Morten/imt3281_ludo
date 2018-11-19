@@ -24,6 +24,7 @@ public class ChatTabController extends BaseController {
 
         if (mTextSend.getText().equals("")) return;
         mActions.sendChatMessage(mId, mTextSend.getText());
+        mTextSend.setText("");
     }
 
     @FXML
