@@ -15,6 +15,10 @@ import java.util.function.Consumer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+/**
+ * Container of different utility functions, like creating different requests,
+ * or running the tests (which is a bit more boilerplate when you are doing it async with sockets etc).
+ */
 class TestUtility {
 
     private static final long TIMEOUT_TIME_MS = 1000;
@@ -99,9 +103,16 @@ class TestUtility {
         assertEquals(type, field);
     }
 
+    /**
+     * Function to hide the uglyness of typing BiConsumer all the time, but Java don't have proper type inference on
+     * these things when you try to create them as local variables.
+     * So this function is simply an identity function, returning the callback it gets in.
+     *
+     * @param callback
+     * @return
+     */
     // Don't want to type out the BiConsumer type all the time.
-    static BiConsumer<TestContext, String> createCallback(BiConsumer<TestContext, String> callback)
-    {
+    static BiConsumer<TestContext, String> createCallback(BiConsumer<TestContext, String> callback) {
         return callback;
     }
 

@@ -349,6 +349,19 @@ public class FriendAPITests {
     }
 
     @Test
+    public void cannotHaveRelationshipWithNonExistingUser() {
+        var callback = TestUtility.createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            TestUtility.assertError(Error.OTHER_ID_NOT_FOUND, json);
+            context.running.set(false);
+        });
+
+        TestUtility.runTest(TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, USER_3.id, 1000, USER_3.token).toString(), callback);
+        TestUtility.runTest(TestUtility.createFriendRelationshipRequest(RequestType.IGNORE_REQUEST, USER_3.id, 1000, USER_3.token).toString(), callback);
+        TestUtility.runTest(TestUtility.createFriendRelationshipRequest(RequestType.UNFRIEND_REQUEST, USER_3.id, 1000, USER_3.token).toString(), callback);
+    }
+
+    @Test
     public void cannotIgnoreFriend() {
         var callback = TestUtility.createCallback((context, string) -> {
             var json = new JSONObject(string);

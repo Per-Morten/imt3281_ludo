@@ -17,7 +17,6 @@ class TestServer {
         Server.setPollTimeout(2);
         sServerThread = new Thread(() -> {
             try {
-                System.out.println("Starting Main");
                 Server.main(null);
             } catch (SQLException e) {
                 System.out.println("Exception");

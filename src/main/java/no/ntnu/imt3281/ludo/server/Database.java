@@ -4,7 +4,6 @@ import no.ntnu.imt3281.ludo.api.Error;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
 import no.ntnu.imt3281.ludo.common.Logger;
 
-import javax.management.relation.Relation;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -12,9 +11,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-// TODO: Do validation myself, such a pain to deal with the SQLExceptions and give proper errors when it is just 1 Exception covering everything.
-//
-//
 public class Database implements AutoCloseable {
     private Connection mConnection;
 
@@ -22,23 +18,23 @@ public class Database implements AutoCloseable {
      * Creating all the fieldnames as static strings to avoid problems with typos,
      * or if I update the names.
      */
-    public static class UserFields {
-        public static final String DBName = "user";
-        public static final String ID = "user_id";
-        public static final String Username = "username";
-        public static final String Email = "email";
-        public static final String Password = "password";
-        public static final String AvatarURI = "avatar_uri";
-        public static final String Token = "token";
-        public static final String Salt = "salt";
+    private static class UserFields {
+        static final String DBName = "user";
+        static final String ID = "user_id";
+        static final String Username = "username";
+        static final String Email = "email";
+        static final String Password = "password";
+        static final String AvatarURI = "avatar_uri";
+        static final String Token = "token";
+        static final String Salt = "salt";
     }
 
-    public static class FriendFields {
-        public static final String DBName = "friend";
-        public static final String ID = "id";
-        public static final String UserID = "user_id";
-        public static final String FriendID = "friend_id";
-        public static final String Status = "status";
+    private static class FriendFields {
+        static final String DBName = "friend";
+        static final String ID = "id";
+        static final String UserID = "user_id";
+        static final String FriendID = "friend_id";
+        static final String Status = "status";
 
     }
 
@@ -72,22 +68,11 @@ public class Database implements AutoCloseable {
         }
     }
 
-    ///////////////////////////////////////////////////////
-    /// Utility
-    ///////////////////////////////////////////////////////
-    private boolean valueAlreadyExists(int id, String table, String idField, String field, String value)
-            throws SQLException {
-        try (var query = mConnection
-                .prepareStatement(String.format("SELECT %s FROM %s WHERE %s=?", idField, table, field))) {
-            query.setString(1, value);
-            var res = query.executeQuery();
-            return res.next() && res.getInt(idField) != id;
-        }
-    }
 
     ///////////////////////////////////////////////////////
     /// USER RELATED
     ///////////////////////////////////////////////////////
+
     /**
      * Creates a user with the specified username, email and password.
      *
@@ -95,12 +80,12 @@ public class Database implements AutoCloseable {
      * @param email    The email address of the new user.
      * @param password The password of the new user
      * @return Returns the user_id of the new user
-     * @throws SQLException            Throws SQLException Upon SQL Errors (Should
-     *                                 not happen)
+     * @throws SQLException      Throws SQLException Upon SQL Errors (Should
+     *                           not happen)
      * @throws APIErrorException Throws APIErrorException in the case
-     *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see APIErrorException
-     *                                 In this case this is if the username or email isn't unique.
+     *                           where a field that is required to be Unique
+     *                           isn't unique. @see APIErrorException
+     *                           In this case this is if the username or email isn't unique.
      */
     public int createUser(String username, String email, String password, String salt) throws SQLException {
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Email, email))
@@ -136,12 +121,12 @@ public class Database implements AutoCloseable {
      * @param email     The new email of the user.
      * @param password  The new password of the user.
      * @param avatarURI The new avatar URI of the user.
-     * @throws SQLException            Throws SQLException on SQL errors (should not
-     *                                 happen)
+     * @throws SQLException      Throws SQLException on SQL errors (should not
+     *                           happen)
      * @throws APIErrorException Throws APIErrorException in the case
-     *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see APIErrorException
-     *                                 In this case this is if the username or email isn't unique.
+     *                           where a field that is required to be Unique
+     *                           isn't unique. @see APIErrorException
+     *                           In this case this is if the username or email isn't unique.
      */
     public void updateUser(int id, String username, String email, String password, String avatarURI, String salt)
             throws SQLException {
@@ -171,7 +156,7 @@ public class Database implements AutoCloseable {
      *
      * @param id The user_id of the user to look for.
      * @return A user structure containing data about the user. Returns null if the
-     *         user cannot be found.
+     * user cannot be found.
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
     public User getUserByID(int id) throws SQLException {
@@ -193,7 +178,7 @@ public class Database implements AutoCloseable {
      *
      * @param token The token of the user to look for.
      * @return A user structure containing data about the user. Returns null if the
-     *         user cannot be found.
+     * user cannot be found.
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
     public User getUserByToken(String token) throws SQLException {
@@ -269,8 +254,8 @@ public class Database implements AutoCloseable {
                 UserFields.AvatarURI, UserFields.DBName, UserFields.ID);
         try (var query = mConnection.prepareStatement(String.format(
                 "SELECT %s, %s, %s FROM %s ORDER BY %s LIMIT ? OFFSET ?",
-                    UserFields.ID, UserFields.Username,
-                    UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
+                UserFields.ID, UserFields.Username,
+                UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
             query.setInt(1, pageSize);
             query.setInt(2, pageIdx * pageSize);
             Logger.log(Logger.Level.DEBUG, String.format("%s pageSize: %d, Offset: %d", command, pageSize, pageIdx * pageSize));
@@ -354,14 +339,15 @@ public class Database implements AutoCloseable {
 
     /**
      * Gets the friend pair indicating the relationship between the user the id userID, and the friend with id friendID.
+     *
      * @param userID
      * @param friendID
      * @return null if the friends could not be found, an array of two elements otherwise,
-     *         the first element contains the relationship from the user with userID's viewpoint,
-     *         the second element contains the relationship from the user with friendID's viewpoint.
+     * the first element contains the relationship from the user with userID's viewpoint,
+     * the second element contains the relationship from the user with friendID's viewpoint.
      */
-    public RelationShip[] getRelationship(int userID, int friendID) throws SQLException {
-        RelationShip[] retVal = new RelationShip[2];
+    public Relationship[] getRelationship(int userID, int friendID) throws SQLException {
+        Relationship[] retVal = new Relationship[2];
         var usersToCheck = new int[]{userID, friendID};
         for (int i = 0; i < usersToCheck.length; i++) {
             try (var query = mConnection.prepareStatement(String.format("SELECT %s, %s, %s, %s FROM %s WHERE (%s = ? AND %s = ?)",
@@ -374,7 +360,7 @@ public class Database implements AutoCloseable {
                 var res = query.executeQuery();
 
                 if (res.next()) {
-                    retVal[i] = new RelationShip(res.getInt(FriendFields.ID), res.getInt(FriendFields.UserID),
+                    retVal[i] = new Relationship(res.getInt(FriendFields.ID), res.getInt(FriendFields.UserID),
                             res.getInt(FriendFields.FriendID),
                             FriendStatus.fromInt(res.getInt(FriendFields.Status)));
                 }
@@ -391,10 +377,6 @@ public class Database implements AutoCloseable {
     }
 
     public List<Friend> getFriendsRange(int userID, int pageIndex, int pageSize) throws SQLException {
-        // Want to LIMIT and Offset, similar to these two.
-        // Merge these two together: SELECT user_id, username, avatar_uri FROM user WHERE user_id = 2 ORDER BY user_id LIMIT 100 OFFSET 0
-        //SELECT friend.friend_id, friend.status, user.username FROM friend INNER JOIN user ON friend.friend_id = user.user_id WHERE friend.user_id = ?
-        // Something like:
         // SELECT friend.friend_id, friend.status, user.username FROM friend INNER JOIN user ON friend.friend_id = user.user_id WHERE friend.user_id = 1 AND friend.status != ? ORDER BY friend.user_id LIMIT 100 OFFSET 0
         var queryCommand = String.format("SELECT %s.%s, %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s = %s.%s WHERE %s.%s = ? AND %s.%s != ? ORDER BY %s.%s LIMIT ? OFFSET ?",
                 FriendFields.DBName, FriendFields.FriendID,
@@ -454,15 +436,33 @@ public class Database implements AutoCloseable {
     }
 
     ///////////////////////////////////////////////////////
+    /// Utility
+    ///////////////////////////////////////////////////////
+    private boolean valueAlreadyExists(int id, String table, String idField, String field, String value)
+            throws SQLException {
+        try (var query = mConnection
+                .prepareStatement(String.format("SELECT %s FROM %s WHERE %s=?", idField, table, field))) {
+            query.setString(1, value);
+            var res = query.executeQuery();
+            return res.next() && res.getInt(idField) != id;
+        }
+    }
+
+    ///////////////////////////////////////////////////////
     /// RETURN CLASSES
     ///////////////////////////////////////////////////////
-    public class RelationShip {
+
+    /**
+     * Class representing a relationship, from the viewpoint of the user with userID.
+     * POD class by design, as there are no invariants to protect in this class.
+     */
+    public class Relationship {
         public int rowID;
         public int userID;
         public int friendID;
         public FriendStatus status;
 
-        RelationShip(int rowID, int userID, int friendID, FriendStatus status) {
+        Relationship(int rowID, int userID, int friendID, FriendStatus status) {
             this.rowID = rowID;
             this.userID = userID;
             this.friendID = friendID;
@@ -470,6 +470,10 @@ public class Database implements AutoCloseable {
         }
     }
 
+    /**
+     * Class representing a user but from a friend perspective, so it contains the userID, username, and the FriendStatus of this friend.
+     * POD class by design, as there are no invariants to protect in this class.
+     */
     public class Friend {
         public int userID;
         public String username;
@@ -482,8 +486,9 @@ public class Database implements AutoCloseable {
         }
     }
 
-    /*
-     * POD for containing user data, all fields are public by intention.
+    /**
+     * Class representing a user.
+     * POD class by design, as there are no invariants to protect in this class.
      */
     public static class User {
         public User(int id, String username, String avatarURI) {
