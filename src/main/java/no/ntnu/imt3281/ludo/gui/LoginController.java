@@ -58,7 +58,7 @@ public class LoginController extends BaseController {
         assert mButtonCreate != null : "fx:id=\"mButtonCreate\" was not injected: check your FXML file 'Login.fxml'.";
 
         Platform.runLater(() -> {
-            State localState = mCache.copy();
+            State localState = mStateManager.copy();
             mLoginEmail.setText(localState.email);
         });
     }

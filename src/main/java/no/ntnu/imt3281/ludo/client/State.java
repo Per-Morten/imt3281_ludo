@@ -25,6 +25,11 @@ public class State {
     public int userId = -1;
     public String avatarURI = "@../../../../../images/basic-avatar.png";
 
+    public String searchGames = "";
+    public String searchChats = "";
+    public String searchFriends = "";
+    public String searchUsers = "";
+
     //
     // In-memory state- cleared on every startup
     //
@@ -42,6 +47,11 @@ public class State {
         copy.email = state.email;
         copy.userId = state.userId;
         copy.avatarURI = state.avatarURI;
+
+        copy.searchGames = state.searchGames;
+        copy.searchChats = state.searchChats;
+        copy.searchFriends = state.searchFriends;
+        copy.searchUsers = state.searchUsers;
 
         copy.activeGames.putAll(state.activeGames);
         copy.activeChats.putAll(state.activeChats);

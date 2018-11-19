@@ -5,13 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
-import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
-
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.*;
-
 import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
@@ -21,8 +15,11 @@ import no.ntnu.imt3281.ludo.client.StateManager;
 import no.ntnu.imt3281.ludo.client.User;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
-import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Controls FXML Controllers and how they transition
@@ -152,10 +149,17 @@ public class Transitions {
      */
     public void renderOverview() {
         var overview = this.loadFXML(Path.OVERVIEW);
+        var state = mStateManager.copy();
         var overviewController = (OverviewController)overview.controller;
 
         Platform.runLater(()-> {
             overviewController.renderButtonTexts();
+
+            overviewController.mSearchGames.setText(state.searchGames);
+            overviewController.mSearchChats.setText(state.searchChats);
+            overviewController.mSearchFriends.setText(state.searchFriends);
+            overviewController.mSearchUsers.setText(state.searchUsers);
+
             mStage.setScene(new Scene(overview .root));
             mStage.show();
         });
@@ -164,7 +168,7 @@ public class Transitions {
     /**
      *
      */
-    public void renderGamesList(Map<Integer, JSONObject> activeGames, Map<Integer, JSONObject> gameInvites) {
+    public void renderGamesList(List<JSONObject> activeGames, List<JSONObject>  gameInvites) {
 
         var overview = (OverviewController)this.getController(Path.OVERVIEW);
 
@@ -174,7 +178,8 @@ public class Transitions {
 
             Logger.log(Level.DEBUG, "activeGames.size(): " + activeGames.size());
 
-            activeGames.forEach((id, game) -> {
+            activeGames.forEach(game -> {
+                var id = game.getInt(FieldNames.GAME_ID);
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
                 var name = game.getString(FieldNames.NAME);
@@ -186,7 +191,10 @@ public class Transitions {
                 overview.mListGames.getChildren().add(item.root);
             });
 
-            gameInvites.forEach((id, gameInvite) -> {
+            gameInvites.forEach(gameInvite -> {
+
+                var id = gameInvite.getInt(FieldNames.GAME_ID);
+
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
                 var name = gameInvite.getString(FieldNames.NAME);
@@ -200,7 +208,7 @@ public class Transitions {
     /**
      *
      */
-    public void renderChatsList(Map<Integer, Chat> activeChats, Map<Integer, JSONObject> chatInvites) {
+    public void renderChatsList(List<Chat> activeChats, List<JSONObject> chatInvites) {
         var overview = (OverviewController)this.getController(Path.OVERVIEW);
 
         Platform.runLater(()-> {
@@ -209,7 +217,8 @@ public class Transitions {
 
             Logger.log(Level.DEBUG, "activeChats.size(): " + activeChats.size());
 
-            activeChats.forEach((id, chat) -> {
+            activeChats.forEach(chat -> {
+                var id = chat.json.getInt(FieldNames.CHAT_ID);
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
@@ -220,7 +229,9 @@ public class Transitions {
                 overview.mListChats.getChildren().add(item.root);
             });
 
-            chatInvites.forEach((id,chatInvite) -> {
+            chatInvites.forEach(chatInvite -> {
+
+                var id = chatInvite.getInt(FieldNames.CHAT_ID);
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
@@ -235,7 +246,7 @@ public class Transitions {
     /**
      *
      */
-    public void renderFriendList(ArrayList<JSONObject> friendsList) {
+    public void renderFriendList(List<JSONObject> friendsList) {
         var overview = (OverviewController)this.getController(Path.OVERVIEW);
 
         Platform.runLater(()-> {
@@ -271,7 +282,7 @@ public class Transitions {
     /**
      *
      */
-    public void renderUserList(ArrayList<JSONObject> usersList, ArrayList<JSONObject> friendsList) {
+    public void renderUserList(List<JSONObject> usersList, List<JSONObject> ignoredList) {
         var overview = (OverviewController)this.getController(Path.OVERVIEW);
 
         Platform.runLater(()-> {
@@ -288,7 +299,7 @@ public class Transitions {
                 overview.mListUsers.getChildren().add(item.root);
             });
 
-            friendsList.forEach(friend -> {
+            ignoredList.forEach(friend -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController)item.controller;
 
@@ -300,12 +311,8 @@ public class Transitions {
                     return;
                 }
 
-                switch (status) {
-                    case IGNORED:
-                        itemController.init(ListItemType.USER_IGNORED, friendId, overview, name + " [ignored]"); // TODO i18n
-                        overview.mListUsers.getChildren().add(item.root);
-                        break;
-                }
+                itemController.init(ListItemType.USER_IGNORED, friendId, overview, name + " [ignored]"); // TODO i18n
+                overview.mListUsers.getChildren().add(item.root);
             });
         });
     }

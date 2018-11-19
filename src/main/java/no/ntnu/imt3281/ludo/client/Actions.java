@@ -11,6 +11,7 @@ import org.json.JSONObject;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import static no.ntnu.imt3281.ludo.api.FieldNames.CHAT_ID;
 import static no.ntnu.imt3281.ludo.api.RequestType.*;
@@ -208,9 +209,31 @@ public class Actions {
     public void gotoOverview() {
         var state = this.startAction("gotoOverview");
 
+        // Filter based on search
+        var filteredGames = state.activeGames.values().stream()
+                .filter(game -> game.getString(FieldNames.NAME).toUpperCase()
+                        .contains(state.searchGames.toUpperCase()))
+                .collect(Collectors.toList());
+
+        var filteredGameInvites = state.gameInvites.values().stream()
+                .filter(gameInv -> gameInv.getString(FieldNames.NAME).toUpperCase()
+                            .contains(state.searchGames.toUpperCase()))
+                .collect(Collectors.toList());
+
+        var filteredChats = state.activeChats.values().stream()
+                .filter(chat -> chat.json.getString(FieldNames.NAME).toUpperCase()
+                            .contains(state.searchChats.toUpperCase()))
+                .collect(Collectors.toList());
+
+        var filteredChatInvites = state.chatInvites.values().stream()
+                .filter(chatInv -> chatInv.getString(FieldNames.NAME).toUpperCase()
+                        .contains(state.searchChats.toUpperCase()))
+                .collect(Collectors.toList());
+
+
         mTransitions.renderOverview();
-        mTransitions.renderGamesList(state.activeGames, state.gameInvites);
-        mTransitions.renderChatsList(state.activeChats, state.chatInvites);
+        mTransitions.renderGamesList(filteredGames, filteredGameInvites);
+        mTransitions.renderChatsList(filteredChats, filteredChatInvites);
 
         // Get friends range
         final var payload = new JSONObject();
@@ -225,8 +248,19 @@ public class Actions {
             friendsRange.forEach(friend -> {
                 friendsList.add((JSONObject)friend);
             });
-            mTransitions.renderFriendList(friendsList);
 
+            // Filter friends by search
+            var filteredFriendsList = friendsList.stream()
+                    .filter(friend -> friend.getInt(FieldNames.STATUS) != FriendStatus.IGNORED.toInt())
+                    .filter(friend -> friend.getString(FieldNames.USERNAME).toUpperCase()
+                            .contains(state.searchFriends.toUpperCase()))
+                    .collect(Collectors.toList());
+
+
+            mTransitions.renderFriendList(filteredFriendsList);
+
+
+            // Get user range
             mAPI.send(mRequests.make(GET_USER_RANGE_REQUEST, payload, state.authToken, successUsers -> {
 
                 var usersRange = successUsers.getJSONArray(FieldNames.RANGE);
@@ -236,7 +270,7 @@ public class Actions {
                     var userjson = (JSONObject)user;
                     int userId = userjson.getInt(FieldNames.USER_ID);
 
-                    // Only add users who are not in the friendslist
+                    // Only add users who are not in the friends list
                     boolean found = false;
                     for (var friend: friendsList) {
                         var friendId = friend.getInt(FieldNames.USER_ID);
@@ -249,7 +283,21 @@ public class Actions {
                         usersList.add((JSONObject)user);
                     }
                 });
-                mTransitions.renderUserList(usersList, friendsList);
+
+                // Filter user by search
+                var filteredUserList = usersList.stream()
+                        .filter(user -> user.getString(FieldNames.USERNAME).toUpperCase()
+                                .contains(state.searchUsers.toUpperCase()))
+                        .collect(Collectors.toList());
+
+                // Filter ignored by search
+                var filteredIgnoredList = friendsList.stream()
+                        .filter(friend -> friend.getInt(FieldNames.STATUS) == FriendStatus.IGNORED.toInt())
+                        .filter(ignored -> ignored.getString(FieldNames.USERNAME).toUpperCase()
+                                .contains(state.searchUsers.toUpperCase()))
+                        .collect(Collectors.toList());
+
+                mTransitions.renderUserList(filteredUserList, filteredIgnoredList);
             },
             this::logError));
         },

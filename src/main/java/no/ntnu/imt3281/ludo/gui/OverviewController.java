@@ -1,8 +1,12 @@
 package no.ntnu.imt3281.ludo.gui;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.VBox;
 
 import java.util.HashSet;
@@ -52,6 +56,18 @@ public class OverviewController extends BaseController {
     VBox mListFriends;
     @FXML
     VBox mListUsers;
+
+    @FXML
+    TextField mSearchGames;
+
+    @FXML
+    TextField mSearchChats;
+
+    @FXML
+    TextField mSearchFriends;
+
+    @FXML
+    TextField mSearchUsers;
 
     private HashSet<Integer> mSelectedGames = new HashSet<>();
     private HashSet<Integer> mSelectedGameInvites = new HashSet<>();
@@ -263,22 +279,39 @@ public class OverviewController extends BaseController {
     }
 
     @FXML
+    void onSearch(KeyEvent event) {
+        if(!event.getCode().equals(KeyCode.ENTER)) return;
+
+        mStateManager.commit(state -> {
+            state.searchGames = mSearchGames.getText();
+            state.searchChats = mSearchChats.getText();
+            state.searchFriends = mSearchFriends.getText();
+            state.searchUsers = mSearchUsers.getText();
+        });
+        mActions.gotoOverview();
+    }
+
+    @FXML
     void initialize() {
         assert mSendGameInvite != null : "fx:id=\"mSendGameInvite\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mAcceptGameInvite != null : "fx:id=\"mAcceptGameInvite\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mLeaveGame != null : "fx:id=\"mLeaveGame\" was not injected: check your FXML file 'Overview.fxml'.";
+        assert mSearchGames != null : "fx:id=\"mSearchGames\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mListGames != null : "fx:id=\"mListGames\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mSendChatInvite != null : "fx:id=\"mSendChatInvite\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mAcceptChatInvite != null : "fx:id=\"mAcceptChatInvite\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mLeaveChat != null : "fx:id=\"mLeaveChat\" was not injected: check your FXML file 'Overview.fxml'.";
+        assert mSearchChats != null : "fx:id=\"mSearchChats\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mListChats != null : "fx:id=\"mListChats\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mAcceptFriendRequest != null : "fx:id=\"mAcceptFriendRequest\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mIgnoreFriend != null : "fx:id=\"mIgnoreFriend\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mUnfriend != null : "fx:id=\"mUnfriend\" was not injected: check your FXML file 'Overview.fxml'.";
+        assert mSearchFriends != null : "fx:id=\"mSearchFriends\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mListFriends != null : "fx:id=\"mListFriends\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mSendFriendRequest != null : "fx:id=\"mSendFriendRequest\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mIgnoreUser != null : "fx:id=\"mIgnoreUser\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mUnignore != null : "fx:id=\"mUnignore\" was not injected: check your FXML file 'Overview.fxml'.";
+        assert mSearchUsers != null : "fx:id=\"mSearchUsers\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mListUsers != null : "fx:id=\"mListUsers\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mBtnUser != null : "fx:id=\"mBtnUser\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mBtnLive != null : "fx:id=\"mBtnLive\" was not injected: check your FXML file 'Overview.fxml'.";
