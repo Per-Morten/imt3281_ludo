@@ -139,7 +139,7 @@ public class Connection {
     }
 
     private void onException(Exception e) {
-        if (!e.getMessage().equals("Socket closed") && !mRunning.get()) {
+        if (e.getMessage() != null && !e.getMessage().equals("Socket closed") && !mRunning.get()) {
             Logger.logException(Logger.Level.WARN, e, "Connection closed unexpectedly");
         }
         mRunning.set(false);
