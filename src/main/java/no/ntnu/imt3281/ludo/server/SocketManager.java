@@ -25,6 +25,7 @@ import java.util.function.Consumer;
  * manually.
  */
 public class SocketManager {
+
     public static class Message {
         public Long socketID; // This is a problem if the client sends more messages before it has gotten an
         // ID. However, that should not happen, as we get to find out what the ID is when we log the user in.
@@ -43,6 +44,7 @@ public class SocketManager {
     private AtomicLong mUnknownId;
 
     private ConcurrentHashMap<Long, Connection> mSockets;
+    private ConcurrentHashMap<Long, Connection> mUserSockets;
 
     private ServerSocket mServerSocket;
 
@@ -57,6 +59,7 @@ public class SocketManager {
         mListeningPort = listeningPort;
 
         mSockets = new ConcurrentHashMap<>();
+        mUserSockets = new ConcurrentHashMap<>();
 
         mUnknownId = new AtomicLong();
     }
@@ -112,6 +115,7 @@ public class SocketManager {
         // readlines,
         // so an ugly but working solution to stop blocking readlines is to close the
         // sockets.
+        // * Instead of closing all sockets within the hashmap, I need to close all sockets with a negative id.
         for (var s : mSockets.values()) {
             try {
                 s.stop();
@@ -128,54 +132,64 @@ public class SocketManager {
     }
 
     /**
-     * Sends the specified message to the client indicated by the id.
+     * Sends the specified message to the client connected to the socket identified by the id.
      *
-     * @param id      The ID of the socket to send the message through.
-     * @param message The string containing the message to send. Must not end with
+     * @param socketID      The ID of the socket to send the message through.
+     * @param message The string containing the message to sendWithSocketID. Must not end with
      *                \n
      */
-    public void send(long id, String message) {
-        var socket = mSockets.get(id);
-        try {
-            socket.send(message);
-        } catch (Exception e) {
-            Logger.logException(Logger.Level.WARN, e, "Exception Encountered when sending message");
+    public void sendWithSocketID(long socketID, String message) {
+        var socket = mSockets.get(socketID);
+        if (socket != null) {
+            try {
+                socket.send(message);
+            } catch (Exception e) {
+                Logger.logException(Logger.Level.WARN, e, "Exception Encountered when sending message");
+            }
+        } else {
+            Logger.log(Logger.Level.WARN, "Tried to send message to non existent socket, socketID: %d", socketID);
         }
     }
 
     /**
+     * Sends the specified message to the client connected to the socket identified by the id.
+     *
+     * @param userID      The ID of the user to send the message to.
+     * @param message The string containing the message to send. Must not end with
+     *                \n
+     */
+    public void sendWithUserID(long userID, String message) {
+        var socket = mUserSockets.get(userID);
+        if (socket != null) {
+            try {
+                socket.send(message);
+            } catch (Exception e) {
+                Logger.logException(Logger.Level.WARN, e, "Exception Encountered when sending message");
+            }
+        } else {
+            Logger.log(Logger.Level.WARN, "Tried to send message to non existent socket, userID: %d, %s", userID, message);
+        }
+    }
+
+
+    /**
      * Updates the ID of the socket specified by oldId.
      *
-     * @param oldId The current id of the socket to update.
-     * @param id    The desired id of the socket.
+     * @param socketID The current id of the socket to update.
+     * @param userID    The desired id of the socket.
      */
-    public void assignIdToSocket(long oldId, long id) {
-        Connection socket;
+    public void assignIdToSocket(long socketID, long userID) {
 
-        // NOTE: This is not an "atomic" operation, we are doing 2 atomic operations !=
-        // 1 atomic operation
-        // There is a chance that a socket closes, but right before we remove the socket
-        // in manageEstablishedConnection
-        // we remove it in this if statement here, meaning that the remove in
-        // manageEstablishedConnection will fail silently
-        // and we will add the closed connection to mSockets. (assuming s.isClosed isn't
-        // atomic).
-        // Which is essentially a memory leak.
-        // However, the chances of that happening are quite small.
-        // But we should still check that a socket is connected in the send function(?)
-        //
-        // Another fix for this is simply to add a function that removes any closed
-        // connections,
-        // not the most elegant solution, but will work.
-        // Another alternative is to just start locking down the entire sockets list
-        // etc,
-        // but I don't really want to do that, as we then are essentially making
-        // multi-threaded programs single threaded
-        // which is a horrible concept, and also most likely leads to worse performance
-        // than just working single threaded.
-        if ((socket = mSockets.remove(oldId)) != null) {
-            mSockets.put(id, socket);
+        // What happens if someone else logs in with the same ID?
+        // Need to fix that case.
+        // Can we force all sockets in mUserSockets to be unique?
+        var socket = mSockets.get(socketID);
+
+        if (mUserSockets.containsValue(socket)) {
+            Logger.log(Logger.Level.WARN, "mUserSocket already contains the value identified by %d", socketID);
+            return;
         }
+        mUserSockets.put(userID, socket);
     }
 
     private void run() throws IOException {
@@ -188,15 +202,24 @@ public class SocketManager {
                 // therefore we are temporarily marking it as unknown.
                 // once we get an "user_id" for it, we will update the key so it is a regular
                 // socket.
-                // and it can be used to send messages.
+                // and it can be used to sendWithSocketID messages.
                 try {
                     final var newSocketId = mUnknownId.decrementAndGet();
                     var connection = new Connection(socket);
                     connection.setOnReceiveCallback((value) -> {
                         var msg = new Message();
                         msg.message = value;
-                        msg.socketID = newSocketId;
+                        msg.socketID = newSocketId; // This is a problem! Because this obviously isn't updated
                         mOnReceiveCallback.accept(msg);
+                    });
+
+                    connection.setOnSocketClosed(() -> {
+                        // TODO: Also need to act as if the user logged out here! Probably need another callback,
+                        //       If they don't exist in the user sockets set, that means that they were never logged in to begin with, so don't need to care about them then.
+
+
+                        mSockets.remove(newSocketId);
+                        mUserSockets.entrySet().removeIf((entry) -> entry.getValue().equals(connection));
                     });
 
                     connection.start();

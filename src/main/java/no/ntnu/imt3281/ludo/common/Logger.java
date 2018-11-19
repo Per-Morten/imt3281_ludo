@@ -66,6 +66,10 @@ public class Logger {
         }
     }
 
+    public static void log(Level level, String string, Object ...args) {
+        log(level, String.format(string, args));
+    }
+
     public static void logException(Level level, Exception exception) {
         logException(level, exception, "");
     }

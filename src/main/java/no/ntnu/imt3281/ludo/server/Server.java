@@ -21,12 +21,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 //
 
 /**
- *
  * This is the main class for the server. **Note, change this to extend other
  * classes if desired.**
  *
  * @author
- *
  */
 public class Server {
     @FunctionalInterface
@@ -58,7 +56,6 @@ public class Server {
             Logger.logException(Logger.Level.WARN, e, "Did not manage to put message in queue");
         }
     }
-
 
 
     // Currently only one thread is handling events on the server might want to fix
@@ -96,15 +93,22 @@ public class Server {
             // Doing a filter of all things we aren't authorized to do.
             removeUnauthorizedRequests(json, errors);
 
+            var handler = mEventHandlers.get(requestType);
+            if (handler != null) {
+                handler.apply(requestType, requests, successes, errors);
+            } else {
+                Logger.log(Logger.Level.WARN, "Unimplemented feature: %s", requestType.toLowerCaseString());
+            }
+
+            // Hack to deal with being able to map user id's to sockets.
+            if (requestType == RequestType.LOGIN_REQUEST && message.socketID < 0) {
+                //Logger.log(Logger.Level.DEBUG, "Updating socket with id: %d", message.socketID);
+                updateSocketIDs(message, successes);
+            }
+
+            sSocketManager.sendWithSocketID(message.socketID, response.toString());
 
 
-                mEventHandlers.get(requestType).apply(requestType, requests, successes, errors);
-                // Hack to deal with being able to map user id's to sockets.
-                if (requestType == RequestType.LOGIN_REQUEST && message.socketID < 0) {
-                    updateSocketIDs(message, successes);
-                }
-
-            sSocketManager.send(message.socketID, response.toString());
         }
     }
 
@@ -112,6 +116,7 @@ public class Server {
         if (!JSONValidator.hasString(FieldNames.AUTH_TOKEN, message)) {
             return;
         }
+
         var type = RequestType.fromString(message.getString(FieldNames.TYPE));
 
         // TODO: Add more here.
@@ -142,24 +147,44 @@ public class Server {
             var success = successes.getJSONObject(0);
             var id = success.getInt(FieldNames.USER_ID);
             sSocketManager.assignIdToSocket(message.socketID, id);
-            message.socketID = (long)id;
         }
     }
 
     private static void setupEventHandlers() {
 
+        /// User related
         mEventHandlers.put(RequestType.CREATE_USER_REQUEST, sUserManager::createUser);
         mEventHandlers.put(RequestType.DELETE_USER_REQUEST, sUserManager::deleteUser);
         mEventHandlers.put(RequestType.UPDATE_USER_REQUEST, sUserManager::updateUser);
         mEventHandlers.put(RequestType.GET_USER_REQUEST, sUserManager::getUser);
         mEventHandlers.put(RequestType.GET_USER_RANGE_REQUEST, sUserManager::getUserRange);
-        // Remember to add GetUserRangeRequest
 
+        /// Login Related
         mEventHandlers.put(RequestType.LOGIN_REQUEST, sUserManager::logInUser);
-
         // More probably needs to happen here, because we need to remove the user from several games as well.
         mEventHandlers.put(RequestType.LOGOUT_REQUEST, sUserManager::logOutUser);
 
+        /// Friends Related
+        mEventHandlers.put(RequestType.GET_FRIEND_RANGE_REQUEST, sUserManager::getFriendRange);
+
+        // This probably needs to fire of events just like friend request?
+        mEventHandlers.put(RequestType.UNFRIEND_REQUEST, sUserManager::unfriend);
+        mEventHandlers.put(RequestType.IGNORE_REQUEST, sUserManager::ignore);
+
+        mEventHandlers.put(RequestType.FRIEND_REQUEST, (ignored, requests, successes, errors) -> {
+            // Add users that should be notified.
+            var usersToNotify = new ArrayList<Integer>();
+            // For each friend that is not ignored, go through and call
+
+            sUserManager.friend(ignored, requests, successes, errors, usersToNotify);
+
+            for (var user : usersToNotify) {
+                var event = new JSONObject();
+                event.put(FieldNames.TYPE, EventType.FRIEND_UPDATE.toLowerCaseString());
+                event.put(FieldNames.PAYLOAD, new JSONArray());
+                sSocketManager.sendWithUserID((long) user, event.toString());
+            }
+        });
     }
 
     // TODO: Find out how we shall terminate the server. Should we just ctrl+c it?
@@ -203,11 +228,13 @@ public class Server {
     ///////////////////////////////////////////////////////
     /// Testing methods, don't use these!!
     ///////////////////////////////////////////////////////
+
     /**
      * Sets the total time that the main thread will try to poll from PendingRequests before
      * iterating and checking if it should stop.
      * This method is only here for shutting down the server during API testing,
      * it should not be used normally.
+     *
      * @param timeoutInMS
      */
     public static void setPollTimeout(long timeoutInMS) {

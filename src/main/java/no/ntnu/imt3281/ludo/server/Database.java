@@ -1,6 +1,8 @@
 package no.ntnu.imt3281.ludo.server;
 
 import no.ntnu.imt3281.ludo.api.Error;
+import no.ntnu.imt3281.ludo.api.FriendStatus;
+import no.ntnu.imt3281.ludo.common.Logger;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,9 +11,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-// TODO: Do validation myself, such a pain to deal with the SQLExceptions and give proper errors when it is just 1 Exception covering everything.
-//
-//
 public class Database implements AutoCloseable {
     private Connection mConnection;
 
@@ -19,15 +18,24 @@ public class Database implements AutoCloseable {
      * Creating all the fieldnames as static strings to avoid problems with typos,
      * or if I update the names.
      */
-    public static class UserFields {
-        public static final String DBName = "user";
-        public static final String ID = "user_id";
-        public static final String Username = "username";
-        public static final String Email = "email";
-        public static final String Password = "password";
-        public static final String AvatarURI = "avatar_uri";
-        public static final String Token = "token";
-        public static final String Salt = "salt";
+    private static class UserFields {
+        static final String DBName = "user";
+        static final String ID = "user_id";
+        static final String Username = "username";
+        static final String Email = "email";
+        static final String Password = "password";
+        static final String AvatarURI = "avatar_uri";
+        static final String Token = "token";
+        static final String Salt = "salt";
+    }
+
+    private static class FriendFields {
+        static final String DBName = "friend";
+        static final String ID = "id";
+        static final String UserID = "user_id";
+        static final String FriendID = "friend_id";
+        static final String Status = "status";
+
     }
 
     private static final int UnassignedID = -1;
@@ -43,16 +51,9 @@ public class Database implements AutoCloseable {
      */
     public Database(String dbFilename) throws SQLException {
         String url = "jdbc:sqlite:" + dbFilename;
-
-        String user = "CREATE TABLE IF NOT EXISTS " + UserFields.DBName + "(" + UserFields.ID
-                + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " + UserFields.Username + " text NOT NULL, "
-                + UserFields.Email + " text NOT NULL UNIQUE, " + UserFields.Password + " text NOT NULL, " // Hashed password!
-                + UserFields.Salt + " text NOT NULL, "
-                + UserFields.AvatarURI + " text DEFAULT(NULL), " + UserFields.Token + " text DEFAULT(NULL)" + ");";
-
         mConnection = DriverManager.getConnection(url);
-        var statement = mConnection.createStatement();
-        statement.execute(user);
+        createUserTable();
+        createFriendsTable();
     }
 
     /**
@@ -67,22 +68,11 @@ public class Database implements AutoCloseable {
         }
     }
 
-    ///////////////////////////////////////////////////////
-    /// Utility
-    ///////////////////////////////////////////////////////
-    private boolean valueAlreadyExists(int id, String table, String idField, String field, String value)
-            throws SQLException {
-        try (var query = mConnection
-                .prepareStatement(String.format("SELECT %s FROM %s WHERE %s=?", idField, table, field))) {
-            query.setString(1, value);
-            var res = query.executeQuery();
-            return res.next() && res.getInt(idField) != id;
-        }
-    }
 
     ///////////////////////////////////////////////////////
     /// USER RELATED
     ///////////////////////////////////////////////////////
+
     /**
      * Creates a user with the specified username, email and password.
      *
@@ -90,12 +80,12 @@ public class Database implements AutoCloseable {
      * @param email    The email address of the new user.
      * @param password The password of the new user
      * @return Returns the user_id of the new user
-     * @throws SQLException            Throws SQLException Upon SQL Errors (Should
-     *                                 not happen)
+     * @throws SQLException      Throws SQLException Upon SQL Errors (Should
+     *                           not happen)
      * @throws APIErrorException Throws APIErrorException in the case
-     *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see APIErrorException
-     *                                 In this case this is if the username or email isn't unique.
+     *                           where a field that is required to be Unique
+     *                           isn't unique. @see APIErrorException
+     *                           In this case this is if the username or email isn't unique.
      */
     public int createUser(String username, String email, String password, String salt) throws SQLException {
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Email, email))
@@ -131,12 +121,12 @@ public class Database implements AutoCloseable {
      * @param email     The new email of the user.
      * @param password  The new password of the user.
      * @param avatarURI The new avatar URI of the user.
-     * @throws SQLException            Throws SQLException on SQL errors (should not
-     *                                 happen)
+     * @throws SQLException      Throws SQLException on SQL errors (should not
+     *                           happen)
      * @throws APIErrorException Throws APIErrorException in the case
-     *                                 where a field that is required to be Unique
-     *                                 isn't unique. @see APIErrorException
-     *                                 In this case this is if the username or email isn't unique.
+     *                           where a field that is required to be Unique
+     *                           isn't unique. @see APIErrorException
+     *                           In this case this is if the username or email isn't unique.
      */
     public void updateUser(int id, String username, String email, String password, String avatarURI, String salt)
             throws SQLException {
@@ -166,7 +156,7 @@ public class Database implements AutoCloseable {
      *
      * @param id The user_id of the user to look for.
      * @return A user structure containing data about the user. Returns null if the
-     *         user cannot be found.
+     * user cannot be found.
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
     public User getUserByID(int id) throws SQLException {
@@ -188,7 +178,7 @@ public class Database implements AutoCloseable {
      *
      * @param token The token of the user to look for.
      * @return A user structure containing data about the user. Returns null if the
-     *         user cannot be found.
+     * user cannot be found.
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
     public User getUserByToken(String token) throws SQLException {
@@ -244,25 +234,31 @@ public class Database implements AutoCloseable {
     }
 
     /**
-     * Gets a page (up to 100 users) of users, in sorted in ascending order of their
+     * Gets a range (up to 100 users) of users, in sorted in ascending order of their
      * user_ids
      *
      * @param pageIdx The page to get
      * @return A list containing all the users within the page.
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
-    public List<User> getUserPage(int pageIdx) throws SQLException {
-        return getUserPage(pageIdx, 100);
+    public List<User> getUserRange(int pageIdx) throws SQLException {
+        return getUserRange(pageIdx, 100);
     }
 
     // Note: This should not be used outside of tests, just keeping it here because
     // I don't want to create 100+ users for test cases.
-    List<User> getUserPage(int pageIdx, int pageSize) throws SQLException {
+    List<User> getUserRange(int pageIdx, int pageSize) throws SQLException {
+        var command = String.format(
+                "SELECT %s, %s, %s FROM %s ORDER BY %s LIMIT ? OFFSET ?",
+                UserFields.ID, UserFields.Username,
+                UserFields.AvatarURI, UserFields.DBName, UserFields.ID);
         try (var query = mConnection.prepareStatement(String.format(
-                "SELECT %s, %s, %s FROM %s WHERE %s BETWEEN ? AND ?", UserFields.ID, UserFields.Username,
+                "SELECT %s, %s, %s FROM %s ORDER BY %s LIMIT ? OFFSET ?",
+                UserFields.ID, UserFields.Username,
                 UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
-            query.setInt(1, (pageIdx * pageSize) + 1);
-            query.setInt(2, (pageIdx + 1) * pageSize);
+            query.setInt(1, pageSize);
+            query.setInt(2, pageIdx * pageSize);
+            Logger.log(Logger.Level.DEBUG, String.format("%s pageSize: %d, Offset: %d", command, pageSize, pageIdx * pageSize));
 
             var res = query.executeQuery();
 
@@ -274,6 +270,15 @@ public class Database implements AutoCloseable {
         }
     }
 
+    /**
+     * Gets extended information about a user which has the email email.
+     * Extended user means, in addition to the normal fields you also get: Email, password, salt, and token.
+     * NOTE: This information should be used for internal purposes only.!
+     *
+     * @param email The email of the user to get extended information on.
+     * @return A user
+     * @throws SQLException Throws SQLException on SQL errors (should not happen)
+     */
     public User getExtendedInformationByEmail(String email) throws SQLException {
         try (var query = mConnection.prepareStatement(String.format("SELECT * FROM %s WHERE %s = ?",
                 UserFields.DBName, UserFields.Email))) {
@@ -302,5 +307,233 @@ public class Database implements AutoCloseable {
                 set.getString(UserFields.Salt),
                 set.getString(UserFields.Token),
                 set.getString(UserFields.Password));
+    }
+
+    ///////////////////////////////////////////////////////
+    /// FRIENDS RELATED
+    ///////////////////////////////////////////////////////
+    public void createRelationship(int userID, int friendID, FriendStatus status) throws SQLException {
+        try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s) VALUES (?, ?, ?)",
+                FriendFields.DBName, FriendFields.UserID, FriendFields.FriendID, FriendFields.Status))) {
+            statement.setInt(1, userID);
+            statement.setInt(2, friendID);
+            statement.setInt(3, status.toInt());
+
+            statement.execute();
+        }
+    }
+
+    public void setRelationshipStatus(int userID, int friendID, FriendStatus status) throws SQLException {
+        try (var statement = mConnection.prepareStatement(String.format("UPDATE %s SET %s = ? WHERE %s = ? AND %s = ?",
+                FriendFields.DBName,
+                FriendFields.Status,
+                FriendFields.UserID,
+                FriendFields.FriendID))) {
+            statement.setInt(1, status.toInt());
+            statement.setInt(2, userID);
+            statement.setInt(3, friendID);
+
+            statement.execute();
+        }
+    }
+
+    /**
+     * Gets the friend pair indicating the relationship between the user the id userID, and the friend with id friendID.
+     *
+     * @param userID
+     * @param friendID
+     * @return null if the friends could not be found, an array of two elements otherwise,
+     * the first element contains the relationship from the user with userID's viewpoint,
+     * the second element contains the relationship from the user with friendID's viewpoint.
+     */
+    public Relationship[] getRelationship(int userID, int friendID) throws SQLException {
+        Relationship[] retVal = new Relationship[2];
+        var usersToCheck = new int[]{userID, friendID};
+        for (int i = 0; i < usersToCheck.length; i++) {
+            try (var query = mConnection.prepareStatement(String.format("SELECT %s, %s, %s, %s FROM %s WHERE (%s = ? AND %s = ?)",
+                    FriendFields.ID,
+                    FriendFields.UserID, FriendFields.FriendID, FriendFields.Status, FriendFields.DBName,
+                    FriendFields.UserID, FriendFields.FriendID))) {
+                query.setInt(1, usersToCheck[i]);
+                query.setInt(2, usersToCheck[(i + 1) % usersToCheck.length]);
+
+                var res = query.executeQuery();
+
+                if (res.next()) {
+                    retVal[i] = new Relationship(res.getInt(FriendFields.ID), res.getInt(FriendFields.UserID),
+                            res.getInt(FriendFields.FriendID),
+                            FriendStatus.fromInt(res.getInt(FriendFields.Status)));
+                }
+            }
+        }
+
+        return (retVal[0] == null) ? null : retVal;
+    }
+
+    // Note: This should not be used outside of tests, just keeping it here because
+    // I don't want to create 100+ users for test cases.
+    public List<Friend> getFriendsRange(int userID, int pageIndex) throws SQLException {
+        return getFriendsRange(userID, pageIndex, 100);
+    }
+
+    public List<Friend> getFriendsRange(int userID, int pageIndex, int pageSize) throws SQLException {
+        // SELECT friend.friend_id, friend.status, user.username FROM friend INNER JOIN user ON friend.friend_id = user.user_id WHERE friend.user_id = 1 AND friend.status != ? ORDER BY friend.user_id LIMIT 100 OFFSET 0
+        var queryCommand = String.format("SELECT %s.%s, %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s = %s.%s WHERE %s.%s = ? AND %s.%s != ? ORDER BY %s.%s LIMIT ? OFFSET ?",
+                FriendFields.DBName, FriendFields.FriendID,
+                FriendFields.DBName, FriendFields.Status,
+                UserFields.DBName, UserFields.Username,
+                FriendFields.DBName, UserFields.DBName,
+                FriendFields.DBName, FriendFields.FriendID,
+                UserFields.DBName, UserFields.ID,
+                FriendFields.DBName, FriendFields.UserID,
+                FriendFields.DBName, FriendFields.Status,
+                FriendFields.DBName, FriendFields.UserID);
+
+        try (var query = mConnection.prepareStatement(queryCommand)) {
+
+            query.setInt(1, userID);
+            query.setInt(2, FriendStatus.UNFRIENDED.toInt());
+            query.setInt(3, pageSize);
+            query.setInt(4, pageSize * pageIndex);
+
+            var res = query.executeQuery();
+
+            var retVal = new ArrayList<Friend>();
+            while (res.next()) {
+                retVal.add(new Friend(res.getInt(FriendFields.FriendID), res.getString(UserFields.Username), FriendStatus.fromInt(res.getInt(FriendFields.Status))));
+            }
+
+            return retVal;
+        }
+    }
+
+    ///////////////////////////////////////////////////////
+    /// TABLE CREATION RELATED
+    ///////////////////////////////////////////////////////
+    private void createUserTable() throws SQLException {
+        String command = "CREATE TABLE IF NOT EXISTS " + UserFields.DBName + "(" + UserFields.ID
+                + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " + UserFields.Username + " text NOT NULL, "
+                + UserFields.Email + " text NOT NULL UNIQUE, " + UserFields.Password + " text NOT NULL, " // Hashed password!
+                + UserFields.Salt + " text NOT NULL, "
+                + UserFields.AvatarURI + " text DEFAULT(NULL), " + UserFields.Token + " text DEFAULT(NULL)" + ");";
+
+        var statement = mConnection.createStatement();
+        statement.execute(command);
+    }
+
+    private void createFriendsTable() throws SQLException {
+        String command = "CREATE TABLE IF NOT EXISTS " + FriendFields.DBName + "("
+                + FriendFields.ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                + FriendFields.UserID + " INTEGER NOT NULL,"
+                + FriendFields.FriendID + " INTEGER NOT NULL, "
+                + FriendFields.Status + " INTEGER NOT NULL, "
+                + "FOREIGN KEY (" + FriendFields.UserID + ") REFERENCES " + UserFields.DBName + "(" + UserFields.ID + ") ON DELETE CASCADE,"
+                + "FOREIGN KEY (" + FriendFields.FriendID + ") REFERENCES " + UserFields.DBName + "(" + UserFields.ID + ") ON DELETE CASCADE"
+                + ");";
+
+        var statement = mConnection.createStatement();
+        statement.execute(command);
+    }
+
+    ///////////////////////////////////////////////////////
+    /// Utility
+    ///////////////////////////////////////////////////////
+    private boolean valueAlreadyExists(int id, String table, String idField, String field, String value)
+            throws SQLException {
+        try (var query = mConnection
+                .prepareStatement(String.format("SELECT %s FROM %s WHERE %s=?", idField, table, field))) {
+            query.setString(1, value);
+            var res = query.executeQuery();
+            return res.next() && res.getInt(idField) != id;
+        }
+    }
+
+    ///////////////////////////////////////////////////////
+    /// RETURN CLASSES
+    ///////////////////////////////////////////////////////
+
+    /**
+     * Class representing a relationship, from the viewpoint of the user with userID.
+     * POD class by design, as there are no invariants to protect in this class.
+     */
+    public class Relationship {
+        public int rowID;
+        public int userID;
+        public int friendID;
+        public FriendStatus status;
+
+        Relationship(int rowID, int userID, int friendID, FriendStatus status) {
+            this.rowID = rowID;
+            this.userID = userID;
+            this.friendID = friendID;
+            this.status = status;
+        }
+    }
+
+    /**
+     * Class representing a user but from a friend perspective, so it contains the userID, username, and the FriendStatus of this friend.
+     * POD class by design, as there are no invariants to protect in this class.
+     */
+    public class Friend {
+        public int userID;
+        public String username;
+        public FriendStatus status;
+
+        Friend(int userID, String username, FriendStatus status) {
+            this.userID = userID;
+            this.username = username;
+            this.status = status;
+        }
+    }
+
+    /**
+     * Class representing a user.
+     * POD class by design, as there are no invariants to protect in this class.
+     */
+    public static class User {
+        public User(int id, String username, String avatarURI) {
+            this.id = id;
+            this.username = username;
+            this.avatarURI = (avatarURI != null) ? avatarURI : "";
+        }
+
+        public User(int id, String username, String avatarURI, String email, String salt, String token, String password) {
+            this.id = id;
+            this.username = username;
+            this.email = email;
+            this.avatarURI = (avatarURI != null) ? avatarURI : "";
+            this.salt = salt;
+            this.token = token;
+            this.password = password;
+        }
+
+        public int id = -1;
+        public String username = "";
+        public String avatarURI = "";
+
+        /**
+         * The email of the user, this will be null except when getExtendedInformation has been called.
+         * Should not be exposed to the outside world!
+         */
+        public String email = "";
+
+
+        /**
+         * The salt used to hash the password, this will be null except when getExtendedInformation has been called.
+         * Should not be exposed to the outside world!
+         */
+        public String salt = "";
+
+        /**
+         * The authentication token of the user, this will be null except when getExtendedInformation has been called.
+         * Should not be exposed to the outside world!
+         */
+        public String token = "";
+
+        /**
+         * The hashed password of the user, this will be null except when getExtendedInformation has been called.
+         * Should not be exposed to the outside world!
+         */
+        public String password = "";
     }
 }
