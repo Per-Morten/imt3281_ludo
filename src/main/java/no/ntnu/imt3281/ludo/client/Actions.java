@@ -220,7 +220,22 @@ public class Actions {
                 var usersRange = successUsers.getJSONArray(FieldNames.RANGE);
                 var usersList = new ArrayList<JSONObject>();
                 usersRange.forEach(user -> {
-                    usersList.add((JSONObject)user);
+
+                    var userjson = (JSONObject)user;
+                    int userId = userjson.getInt(FieldNames.USER_ID);
+
+                    // Only add users who are not in the friendslist
+                    boolean found = false;
+                    for (var friend: friendsList) {
+                        var friendId = friend.getInt(FieldNames.USER_ID);
+                        if (friendId == userId || userId == state.userId) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        usersList.add((JSONObject)user);
+                    }
                 });
                 mTransitions.renderUserList(usersList, friendsList);
             },

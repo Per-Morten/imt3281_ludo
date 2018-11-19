@@ -115,7 +115,6 @@ public class API {
             return;
         }
 
-        Logger.log(Level.DEBUG, "reqtype: " + String.valueOf(reqType) + " eventype: " + String.valueOf(eventType));
         // Handle response or event
         if (reqType != null) {
             this.handleResponse(jsonResponse);
@@ -176,6 +175,7 @@ public class API {
             payloadArray.add((JSONObject)item);
         });
 
+        Logger.log(Level.DEBUG, "Event payload -> " + payload.toString());
         switch (type) {
             case FRIEND_UPDATE: mActions.friendUpdate(); break;
             case CHAT_UPDATE: mActions.chatUpdate(); break;
