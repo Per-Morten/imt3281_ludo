@@ -11,6 +11,7 @@ import org.json.JSONObject;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static no.ntnu.imt3281.ludo.api.FieldNames.CHAT_ID;
 import static no.ntnu.imt3281.ludo.api.RequestType.*;
 
 public class Actions {
@@ -259,20 +260,21 @@ public class Actions {
         var state = this.startAction("createGame");
 
         var game = makeGame();
-        var gameId = game.getInt(FieldNames.GAME_ID);
+        var clientGameId = game.getInt(FieldNames.GAME_ID);
 
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, state.userId);
-        payload.put(FieldNames.NAME, "Game " + gameId);
+        payload.put(FieldNames.NAME, "Game " + clientGameId);
 
         mAPI.send(mRequests.make(CREATE_GAME_REQUEST, payload, state.authToken, success -> {
-            mStateManager.commit(gState -> {
-                gState.activeGames.put(gameId, game);
-            });
-
-            mTransitions.newGame(gameId, game);
+            // TODO SERVER UNIMPLEMENTED
         },
         this::logError));
+
+        mStateManager.commit(gState -> {
+            gState.activeGames.put(clientGameId, game);
+        });
+        mTransitions.newGame(clientGameId, game);
     }
 
 
@@ -282,19 +284,22 @@ public class Actions {
     public void createChat(/* TODO pass name*/) {
         var state = this.startAction("createChat");
 
-        var payload = new JSONObject();
         var chat = makeChat();
-        var chatId = chat.getInt(FieldNames.CHAT_ID);
+        var clientChatId = chat.getInt(CHAT_ID);
+
+        var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, state.userId);
-        payload.put(FieldNames.NAME, "Chat " + chatId);
+        payload.put(FieldNames.NAME, "Chat " + clientChatId);
 
         mAPI.send(mRequests.make(CREATE_CHAT_REQUEST, payload, state.authToken, success -> {
-            mStateManager.commit(gState -> {
-                gState.activeChats.put(chatId, chat);
-            });
-            mTransitions.newChat(chatId, chat);
+            // TODO SERVER UNIMPLEMENTED
         },
         this::logError));
+
+        mStateManager.commit(gState -> {
+            gState.activeChats.put(clientChatId , chat);
+        });
+        mTransitions.newChat(clientChatId, chat);
     }
 
 
@@ -354,11 +359,10 @@ public class Actions {
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(IGNORE_REQUEST, payload, state.authToken,
-            success -> {
-                this.gotoOverview();
-            },
-            this::logError));
+        mAPI.send(mRequests.make(IGNORE_REQUEST, payload, state.authToken, success -> {
+            this.gotoOverview();
+        },
+        this::logError));
     }
 
     /**
@@ -375,11 +379,10 @@ public class Actions {
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(UNFRIEND_REQUEST, payload, state.authToken,
-            success -> {
-                this.gotoOverview();
-            },
-            this::logError));
+        mAPI.send(mRequests.make(UNFRIEND_REQUEST, payload, state.authToken, success -> {
+            this.gotoOverview();
+        },
+        this::logError));
     }
 
     /**
@@ -392,7 +395,7 @@ public class Actions {
         chatsId.forEach(chatId -> {
             var item = new JSONObject();
             item.put(FieldNames.USER_ID, state.userId);
-            item.put(FieldNames.CHAT_ID, chatId);
+            item.put(CHAT_ID, chatId);
             payload.add(item);
         });
 
@@ -413,15 +416,23 @@ public class Actions {
         chatsId.forEach(chatId -> {
             var item = new JSONObject();
             item.put(FieldNames.USER_ID, state.userId);
-            item.put(FieldNames.CHAT_ID, chatId);
+            item.put(CHAT_ID, chatId);
             payload.add(item);
         });
 
         mAPI.send(mRequests.make(LEAVE_CHAT_REQUEST, payload, state.authToken,
             success -> {
-                this.gotoOverview();
+                // TODO SERVER UNIMPLEMENTED
             },
             this::logError));
+
+        mStateManager.commit(gState -> {
+            chatsId.forEach(id ->  {
+                gState.activeChats.remove(id);
+            });
+        });
+
+        this.gotoOverview();
     }
 
     /**
@@ -432,14 +443,17 @@ public class Actions {
 
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, state.userId);
-        payload.put(FieldNames.CHAT_ID, chatId);
+        payload.put(CHAT_ID, chatId);
         payload.put(FieldNames.MESSAGE, message);
 
         mAPI.send(mRequests.make(SEND_CHAT_MESSAGE_REQUEST, payload, state.authToken,
             success -> {
-                mTransitions.newMessage(chatId, state.username, message);
+                // TODO SERVER UNIMPLEMENTED
+
             },
             this::logError));
+
+        mTransitions.newMessage(chatId, state.username, message);
     }
 
     /**
@@ -454,7 +468,7 @@ public class Actions {
                 var item = new JSONObject();
                 item.put(FieldNames.USER_ID, state.userId);
                 item.put(FieldNames.OTHER_ID, friendId);
-                item.put(FieldNames.CHAT_ID, chatId);
+                item.put(CHAT_ID, chatId);
                 payload.add(item);
             });
         });
@@ -503,9 +517,16 @@ public class Actions {
 
         mAPI.send(mRequests.make(LEAVE_GAME_REQUEST, payload, state.authToken,
         success -> {
-            this.gotoOverview();
+            // TODO SERVER UNIMPLEMENTED
         },
         this::logError));
+
+        mStateManager.commit(gState -> {
+            gamesId.forEach(id ->  {
+                gState.activeGames.remove(id);
+            });
+        });
+        this.gotoOverview();
     }
 
     /**
@@ -661,7 +682,7 @@ public class Actions {
     private static JSONObject makeChat() {
         var chatId = randomId();
         var chat = new JSONObject();
-        chat.put(FieldNames.CHAT_ID, chatId);
+        chat.put(CHAT_ID, chatId);
         chat.put(FieldNames.NAME, "Chat " + chatId);
         chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
         return chat;

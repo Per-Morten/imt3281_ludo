@@ -161,6 +161,8 @@ public class Transitions {
 
             overview.mListGames.getChildren().clear();
 
+            Logger.log(Level.DEBUG, "activeGames.size(): " + activeGames.size());
+
             activeGames.forEach((id, game) -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
@@ -193,6 +195,8 @@ public class Transitions {
         Platform.runLater(()-> {
 
             overview.mListChats.getChildren().clear();
+
+            Logger.log(Level.DEBUG, "activeChats.size(): " + activeChats.size());
 
             activeChats.forEach((id, chat) -> {
                 var item = this.loadFXML(Path.LIST_ITEM);

@@ -43,7 +43,7 @@ public class State {
         copy.userId = state.userId;
         copy.avatarURI = state.avatarURI;
 
-        copy.activeChats.putAll(state.activeChats);
+        copy.activeGames.putAll(state.activeGames);
         copy.activeChats.putAll(state.activeChats);
         copy.gameInvites.putAll(state.gameInvites);
         copy.chatInvites.putAll(state.chatInvites);
