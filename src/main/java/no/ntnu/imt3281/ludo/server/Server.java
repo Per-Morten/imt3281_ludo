@@ -106,8 +106,6 @@ public class Server {
             }
 
             sSocketManager.sendWithSocketID(message.socketID, response.toString());
-
-
         }
     }
 

@@ -29,7 +29,8 @@ public class UserAPITests {
         };
 
         for (var user : usersToCreate) {
-            TestUtility.sendPreparationMessageToServer(TestUtility.createUserRequest(user.username, user.email, user.password), null);
+            TestUtility.runTestWithNewUser(user.username, user.email, user.password, null);
+            //TestUtility.sendPreparationMessageToServer(TestUtility.createUserRequest(user.username, user.email, user.password), null);
         }
     }
 
@@ -251,7 +252,7 @@ public class UserAPITests {
     public void errorOnGetIllegalUserID() {
         TestUtility.runTestWithNewUser("USER_TO_TEST_ILLEGAL_ID", "USER_TO_TEST_ILLEGAL_ID@mail.com", "password", (context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
-            Logger.log(Logger.Level.DEBUG, "Got back: %s", msg);
+
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 TestUtility.sendMessage(context.socket, TestUtility.createGetUserRequest(500, context.user.token));
             }
@@ -271,7 +272,7 @@ public class UserAPITests {
             context.running.set(false);
         });
 
-        TestUtility.runTest(TestUtility.createUserRequest(USER_1.username, "TotallyUniqueEmail1923@email", USER_1.password).toString(), callback);
+        TestUtility.runTestNotRequiringLogin(TestUtility.createUserRequest(USER_1.username, "TotallyUniqueEmail1923@email", USER_1.password).toString(), callback);
     }
 
     @Test
@@ -282,7 +283,7 @@ public class UserAPITests {
             context.running.set(false);
         });
 
-        TestUtility.runTest(TestUtility.createUserRequest("TotallyUniqueUsername29843905", USER_1.email, USER_1.password).toString(), callback);
+        TestUtility.runTestNotRequiringLogin(TestUtility.createUserRequest("TotallyUniqueUsername29843905", USER_1.email, USER_1.password).toString(), callback);
     }
 
     @Test
@@ -419,6 +420,6 @@ public class UserAPITests {
         request.put(FieldNames.EMAIL, "WRONG PASSWORD");
         payload.put(0, request);
 
-        TestUtility.runTest(TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString(), callback);
+        TestUtility.runTestNotRequiringLogin(TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString(), callback);
     }
 }

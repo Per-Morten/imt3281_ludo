@@ -15,7 +15,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -119,31 +118,7 @@ class TestUtility {
         return callback;
     }
 
-    static void sendPreparationMessageToServer(JSONObject message, Consumer<JSONObject> callback) throws IOException, InterruptedException {
-        var socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
-        final var running = new AtomicBoolean(true);
-        socket.setOnReceiveCallback((string) -> {
-            var json = new JSONObject(string);
-            if (callback != null) {
-                callback.accept(json);
-            }
-            running.set(false);
-        });
-
-        socket.start();
-        socket.send(message.toString());
-        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
-        while (running.get() && System.currentTimeMillis() < end) {
-            // Empty
-        }
-
-        if (running.get()) {
-            throw new RuntimeException("Didn't get response from server fast enough");
-        }
-        socket.stop();
-    }
-
-    static void runTest(String firstMessage, BiConsumer<TestContext, String> onReceiveCallback) {
+    static void runTestNotRequiringLogin(String firstMessage, BiConsumer<TestContext, String> onReceiveCallback) {
         final var context = new TestContext();
 
         context.running = new AtomicBoolean(true);
@@ -195,35 +170,46 @@ class TestUtility {
         // Used to ensure that the onReceiveCallback of this function don't interferes with
         final var internalCount = new AtomicInteger(0);
 
+        final String pwd = (password != null) ? password : generatePWD();
+
         context.socket.setOnReceiveCallback((string) -> {
             var msg = new JSONObject(string);
+            Logger.log(Logger.Level.DEBUG, "Received Message: %s", string);
+
             if (ResponseType.fromString(msg.getString(FieldNames.TYPE)) != null) {
                 var type = ResponseType.fromString(msg.getString(FieldNames.TYPE));
 
                 if (internalCount.get() < 2) {
                     if (type == ResponseType.CREATE_USER_RESPONSE) {
+                        Logger.log(Logger.Level.DEBUG, "Sending Login Request");
+
                         var successes = msg.getJSONArray(FieldNames.SUCCESS);
                         assertEquals(1, successes.length());
-                        TestUtility.sendMessage(context.socket, createLoginRequest(email, password));
+                        TestUtility.sendMessage(context.socket, createLoginRequest(email, pwd));
                         internalCount.incrementAndGet();
                     }
 
                     if (type == ResponseType.LOGIN_RESPONSE) {
+                        Logger.log(Logger.Level.DEBUG, "Received Login Response");
                         var successes = msg.getJSONArray(FieldNames.SUCCESS);
                         assertEquals(1, successes.length());
                         var user = successes.getJSONObject(0);
-                        context.user = new Database.User(user.getInt(FieldNames.USER_ID), username, null, email, null, user.getString(FieldNames.AUTH_TOKEN), password);
+                        context.user = new Database.User(user.getInt(FieldNames.USER_ID), username, null, email, null, user.getString(FieldNames.AUTH_TOKEN), pwd);
                         internalCount.incrementAndGet();
                     }
                 }
+            }
 
+            if (onReceiveCallback != null) {
                 onReceiveCallback.accept(context, msg);
+            } else if (internalCount.get() >= 2) {
+                context.running.set(false);
             }
         });
 
         try {
             context.socket.start();
-            context.socket.send(TestUtility.createUserRequest(username, email, password).toString());
+            context.socket.send(TestUtility.createUserRequest(username, email, pwd).toString());
         } catch (Exception e) {
             Logger.logException(Logger.Level.WARN, e, "Test Threw Exception:");
             fail();
@@ -245,12 +231,80 @@ class TestUtility {
         }
     }
 
-        public static void sendMessage(SocketManager socket, JSONObject message) {
+    public static void sendMessage(SocketManager socket, JSONObject message) {
         try {
             socket.send(message.toString());
         } catch (IOException e) {
             fail();
         }
+    }
+
+    static void runTestWithExistingUser(String username, String email, String password, BiConsumer<TestContext, JSONObject> onReceiveCallback) {
+        final var context = new TestContext();
+
+        context.running = new AtomicBoolean(true);
+        context.count = new AtomicInteger(0);
+        context.socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
+
+        // Used to ensure that the onReceiveCallback of this function don't interferes with
+        final var internalCount = new AtomicInteger(0);
+
+        context.socket.setOnReceiveCallback((string) -> {
+            var msg = new JSONObject(string);
+            if (ResponseType.fromString(msg.getString(FieldNames.TYPE)) != null) {
+                var type = ResponseType.fromString(msg.getString(FieldNames.TYPE));
+
+                if (internalCount.get() < 1) {
+                    if (type == ResponseType.LOGIN_RESPONSE) {
+                        var successes = msg.getJSONArray(FieldNames.SUCCESS);
+                        assertEquals(1, successes.length());
+                        var user = successes.getJSONObject(0);
+                        context.user = new Database.User(user.getInt(FieldNames.USER_ID), username, null, email, null, user.getString(FieldNames.AUTH_TOKEN), password);
+                        internalCount.incrementAndGet();
+                    }
+                }
+
+                onReceiveCallback.accept(context, msg);
+            }
+        });
+
+        try {
+            context.socket.start();
+            context.socket.send(TestUtility.createLoginRequest(email, password).toString());
+        } catch (Exception e) {
+            Logger.logException(Logger.Level.WARN, e, "Test Threw Exception:");
+            fail();
+        }
+
+        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
+        while (context.running.get() && System.currentTimeMillis() < end) {
+
+        }
+
+        if (context.running.get()) {
+            fail("Timed out");
+        }
+
+        try {
+            context.socket.stop();
+        } catch (Exception e) {
+            fail();
+        }
+    }
+
+    static void runTestWithExistingUser(Database.User user, BiConsumer<TestContext, JSONObject> onReceiveCallback) {
+        runTestWithExistingUser(user.username, user.email, user.password, onReceiveCallback);
+    }
+
+    private static String generatePWD() {
+        var random = new java.security.SecureRandom();
+
+        var builder = new StringBuilder();
+        // Restricting the values here a bit because we got issues when we put "illegal" characters such as \n into json.
+        // However, this should still provide enough place for randomness.
+        random.ints(64, 32, 126).forEach(i -> builder.append((char) i));
+
+        return builder.toString();
     }
 
     // Probably need to create lots of callbacks within each other.
