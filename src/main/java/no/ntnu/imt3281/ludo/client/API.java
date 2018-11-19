@@ -49,6 +49,7 @@ public class API {
             } catch (NullPointerException | IOException e) {
                 Logger.log(Level.WARN, "No connection with server: " + e.toString());
                 mPendingRequests.poll(); // Throw away request to avoid blocking
+                mActions.forceLogout();
             }
         }).start();
     }
@@ -73,6 +74,7 @@ public class API {
             } catch (NullPointerException | IOException e) {
                 Logger.log(Level.WARN, "No connection with server: " + e.toString());
                 mPendingRequests.poll(); // Throw away request to avoid blocking
+                mActions.forceLogout();
             }
         }).start();
     }

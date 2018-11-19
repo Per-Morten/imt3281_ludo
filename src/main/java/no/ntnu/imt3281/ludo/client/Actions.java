@@ -32,6 +32,24 @@ public class Actions {
         mAPI = API;
     }
 
+    void gotoLogin() {
+        this.startAction("gotoLogin");
+
+        mStateManager.commit(gState -> {
+            gState.userId = -1;
+            gState.email = "";
+            gState.authToken = "";
+            gState.username = "";
+            gState.avatarURI = "";
+            gState.activeChats.clear();
+            gState.activeGames.clear();
+            gState.chatInvites.clear();
+            gState.gameInvites.clear();
+        });
+
+        mTransitions.renderLogin();
+    }
+
     /**
      * login user with username and password
      *
@@ -65,7 +83,7 @@ public class Actions {
      * @param password valid password
      */
     public void createUser(String email, String password, String username) {
-        var state = this.startAction("createUser");
+        this.startAction("createUser");
 
         mTransitions.renderLogin();
 
@@ -89,7 +107,7 @@ public class Actions {
     }
 
     /**
-     * Logout the user with user_id stored in state.
+     * Logout the user with user_id stored in state. Remove token and other userdata from state
      */
     public void logout() {
         var state = this.startAction("logout");
@@ -101,15 +119,7 @@ public class Actions {
             success -> {},
             this::logError));
 
-        mStateManager.commit(gState -> {
-            gState.userId = -1;
-            gState.email = "";
-            gState.authToken = "";
-            gState.username = "";
-            gState.activeChats.clear();
-            gState.activeGames.clear();
-        });
-        mTransitions.renderLogin();
+        this.gotoLogin();
     }
 
     /**
@@ -148,9 +158,7 @@ public class Actions {
         payload.put(FieldNames.USER_ID, state.userId);
 
         mAPI.send(mRequests.make(DELETE_USER_REQUEST, payload, state.authToken, success -> {
-
             this.logout();
-
         }, this::logError));
     }
 
@@ -616,7 +624,7 @@ public class Actions {
     void gameUpdate(ArrayList<JSONObject> games) {}
     void gameInvite(ArrayList<JSONObject> gameInvites) {}
     void forceLogout() {
-        this.logout();
+        this.gotoLogin();
     }
 
 

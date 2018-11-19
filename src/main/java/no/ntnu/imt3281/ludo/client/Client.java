@@ -73,7 +73,11 @@ public class Client extends Application {
             Platform.exit();
         });
 
-        mTransitions.renderLogin();
+        if (!initialState.authToken.isEmpty()) {
+            mActions.gotoUser();
+        } else {
+            mActions.gotoLogin();
+        }
     }
 
     /**
