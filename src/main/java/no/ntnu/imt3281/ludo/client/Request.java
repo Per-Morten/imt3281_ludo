@@ -28,4 +28,14 @@ public class Request {
 
         return json;
     }
+
+    public JSONObject toJSONWithoutToken() {
+
+        var json = new JSONObject();
+        json.put(FieldNames.ID, id);
+        json.put(FieldNames.TYPE, type.toLowerCaseString());
+        json.put(FieldNames.PAYLOAD, payload);
+
+        return json;
+    }
 }

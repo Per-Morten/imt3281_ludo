@@ -1,16 +1,13 @@
 package no.ntnu.imt3281.ludo.client;
 
-import javafx.scene.image.Image;
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
-import no.ntnu.imt3281.ludo.api.RequestType;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -51,7 +48,7 @@ public class Actions {
         payload.put(FieldNames.EMAIL, email);
         payload.put(FieldNames.PASSWORD, password);
 
-        mAPI.send(mRequests.make(LOGIN_REQUEST, payload, "", success -> {
+        mAPI.sendNoToken(mRequests.make(LOGIN_REQUEST, payload, "", success -> {
 
             mStateManager.commit(gState -> {
                 gState.userId = success.getInt(FieldNames.USER_ID);
@@ -60,7 +57,7 @@ public class Actions {
 
             this.gotoUser();
         },
-        error -> this.logError(LOGIN_REQUEST ,error)));
+        this::logError));
     }
 
     /**
@@ -80,21 +77,17 @@ public class Actions {
         item.put(FieldNames.PASSWORD, password);
         item.put(FieldNames.USERNAME, username);
 
-        mAPI.send(mRequests.make(CREATE_USER_REQUEST, item, "",
+        mAPI.sendNoToken(mRequests.make(CREATE_USER_REQUEST, item, "",
             success -> {
-                Logger.log(Level.DEBUG, "Action -> CreateUserSuccess");
                 mStateManager.commit(gState -> {
-                    // @DUMMY
-                    gState.userId = 2;
-                    // @DUMMY
-                    gState.email = "jonas.solsvik@gmail.com";
-                    // @DUMMY
-                    gState.username = "jonasjso";
+                    gState.userId = success.getInt(FieldNames.USER_ID);
+                    gState.email = email;
+                    gState.username = username;
                 });
 
                 mTransitions.renderLogin();
             },
-            error -> this.logError(CREATE_USER_REQUEST, error)));
+            this::logError));
 
     }
 
@@ -109,7 +102,7 @@ public class Actions {
 
         mAPI.send(mRequests.make(LOGOUT_REQUEST, item, state.authToken,
             success -> {},
-            error -> this.logError(LOGOUT_REQUEST, error)));
+            this::logError));
 
         mStateManager.commit(gState -> {
             gState.userId = -1;
@@ -131,6 +124,7 @@ public class Actions {
         var state = this.startAction("updateUser");
 
         var payload = new JSONObject();
+        payload.put(FieldNames.USER_ID, state.userId);
         payload.put(FieldNames.USERNAME, username);
         payload.put(FieldNames.EMAIL, email);
         payload.put(FieldNames.PASSWORD, password);
@@ -146,7 +140,7 @@ public class Actions {
 
             this.gotoUser();
 
-        }, error -> this.logError(UPDATE_USER_REQUEST, error)));
+        }, this::logError));
     }
 
     /**
@@ -162,7 +156,7 @@ public class Actions {
 
             this.logout();
 
-        }, error -> this.logError(DELETE_USER_REQUEST, error)));
+        }, this::logError));
     }
 
     /**
@@ -189,7 +183,7 @@ public class Actions {
 
             mTransitions.renderUser(user);
         },
-        error -> this.logError(GET_USER_REQUEST, error)));
+        this::logError));
     }
 
     /**
@@ -225,7 +219,7 @@ public class Actions {
 
                 mTransitions.renderGameList();
             },
-            error -> this.logError(GET_GAME_RANGE_REQUEST, error)));
+            this::logError));
 
 
         final var payload3 = new JSONObject();
@@ -243,7 +237,7 @@ public class Actions {
                 });
                 mTransitions.renderChatList();
             },
-            error -> this.logError(GET_CHAT_RANGE_REQUEST , error)));
+            error -> this.logError( error)));
 
 
         final var payload4 = new JSONObject();
@@ -279,7 +273,7 @@ public class Actions {
                 });
                 mTransitions.renderFriendList();
             },
-            error -> this.logError(GET_FRIEND_RANGE_REQUEST , error)));
+            error -> this.logError( error)));
 
 
         final var payload2 = new JSONObject();
@@ -314,7 +308,7 @@ public class Actions {
                 });
                 mTransitions.renderUserList();
             },
-            error -> this.logError(GET_USER_RANGE_REQUEST, error)));
+            this::logError));
     }
 
 
@@ -340,7 +334,7 @@ public class Actions {
 
                     mTransitions.newGame(newGameId);
                 },
-                error -> this.logError(CREATE_GAME_REQUEST, error)));
+                this::logError));
     }
 
 
@@ -366,7 +360,7 @@ public class Actions {
                 });
                 mTransitions.newChat(chatId);
             },
-            error -> this.logError(CREATE_CHAT_REQUEST , error)));
+            error -> this.logError( error)));
     }
 
 
@@ -388,7 +382,7 @@ public class Actions {
             success -> {
 
             },
-            error -> this.logError(FRIEND_REQUEST, error)));
+            this::logError));
     }
 
     /**
@@ -409,7 +403,7 @@ public class Actions {
             success -> {
 
             },
-            error -> this.logError(UNFRIEND_REQUEST , error)));
+            error -> this.logError( error)));
     }
 
     /**
@@ -430,7 +424,7 @@ public class Actions {
             success -> {
 
             },
-            error -> this.logError(IGNORE_REQUEST , error)));
+            error -> this.logError( error)));
     }
 
     /**
@@ -451,7 +445,7 @@ public class Actions {
             success -> {
 
             },
-            error -> this.logError(UNIGNORE_REQUEST , error)));
+            error -> this.logError( error)));
     }
 
     /**
@@ -472,7 +466,7 @@ public class Actions {
             success -> {
 
             },
-            error -> this.logError(JOIN_CHAT_REQUEST , error)));
+            error -> this.logError( error)));
     }
 
     /**
@@ -493,7 +487,7 @@ public class Actions {
             success -> {
 
             },
-            error -> this.logError(LEAVE_CHAT_REQUEST , error)));
+            error -> this.logError( error)));
     }
 
     /**
@@ -514,7 +508,7 @@ public class Actions {
                 messageObj.put(FieldNames.MESSAGE, message);
                 mTransitions.newMessage(chatId, state.userId, message);
             },
-            error -> this.logError(SEND_CHAT_MESSAGE_REQUEST, error)));
+            this::logError));
     }
 
     /**
@@ -538,7 +532,7 @@ public class Actions {
         success -> {
 
         },
-        error -> this.logError(SEND_CHAT_INVITE_REQUEST , error)));
+        error -> this.logError( error)));
     }
 
     /**
@@ -559,7 +553,7 @@ public class Actions {
         success -> {
 
         },
-        error -> this.logError(JOIN_GAME_REQUEST , error)));
+        error -> this.logError( error)));
     }
 
     /**
@@ -580,7 +574,7 @@ public class Actions {
         success -> {
 
         },
-        error -> this.logError(LEAVE_GAME_REQUEST, error)));
+        this::logError));
     }
 
     /**
@@ -604,7 +598,7 @@ public class Actions {
         success -> {
 
         },
-        error -> this.logError(SEND_GAME_INVITE_REQUEST, error)));
+        this::logError));
     }
 
     /**
@@ -624,7 +618,7 @@ public class Actions {
         success -> {
 
         },
-        error -> this.logError(DECLINE_GAME_INVITE_REQUEST, error)));
+        this::logError));
     }
 
     /**
@@ -702,14 +696,12 @@ public class Actions {
         return mStateManager.copy();
     }
 
-    private void logError(RequestType type, JSONObject error) {
-
-        // TODO Get error codes strings
-
-        var errorString = "Response error -> " + RequestType.toLowerCaseString(type);
-        Logger.log(Level.WARN, errorString);
-        // TODO Enable in production
-        //mTransitions.toastError(errorString.toString());
+    private void logError(JSONObject error) {
+        var codes = error.getJSONArray(FieldNames.CODE);
+        codes.forEach(code -> {
+            Logger.log(Level.WARN, "code -> " + no.ntnu.imt3281.ludo.api.Error.fromInt((int)code).toString());
+        });
+        this.logout();
     }
 
     private static int randomId() {

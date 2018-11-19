@@ -34,7 +34,7 @@ public class API {
             try {
                 mPendingRequests.put(request);
             } catch(InterruptedException e) {
-                Logger.log(Logger.Level.INFO, "mPendingRequests.take() interrupted" + e.toString());
+                Logger.log(Logger.Level.INFO, "mPendingRequests.put() interrupted" + e.toString());
                 return;
             }
 
@@ -47,6 +47,31 @@ public class API {
             }
         }).start();
     }
+
+    /**
+     * Same as above, but without token.
+     *
+     * @param request to be sent to server
+     */
+    public void sendNoToken(Request request) {
+        new Thread(() -> {
+            try {
+                mPendingRequests.put(request);
+            } catch(InterruptedException e) {
+                Logger.log(Logger.Level.INFO, "mPendingRequests.put() interrupted" + e.toString());
+                return;
+            }
+
+            try {
+                Logger.log(Level.DEBUG, "Sending request: " + request.toJSON().toString());
+                mSocketManager.send(request.toJSONWithoutToken().toString());
+            } catch (NullPointerException | IOException e) {
+                Logger.log(Level.WARN, "No connection with server: " + e.toString());
+                mPendingRequests.poll(); // Throw away request to avoid blocking
+            }
+        }).start();
+    }
+
 
     /**
      * Read a message from socket. Determine if the message is a responseType or eventType message.
@@ -121,10 +146,12 @@ public class API {
         }
 
         response.success.forEach(successItem -> {
+            Logger.log(Level.DEBUG, response.type.toLowerCaseString() + " -> success: " + successItem.toString());
             request.onSuccess.run(successItem);
         });
 
         response.error.forEach(errorItem -> {
+            Logger.log(Level.DEBUG, response.type.toLowerCaseString() + " -> error: " + errorItem.toString());
             request.onError.run(errorItem);
         });
     }
