@@ -8,7 +8,6 @@ import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -35,6 +34,9 @@ public class Actions {
         mAPI = API;
     }
 
+    /**
+     * Goto the login screen
+     */
     void gotoLogin() {
         this.startAction("gotoLogin");
 
@@ -44,6 +46,12 @@ public class Actions {
             gState.authToken = "";
             gState.username = "";
             gState.avatarURI = "";
+
+            gState.searchUsers = "";
+            gState.searchChats = "";
+            gState.searchFriends = "";
+            gState.searchGames = "";
+
             gState.activeChats.clear();
             gState.activeGames.clear();
             gState.chatInvites.clear();
@@ -54,7 +62,7 @@ public class Actions {
     }
 
     /**
-     * login user with username and password
+     * Login user with username and password.
      *
      * @param email    valid email
      * @param password valid password
@@ -110,7 +118,7 @@ public class Actions {
     }
 
     /**
-     * Logout the user with user_id stored in state. Remove token and other userdata from state
+     * Logout user. Return to login screen
      */
     public void logout() {
         var state = this.startAction("logout");
@@ -126,7 +134,7 @@ public class Actions {
     }
 
     /**
-     *
+     * Update currently logged in user
      */
     public void updateUser(String username, String email, String password, String avatarURI) {
         var state = this.startAction("updateUser");
@@ -152,7 +160,7 @@ public class Actions {
     }
 
     /**
-     *
+     * Delete currently logged in user
      */
     public void deleteUser() {
         var state = this.startAction("deleteUser");
@@ -166,7 +174,7 @@ public class Actions {
     }
 
     /**
-     * Goto the user scene
+     * Goto the user screen. Get details about logged in user
      */
     public void gotoUser() {
         var state = this.startAction("gotoUser");
@@ -175,7 +183,6 @@ public class Actions {
         payload.put(FieldNames.USER_ID, state.userId);
 
         mAPI.send(mRequests.make(GET_USER_REQUEST, payload, state.authToken, success -> {
-            Logger.log(Level.DEBUG, "Get_user_success");
 
             var user = new User();
             user.json = success;
@@ -193,7 +200,7 @@ public class Actions {
     }
 
     /**
-     * Goto the live scene
+     * Goto the live screen
      */
     public void gotoLive() {
         var state = this.startAction("gotoLive");
@@ -204,7 +211,9 @@ public class Actions {
     }
 
     /**
-     * Goto the overview scene
+     * Goto the overview screen.
+     * Display list of games,chats,friends and users.
+     * Filter the aforementioned lists by the value of each correponding search field.
      */
     public void gotoOverview() {
         var state = this.startAction("gotoOverview");
@@ -328,6 +337,16 @@ public class Actions {
         mTransitions.newGame(clientGameId, game);
     }
 
+    // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE GAME
+    private static JSONObject makeGame() {
+        var gameId = randomId();
+        var game = new JSONObject();
+        game.put(FieldNames.GAME_ID, gameId);
+        game.put(FieldNames.NAME, "Game " + gameId);
+        game.put(FieldNames.PLAYER_ID, new JSONArray(new int[]{}));
+        return game;
+    }
+
 
     /**
      * Create chat and add as active
@@ -355,15 +374,27 @@ public class Actions {
         mTransitions.newChat(clientChatId, chat.json);
     }
 
+    // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE CHAT
+    private static JSONObject makeChat() {
+        var chatId = randomId();
+        var chat = new JSONObject();
+        chat.put(CHAT_ID, chatId);
+        chat.put(FieldNames.NAME, "Chat " + chatId);
+        chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
+        return chat;
+    }
+
 
     /**
+     * Send friend request to a set of users
      *
+     * @param usersId the set of users ids which will receive the friend request
      */
-    public void friend(HashSet<Integer> friendsId) {
+    public void friend(HashSet<Integer> usersId) {
         var state = this.startAction("friend");
 
         var payload = new ArrayList<JSONObject>();
-        friendsId.forEach(friendId -> {
+        usersId.forEach(friendId -> {
             var item = new JSONObject();
             item.put(FieldNames.USER_ID, state.userId);
             item.put(FieldNames.OTHER_ID, friendId);
@@ -378,13 +409,15 @@ public class Actions {
     }
 
     /**
+     * Remove friends, pending friends and ignored users
      *
+     * @param usersId the set of users ids which will be unfriended
      */
-    public void unfriend(HashSet<Integer> friendsId) {
+    public void unfriend(HashSet<Integer> usersId) {
         var state = this.startAction("unfriend");
 
         var payload = new ArrayList<JSONObject>();
-        friendsId.forEach(friendId -> {
+        usersId.forEach(friendId -> {
             var item = new JSONObject();
             item.put(FieldNames.USER_ID, state.userId);
             item.put(FieldNames.OTHER_ID, friendId);
@@ -399,7 +432,9 @@ public class Actions {
     }
 
     /**
+     * Ignore a set of users
      *
+     * @param usersId the users which will be ignored
      */
     public void ignore(HashSet<Integer> usersId) {
         var state = this.startAction("ignore");
@@ -413,26 +448,6 @@ public class Actions {
         });
 
         mAPI.send(mRequests.make(IGNORE_REQUEST, payload, state.authToken, success -> {
-            this.gotoOverview();
-        },
-        this::logError));
-    }
-
-    /**
-     *
-     */
-    public void unignore(HashSet<Integer> usersId) {
-        var state = this.startAction("unignore");
-
-        var payload = new ArrayList<JSONObject>();
-        usersId.forEach(userId -> {
-            var item = new JSONObject();
-            item.put(FieldNames.USER_ID, state.userId);
-            item.put(FieldNames.OTHER_ID, userId);
-            payload.add(item);
-        });
-
-        mAPI.send(mRequests.make(UNFRIEND_REQUEST, payload, state.authToken, success -> {
             this.gotoOverview();
         },
         this::logError));
@@ -698,17 +713,42 @@ public class Actions {
         var state = this.startAction("getGameState");
     }
 
+    /**
+     *
+     */
+    void friendUpdate() {
 
-    void friendUpdate() {}
-    void chatUpdate() {}
+    }
+    void chatUpdate() {
+
+    }
+
+    /**
+     *
+     */
     void chatInvite(ArrayList<JSONObject> chats) {}
+
+    /**
+     *
+     */
     void chatMessage(ArrayList<JSONObject> messages) {}
+
+    /**
+     *
+     */
     void gameUpdate(ArrayList<JSONObject> games) {}
+
+    /**
+     *
+     */
     void gameInvite(ArrayList<JSONObject> gameInvites) {}
+
+    /**
+     *
+     */
     void forceLogout() {
         this.gotoLogin();
     }
-
 
     /**
      * Do prep-work for each action.
@@ -729,23 +769,5 @@ public class Actions {
 
     private static int randomId() {
         return ThreadLocalRandom.current().nextInt(1000000, 9999999);
-    }
-
-    private static JSONObject makeGame() {
-        var gameId = randomId();
-        var game = new JSONObject();
-        game.put(FieldNames.GAME_ID, gameId);
-        game.put(FieldNames.NAME, "Game " + gameId);
-        game.put(FieldNames.PLAYER_ID, new JSONArray(new int[]{}));
-        return game;
-    }
-
-    private static JSONObject makeChat() {
-        var chatId = randomId();
-        var chat = new JSONObject();
-        chat.put(CHAT_ID, chatId);
-        chat.put(FieldNames.NAME, "Chat " + chatId);
-        chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
-        return chat;
     }
 }

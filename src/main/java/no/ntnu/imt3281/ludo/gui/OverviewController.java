@@ -275,7 +275,7 @@ public class OverviewController extends BaseController {
 
     @FXML void onUnignore(ActionEvent event) {
         if (mSelectedIgnored.size() == 0) return;
-        mActions.unignore(mSelectedIgnored);
+        mActions.unfriend(mSelectedIgnored);
     }
 
     @FXML
