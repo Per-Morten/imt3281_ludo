@@ -174,15 +174,12 @@ class TestUtility {
 
         context.socket.setOnReceiveCallback((string) -> {
             var msg = new JSONObject(string);
-            Logger.log(Logger.Level.DEBUG, "Received Message: %s", string);
 
             if (ResponseType.fromString(msg.getString(FieldNames.TYPE)) != null) {
                 var type = ResponseType.fromString(msg.getString(FieldNames.TYPE));
 
                 if (internalCount.get() < 2) {
                     if (type == ResponseType.CREATE_USER_RESPONSE) {
-                        Logger.log(Logger.Level.DEBUG, "Sending Login Request");
-
                         var successes = msg.getJSONArray(FieldNames.SUCCESS);
                         assertEquals(1, successes.length());
                         TestUtility.sendMessage(context.socket, createLoginRequest(email, pwd));
@@ -190,7 +187,6 @@ class TestUtility {
                     }
 
                     if (type == ResponseType.LOGIN_RESPONSE) {
-                        Logger.log(Logger.Level.DEBUG, "Received Login Response");
                         var successes = msg.getJSONArray(FieldNames.SUCCESS);
                         assertEquals(1, successes.length());
                         var user = successes.getJSONObject(0);
@@ -231,15 +227,8 @@ class TestUtility {
         }
     }
 
-    public static void sendMessage(SocketManager socket, JSONObject message) {
-        try {
-            socket.send(message.toString());
-        } catch (IOException e) {
-            fail();
-        }
-    }
 
-    static void runTestWithExistingUser(String username, String email, String password, BiConsumer<TestContext, JSONObject> onReceiveCallback) {
+    static void runTestWithExistingUser(Database.User user, BiConsumer<TestContext, JSONObject> onReceiveCallback) {
         final var context = new TestContext();
 
         context.running = new AtomicBoolean(true);
@@ -258,8 +247,10 @@ class TestUtility {
                     if (type == ResponseType.LOGIN_RESPONSE) {
                         var successes = msg.getJSONArray(FieldNames.SUCCESS);
                         assertEquals(1, successes.length());
-                        var user = successes.getJSONObject(0);
-                        context.user = new Database.User(user.getInt(FieldNames.USER_ID), username, null, email, null, user.getString(FieldNames.AUTH_TOKEN), password);
+                        var userJSON = successes.getJSONObject(0);
+                        user.id = userJSON.getInt(FieldNames.USER_ID);
+                        user.token = userJSON.getString(FieldNames.AUTH_TOKEN);
+                        context.user = user;
                         internalCount.incrementAndGet();
                     }
                 }
@@ -270,7 +261,7 @@ class TestUtility {
 
         try {
             context.socket.start();
-            context.socket.send(TestUtility.createLoginRequest(email, password).toString());
+            context.socket.send(TestUtility.createLoginRequest(user.email, user.password).toString());
         } catch (Exception e) {
             Logger.logException(Logger.Level.WARN, e, "Test Threw Exception:");
             fail();
@@ -292,8 +283,13 @@ class TestUtility {
         }
     }
 
-    static void runTestWithExistingUser(Database.User user, BiConsumer<TestContext, JSONObject> onReceiveCallback) {
-        runTestWithExistingUser(user.username, user.email, user.password, onReceiveCallback);
+
+    public static void sendMessage(SocketManager socket, JSONObject message) {
+        try {
+            socket.send(message.toString());
+        } catch (IOException e) {
+            fail();
+        }
     }
 
     private static String generatePWD() {
