@@ -1,7 +1,9 @@
 package no.ntnu.imt3281.ludo.api;
 
 import no.ntnu.imt3281.ludo.client.SocketManager;
+import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.NetworkConfig;
+import no.ntnu.imt3281.ludo.server.Database;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -13,6 +15,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -182,9 +185,81 @@ class TestUtility {
         }
     }
 
+    static void runTestWithNewUser(String username, String email, String password, BiConsumer<TestContext, JSONObject> onReceiveCallback) {
+        final var context = new TestContext();
+
+        context.running = new AtomicBoolean(true);
+        context.count = new AtomicInteger(0);
+        context.socket = new SocketManager(InetAddress.getLoopbackAddress(), NetworkConfig.LISTENING_PORT);
+
+        // Used to ensure that the onReceiveCallback of this function don't interferes with
+        final var internalCount = new AtomicInteger(0);
+
+        context.socket.setOnReceiveCallback((string) -> {
+            var msg = new JSONObject(string);
+            if (ResponseType.fromString(msg.getString(FieldNames.TYPE)) != null) {
+                var type = ResponseType.fromString(msg.getString(FieldNames.TYPE));
+
+                if (internalCount.get() < 2) {
+                    if (type == ResponseType.CREATE_USER_RESPONSE) {
+                        var successes = msg.getJSONArray(FieldNames.SUCCESS);
+                        assertEquals(1, successes.length());
+                        TestUtility.sendMessage(context.socket, createLoginRequest(email, password));
+                        internalCount.incrementAndGet();
+                    }
+
+                    if (type == ResponseType.LOGIN_RESPONSE) {
+                        var successes = msg.getJSONArray(FieldNames.SUCCESS);
+                        assertEquals(1, successes.length());
+                        var user = successes.getJSONObject(0);
+                        context.user = new Database.User(user.getInt(FieldNames.USER_ID), username, null, email, null, user.getString(FieldNames.AUTH_TOKEN), password);
+                        internalCount.incrementAndGet();
+                    }
+                }
+
+                onReceiveCallback.accept(context, msg);
+            }
+        });
+
+        try {
+            context.socket.start();
+            context.socket.send(TestUtility.createUserRequest(username, email, password).toString());
+        } catch (Exception e) {
+            Logger.logException(Logger.Level.WARN, e, "Test Threw Exception:");
+            fail();
+        }
+
+        long end = System.currentTimeMillis() + TIMEOUT_TIME_MS;
+        while (context.running.get() && System.currentTimeMillis() < end) {
+
+        }
+
+        if (context.running.get()) {
+            fail("Timed out");
+        }
+
+        try {
+            context.socket.stop();
+        } catch (Exception e) {
+            fail();
+        }
+    }
+
+        public static void sendMessage(SocketManager socket, JSONObject message) {
+        try {
+            socket.send(message.toString());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
+    // Probably need to create lots of callbacks within each other.
+    // However, not being able to log in should always fail.
+
     static class TestContext {
         AtomicBoolean running;
         AtomicInteger count;
         SocketManager socket;
+        Database.User user;
     }
 }
