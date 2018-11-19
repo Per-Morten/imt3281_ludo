@@ -114,6 +114,9 @@ public class Connection {
             mSocketWriter.flush();
         } catch(Exception e) {
             onException(e);
+            if (mOnSocketClosed != null) {
+                mOnSocketClosed.run();
+            }
         }
     }
 
@@ -127,15 +130,17 @@ public class Connection {
             onException(e);
         } finally {
             mRunning.set(false);
+
+            // Need this also in the case where we are actually closing the connection.
+            if (mOnSocketClosed != null) {
+                mOnSocketClosed.run();
+            }
         }
     }
 
     private void onException(Exception e) {
         if (!e.getMessage().equals("Socket closed") && !mRunning.get()) {
             Logger.logException(Logger.Level.WARN, e, "Connection closed unexpectedly");
-        }
-        if (mOnSocketClosed != null) {
-            mOnSocketClosed.run();
         }
         mRunning.set(false);
     }

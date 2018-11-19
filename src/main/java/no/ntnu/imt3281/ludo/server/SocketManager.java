@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * SocketManager for the server side of the application. Handles sending and
@@ -36,6 +37,8 @@ public class SocketManager {
     // Need specific callback for logging in and creating user, so we can map user
     // id to socket.
     private Consumer<Message> mOnReceiveCallback;
+    private Consumer<Long> mOnDisconnectCallback;
+
     private Thread mThread;
     private AtomicBoolean mRunning;
     private int mListeningPort;
@@ -77,6 +80,15 @@ public class SocketManager {
     }
 
     /**
+     * Sets the callback to use when a client is disconnecting. This must be done before the manager is started.
+     * Note: This only happens if the user was ever logged in (i.e. tied to a userID).
+     * @param onDisconnectCallback
+     */
+    public void setOnDisconnectCallback(Consumer<Long> onDisconnectCallback) {
+        mOnDisconnectCallback = onDisconnectCallback;
+    }
+
+    /**
      * Starts the serversocket listening for incoming connections on the port. The
      * SocketManager runs in its own thread. It crashes the entire application in
      * the case where it cannot start the thread or establish the socket.
@@ -115,7 +127,6 @@ public class SocketManager {
         // readlines,
         // so an ugly but working solution to stop blocking readlines is to close the
         // sockets.
-        // * Instead of closing all sockets within the hashmap, I need to close all sockets with a negative id.
         for (var s : mSockets.values()) {
             try {
                 s.stop();
@@ -123,6 +134,8 @@ public class SocketManager {
                 Logger.logException(Logger.Level.WARN,e , "Exception Encountered when closing client sockets");
             }
         }
+
+        mUserSockets.clear();
 
         try {
             mThread.join();
@@ -184,6 +197,10 @@ public class SocketManager {
         // Need to fix that case.
         // Can we force all sockets in mUserSockets to be unique?
         var socket = mSockets.get(socketID);
+        if (socket == null) {
+            Logger.log(Logger.Level.WARN, "Tried to assign userID %d to socket %d, they have already disconnected!", socketID, userID);
+            return;
+        }
 
         if (mUserSockets.containsValue(socket)) {
             Logger.log(Logger.Level.WARN, "mUserSocket already contains the value identified by %d", socketID);
@@ -214,12 +231,15 @@ public class SocketManager {
                     });
 
                     connection.setOnSocketClosed(() -> {
-                        // TODO: Also need to act as if the user logged out here! Probably need another callback,
-                        //       If they don't exist in the user sockets set, that means that they were never logged in to begin with, so don't need to care about them then.
-
-
                         mSockets.remove(newSocketId);
-                        mUserSockets.entrySet().removeIf((entry) -> entry.getValue().equals(connection));
+
+                        // Should just be 1.
+                        var entries = mUserSockets.entrySet().stream().filter((item) -> item.getValue().equals(connection)).collect(Collectors.toList());
+                        if (!entries.isEmpty()) {
+                            var id = entries.get(0).getKey();
+                            mUserSockets.remove(id);
+                            mOnDisconnectCallback.accept(id);
+                        }
                     });
 
                     connection.start();
