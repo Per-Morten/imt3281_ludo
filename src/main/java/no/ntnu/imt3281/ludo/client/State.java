@@ -28,15 +28,10 @@ public class State {
     //
     // In-memory state- cleared on every startup
     //
-    public Map<Integer, User> userlist = new HashMap<>();
-    public Map<Integer, Chat> chatlist = new HashMap<>();
-    public Map<Integer, JSONObject> gamelist = new HashMap<>();
-    public Map<Integer, JSONObject> friendlist = new HashMap<>();
-
-    public Set<Integer> activeGames = new HashSet<>();
-    public Set<Integer> activeChats = new HashSet<>();
-    public Set<Integer> chatInvites = new HashSet<>();
-    public Set<Integer> gameInvites = new HashSet<>();
+    public Map<Integer, JSONObject> activeGames = new HashMap<>();
+    public Map<Integer, JSONObject> activeChats = new HashMap<>();
+    public Map<Integer, JSONObject> gameInvites = new HashMap<>();
+    public Map<Integer, JSONObject> chatInvites = new HashMap<>();
 
     private static final String filepath = "client-state.json";
 
@@ -47,14 +42,12 @@ public class State {
         copy.email = state.email;
         copy.userId = state.userId;
         copy.avatarURI = state.avatarURI;
-        copy.activeChats.addAll(state.activeChats);
-        copy.activeChats.addAll(state.activeChats);
-        copy.gameInvites.addAll(state.gameInvites);
-        copy.chatInvites.addAll(state.chatInvites);
-        copy.userlist.putAll(state.userlist);
-        copy.chatlist.putAll(state.chatlist);
-        copy.gamelist.putAll(state.gamelist);
-        copy.friendlist.putAll(state.gamelist);
+
+        copy.activeChats.putAll(state.activeChats);
+        copy.activeChats.putAll(state.activeChats);
+        copy.gameInvites.putAll(state.gameInvites);
+        copy.chatInvites.putAll(state.chatInvites);
+
         return copy;
     }
 

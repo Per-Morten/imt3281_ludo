@@ -92,7 +92,7 @@
                         <Button fx:id="mUnignore" mnemonicParsing="false" onAction="#onUnignore" prefHeight="30.0" prefWidth="1000.0" text="Unignore" />
                         <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="400.0" VBox.vgrow="ALWAYS">
                            <content>
-                              <VBox fx:id="mBoxUsers" prefHeight="400.0" prefWidth="400.0" />
+                              <VBox fx:id="mListUsers" prefHeight="400.0" prefWidth="400.0" />
                            </content>
                         </ScrollPane>
                             </children>

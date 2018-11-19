@@ -10,9 +10,7 @@ import javafx.scene.paint.Color;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ResourceBundle;
+import java.util.*;
 
 import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.api.FieldNames;
@@ -22,6 +20,8 @@ import no.ntnu.imt3281.ludo.client.StateManager;
 import no.ntnu.imt3281.ludo.client.User;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Controls FXML Controllers and how they transition
@@ -107,7 +107,7 @@ public class Transitions {
         Platform.runLater(()-> {
             liveController.mTabGames.getTabs().clear();
 
-            state.activeGames.forEach(id -> {
+            state.activeGames.forEach((id, game) -> {
                 var gameTab = this.loadFXML(Path.GAME_TAB, id);
                 Tab tab = new Tab("Game" + id);
                 tab.setContent(gameTab.root);
@@ -127,7 +127,7 @@ public class Transitions {
         Platform.runLater(()-> {
             liveController.mTabChats.getTabs().clear();
 
-            state.activeChats.forEach(id -> {
+            state.activeChats.forEach((id, chat) -> {
                 var chatTab = this.loadFXML(Path.CHAT_TAB, id);
                 Tab tab = new Tab("Chat" + id);
                 tab.setContent(chatTab.root);
@@ -153,17 +153,17 @@ public class Transitions {
     /**
      *
      */
-    public void renderGameList() {
+    public void renderGamesList(Map<Integer, JSONObject> activeGames, Map<Integer, JSONObject> gameInvites) {
 
         var overview = (OverviewController)this.getController(Path.OVERVIEW);
-        var state = mStateManager.copy();
 
         Platform.runLater(()-> {
 
-            state.activeGames.forEach(id -> {
+            overview.mListGames.getChildren().clear();
+
+            activeGames.forEach((id, game) -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
-                var game = state.gamelist.get(id);
                 var name = game.getString(FieldNames.NAME);
                 var playerCount = game.getJSONArray(FieldNames.PLAYER_ID).length();
 
@@ -173,11 +173,10 @@ public class Transitions {
                 overview.mListGames.getChildren().add(item.root);
             });
 
-            state.gameInvites.forEach(id -> {
+            gameInvites.forEach((id, gameInvite) -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
-                var game = state.gamelist.get(id);
-                var name = game.getString(FieldNames.NAME);
+                var name = gameInvite.getString(FieldNames.NAME);
 
                 itemController.init(ListItemType.GAME_INVITE, id, overview, name + " invite"); // TODO i18n
                 overview.mListGames.getChildren().add(item.root);
@@ -188,30 +187,29 @@ public class Transitions {
     /**
      *
      */
-    public void renderChatList() {
+    public void renderChatsList(Map<Integer, JSONObject> activeChats, Map<Integer, JSONObject> chatInvites) {
         var overview = (OverviewController)this.getController(Path.OVERVIEW);
-        var state = mStateManager.copy();
 
         Platform.runLater(()-> {
 
-            state.activeChats.forEach(id -> {
+            overview.mListChats.getChildren().clear();
+
+            activeChats.forEach((id, chat) -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
-                var chat = state.chatlist.get(id);
-                var name = chat.json.getString(FieldNames.NAME);
-                var participantCount = chat.json.getJSONArray(FieldNames.PARTICIPANT_ID).length();
+                var name = chat.getString(FieldNames.NAME);
+                var participantCount = chat.getJSONArray(FieldNames.PARTICIPANT_ID).length();
 
                 itemController.init(ListItemType.CHAT, id, overview, name + " ["+ participantCount+" people]"); // TODO i18n
                 overview.mListChats.getChildren().add(item.root);
             });
 
-            state.chatInvites.forEach(id -> {
+            chatInvites.forEach((id,chatInvite) -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
-                var chat = state.chatlist.get(id);
-                var name = chat.json.getString(FieldNames.NAME);
+                var name = chatInvite.getString(FieldNames.NAME);
 
                 itemController.init(ListItemType.CHAT_INVITE, id, overview, name + " invite");// TODO i18n
                 overview.mListChats.getChildren().add(item.root);
@@ -222,14 +220,17 @@ public class Transitions {
     /**
      *
      */
-    public void renderFriendList() {
+    public void renderFriendList(ArrayList<JSONObject> friendsList) {
         var overview = (OverviewController)this.getController(Path.OVERVIEW);
-        var state = mStateManager.copy();
 
         Platform.runLater(()-> {
-            state.friendlist.forEach((id, friend) -> {
+            overview.mListFriends.getChildren().clear();
+
+            friendsList.forEach((friend) -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController)item.controller;
+
+                var userId = friend.getInt(FieldNames.USER_ID);
                 var name = friend.getString(FieldNames.USERNAME);
                 var status = FriendStatus.fromInt(friend.getInt(FieldNames.STATUS));
                 if (status == null) {
@@ -239,13 +240,13 @@ public class Transitions {
 
                 switch (status) {
                     case FRIENDED:
-                        itemController.init(ListItemType.FRIEND, id, overview, name);
-                        overview.mBoxFriends.getChildren().add(item.root);
+                        itemController.init(ListItemType.FRIEND, userId, overview, name);
+                        overview.mListFriends.getChildren().add(item.root);
                         break;
 
                     case PENDING:
-                        itemController.init(ListItemType.FRIEND_REQUEST, id, overview, name + " [pending]"); // TODO i18n
-                        overview.mBoxFriends.getChildren().add(item.root);
+                        itemController.init(ListItemType.FRIEND_REQUEST, userId, overview, name + " [pending]"); // TODO i18n
+                        overview.mListFriends.getChildren().add(item.root);
                         break;
                 }
             });
@@ -255,24 +256,28 @@ public class Transitions {
     /**
      *
      */
-    public void renderUserList() {
+    public void renderUserList(ArrayList<JSONObject> usersList, ArrayList<JSONObject> friendsList) {
         var overview = (OverviewController)this.getController(Path.OVERVIEW);
-        var state = mStateManager.copy();
 
         Platform.runLater(()-> {
+            overview.mListUsers.getChildren().clear();
 
-            state.userlist.forEach((id, user) -> {
+            usersList.forEach(user -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController)item.controller;
-                var name = user.json.getString(FieldNames.USERNAME);
 
-                itemController.init(ListItemType.USER, id, overview, name);
-                overview.mBoxUsers.getChildren().add(item.root);
+                var userId = user.getInt(FieldNames.USER_ID);
+                var name = user.getString(FieldNames.USERNAME);
+
+                itemController.init(ListItemType.USER, userId, overview, name);
+                overview.mListUsers.getChildren().add(item.root);
             });
 
-            state.friendlist.forEach((id, friend) -> {
+            friendsList.forEach(friend -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController)item.controller;
+
+                var friendId = friend.getInt(FieldNames.USER_ID);
                 var name = friend.getString(FieldNames.USERNAME);
                 var status = FriendStatus.fromInt(friend.getInt(FieldNames.STATUS));
                 if (status == null) {
@@ -282,8 +287,8 @@ public class Transitions {
 
                 switch (status) {
                     case IGNORED:
-                        itemController.init(ListItemType.USER_IGNORED, id, overview, name + " [ignored]"); // TODO i18n
-                        overview.mBoxUsers.getChildren().add(item.root);
+                        itemController.init(ListItemType.USER_IGNORED, friendId, overview, name + " [ignored]"); // TODO i18n
+                        overview.mListUsers.getChildren().add(item.root);
                         break;
                 }
             });
@@ -293,7 +298,7 @@ public class Transitions {
     /**
      *
      */
-    public void newGame(int id) {
+    public void newGame(int id, JSONObject game) {
         var live = (LiveController)this.getController(Path.LIVE);
 
         Platform.runLater(() -> {
@@ -304,7 +309,7 @@ public class Transitions {
         });
     }
 
-    public void newChat(int id) {
+    public void newChat(int id, JSONObject chat) {
         var live = (LiveController)this.getController(Path.LIVE);
         var chatTab = this.loadFXML(Path.CHAT_TAB, id);
         var chatTabController = (ChatTabController)chatTab.controller;
@@ -320,20 +325,17 @@ public class Transitions {
     /**
      *
      */
-    public void newMessage(int chatId, int userId, String message) {
+    public void newMessage(int chatId, String username, String message) {
         var chat = (ChatTabController)this.getController(Path.CHAT_TAB, chatId);
         var state = mStateManager.copy();
 
         Platform.runLater(() -> {
-            var user = state.userlist.get(userId);
-            var username = user.json.getString(FieldNames.USERNAME);
-            var avatarURI = user.json.getString(FieldNames.AVATAR_URI);
 
             var chatItem = this.loadFXML(Path.CHAT_ITEM);
             var chatItemController = (ChatItemController)chatItem.controller;
             chatItemController.mMessage.setText(username + ": " + message);
             chat.mMessageList.getChildren().add(chatItem.root);
-            chatItemController.mAvatar.setImage(user.avatar);
+            chatItemController.mAvatar.setImage(new Image(Path.DEFAULT_AVATAR));
         });
     }
 

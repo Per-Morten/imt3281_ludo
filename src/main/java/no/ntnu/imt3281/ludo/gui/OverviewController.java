@@ -49,9 +49,9 @@ public class OverviewController extends BaseController {
     @FXML
     VBox mListChats;
     @FXML
-    VBox mBoxFriends;
+    VBox mListFriends;
     @FXML
-    VBox mBoxUsers;
+    VBox mListUsers;
 
     private HashSet<Integer> mSelectedGames = new HashSet<>();
     private HashSet<Integer> mSelectedGameInvites = new HashSet<>();
@@ -275,11 +275,11 @@ public class OverviewController extends BaseController {
         assert mAcceptFriendRequest != null : "fx:id=\"mAcceptFriendRequest\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mIgnoreFriend != null : "fx:id=\"mIgnoreFriend\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mUnfriend != null : "fx:id=\"mUnfriend\" was not injected: check your FXML file 'Overview.fxml'.";
-        assert mBoxFriends != null : "fx:id=\"mBoxFriends\" was not injected: check your FXML file 'Overview.fxml'.";
+        assert mListFriends != null : "fx:id=\"mListFriends\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mSendFriendRequest != null : "fx:id=\"mSendFriendRequest\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mIgnoreUser != null : "fx:id=\"mIgnoreUser\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mUnignore != null : "fx:id=\"mUnignore\" was not injected: check your FXML file 'Overview.fxml'.";
-        assert mBoxUsers != null : "fx:id=\"mBoxUsers\" was not injected: check your FXML file 'Overview.fxml'.";
+        assert mListUsers != null : "fx:id=\"mListUsers\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mBtnUser != null : "fx:id=\"mBtnUser\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mBtnLive != null : "fx:id=\"mBtnLive\" was not injected: check your FXML file 'Overview.fxml'.";
         assert mBtnLogout != null : "fx:id=\"mBtnLogout\" was not injected: check your FXML file 'Overview.fxml'.";
