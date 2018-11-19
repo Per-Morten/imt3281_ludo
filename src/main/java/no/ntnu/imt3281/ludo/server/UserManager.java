@@ -1,7 +1,7 @@
 package no.ntnu.imt3281.ludo.server;
 
-import no.ntnu.imt3281.ludo.api.*;
 import no.ntnu.imt3281.ludo.api.Error;
+import no.ntnu.imt3281.ludo.api.*;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.MessageUtility;
 import org.json.JSONArray;
@@ -253,6 +253,18 @@ public class UserManager {
         });
     }
 
+    /**
+     * Parses and executes the given friend requests.
+     * When a friend request is initiated, the relationship is given a pending value (as it has not been confirmed by someone else yet)
+     * When a pending friend request is accepted (by the other person) the relationship is given the value of friended.
+     * Both when a friend request is initiated, and when it is accepted both the users will be notified that they should update their friend lists.
+     *
+     * @param ignored
+     * @param requests      JSONArray containing the friend requests
+     * @param successes     JSONArray where the successes should be appended.
+     * @param errors        JSONArray where the errors should be appended.
+     * @param usersToNotify List of the users to notify when a friend request is initiated or accepted.
+     */
     public void friend(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors, List<Integer> usersToNotify) {
         MessageUtility.each(requests, (requestID, request) -> {
 
@@ -287,12 +299,12 @@ public class UserManager {
 
                     // We have a relationship from before, and I (userID) am not the one who initiated it.
                 } else if (currentRelationship[0].rowID > currentRelationship[1].rowID &&
-                           Arrays.stream(currentRelationship).allMatch(value -> value.status == FriendStatus.PENDING)) {
+                        Arrays.stream(currentRelationship).allMatch(value -> value.status == FriendStatus.PENDING)) {
 
-                        mDB.setRelationshipStatus(userID, friendID, FriendStatus.FRIENDED);
-                        mDB.setRelationshipStatus(friendID, userID, FriendStatus.FRIENDED);
-                        usersToNotify.add(userID);
-                        usersToNotify.add(friendID);
+                    mDB.setRelationshipStatus(userID, friendID, FriendStatus.FRIENDED);
+                    mDB.setRelationshipStatus(friendID, userID, FriendStatus.FRIENDED);
+                    usersToNotify.add(userID);
+                    usersToNotify.add(friendID);
 
                 }  // The last case: One of us is ignoring the other!
 
@@ -304,7 +316,19 @@ public class UserManager {
         });
     }
 
-
+    /**
+     * Parses and executes the given unfriend requests.
+     * Unfriend requests on people who have never been friends does not create a relationship between two users.
+     * In the case where a user is ignored, trying to unfriend the user that has ignored them will not clear the
+     * "ignored" value from the other users perspective.
+     * However, in the case where a user unfriends someone they have ignored, their "view" of the relationship will
+     * change to unfriended, allowing the newly unfriended user to make a friend request should they so desired.
+     *
+     * @param ignored
+     * @param requests JSONArray containing the unfriend requests
+     * @param successes JSONArray where the successes should be appended.
+     * @param errors JSONArray where the errors should be appended.
+     */
     public void unfriend(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
         MessageUtility.each(requests, (requestID, request) -> {
             var userID = request.getInt(FieldNames.USER_ID);
@@ -346,6 +370,16 @@ public class UserManager {
         });
     }
 
+    /**
+     * Parses and executes the given ignore requests.
+     * Unless two users are friends (then one party must unfriend first) ignore request always succeeds (given valid user and friend id's are supplied),
+     * even in the case where two users have never had a relationship with each other a user can ignore another one.
+     *
+     * @param ignored
+     * @param requests JSONArray containing the ignore requests
+     * @param successes JSONArray where the successes should be appended.
+     * @param errors JSONArray where the errors should be appended.
+     */
     public void ignore(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
         MessageUtility.each(requests, (requestID, request) -> {
             var userID = request.getInt(FieldNames.USER_ID);
@@ -357,6 +391,11 @@ public class UserManager {
             }
 
             try {
+                if (mDB.getUserByID(friendID) == null) {
+                    MessageUtility.appendError(errors, requestID, Error.OTHER_ID_NOT_FOUND);
+                    return;
+                }
+
                 var currentRelationship = mDB.getRelationship(userID, friendID);
                 if (currentRelationship != null) {
                     if (Arrays.stream(currentRelationship).anyMatch(value -> value.status == FriendStatus.FRIENDED)) {
@@ -433,7 +472,7 @@ public class UserManager {
             }
         }
 
-        return true;
+        return false;
     }
 
     private String randomGenerateSalt() {
