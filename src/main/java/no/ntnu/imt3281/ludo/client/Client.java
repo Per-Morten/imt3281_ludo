@@ -64,7 +64,7 @@ public class Client extends Application {
         // Start socket
         try {
             mSocketManager.start();
-        } catch (IOException|NullPointerException e) {
+        } catch (IOException | NullPointerException e) {
             Logger.log(Level.WARN, "Could not create connection: " + e.toString());
         }
 
@@ -93,7 +93,7 @@ public class Client extends Application {
 
         try {
             mSocketManager.stop();
-        } catch (InterruptedException|NullPointerException e) {
+        } catch (InterruptedException | NullPointerException e) {
             Logger.log(Level.WARN, "Trying to stop non-existing connection: " + e.toString());
         }
         mStateManager.dump();

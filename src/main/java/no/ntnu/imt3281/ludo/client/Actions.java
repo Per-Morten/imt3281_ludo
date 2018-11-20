@@ -27,7 +27,8 @@ public class Actions implements API.Events {
      * Bind dependencies of Actions
      *
      * @param transitions to mutate the FXML state
-     * @param API to push requests to server, and get responses + events from server
+     * @param API         to push requests to server, and get responses + events
+     *                    from server
      */
     void bind(Transitions transitions, API API, StateManager stateManager) {
         mTransitions = transitions;
@@ -116,7 +117,6 @@ public class Actions implements API.Events {
         });
     }
 
-
     /**
      * Logout user. Return to login screen
      */
@@ -167,7 +167,7 @@ public class Actions implements API.Events {
 
         send(DELETE_USER_REQUEST, payload, success -> {
             this.logout();
-        
+
         });
     }
 
@@ -209,9 +209,9 @@ public class Actions implements API.Events {
     }
 
     /**
-     * Goto the overview screen.
-     * Display list of games,chats,friends and users.
-     * Filter the aforementioned lists by the value of each correponding search field.
+     * Goto the overview screen. Display list of games,chats,friends and users.
+     * Filter the aforementioned lists by the value of each correponding search
+     * field.
      */
     public void gotoOverview() {
         this.logAction("gotoOverview");
@@ -219,26 +219,20 @@ public class Actions implements API.Events {
         var stateCopy = mState.copy();
 
         // Filter based on search
-        var filteredGames = stateCopy.activeGames.values().stream()
-                .filter(game -> game.getString(FieldNames.NAME).toUpperCase()
-                        .contains(stateCopy.searchGames.toUpperCase()))
+        var filteredGames = stateCopy.activeGames.values().stream().filter(
+                game -> game.getString(FieldNames.NAME).toUpperCase().contains(stateCopy.searchGames.toUpperCase()))
                 .collect(Collectors.toList());
 
-        var filteredGameInvites = stateCopy.gameInvites.values().stream()
-                .filter(gameInv -> gameInv.getString(FieldNames.NAME).toUpperCase()
-                            .contains(stateCopy.searchGames.toUpperCase()))
+        var filteredGameInvites = stateCopy.gameInvites.values().stream().filter(gameInv -> gameInv
+                .getString(FieldNames.NAME).toUpperCase().contains(stateCopy.searchGames.toUpperCase()))
                 .collect(Collectors.toList());
 
-        var filteredChats = stateCopy.activeChats.values().stream()
-                .filter(chat -> chat.json.getString(FieldNames.NAME).toUpperCase()
-                            .contains(stateCopy.searchChats.toUpperCase()))
-                .collect(Collectors.toList());
+        var filteredChats = stateCopy.activeChats.values().stream().filter(chat -> chat.json.getString(FieldNames.NAME)
+                .toUpperCase().contains(stateCopy.searchChats.toUpperCase())).collect(Collectors.toList());
 
-        var filteredChatInvites = stateCopy.chatInvites.values().stream()
-                .filter(chatInv -> chatInv.getString(FieldNames.NAME).toUpperCase()
-                        .contains(stateCopy.searchChats.toUpperCase()))
+        var filteredChatInvites = stateCopy.chatInvites.values().stream().filter(chatInv -> chatInv
+                .getString(FieldNames.NAME).toUpperCase().contains(stateCopy.searchChats.toUpperCase()))
                 .collect(Collectors.toList());
-
 
         mTransitions.renderOverview();
         mTransitions.renderGamesList(filteredGames, filteredGameInvites);
@@ -255,7 +249,7 @@ public class Actions implements API.Events {
             var friendsList = new ArrayList<JSONObject>();
 
             friendsRange.forEach(friend -> {
-                friendsList.add((JSONObject)friend);
+                friendsList.add((JSONObject) friend);
             });
 
             // Filter friends by search
@@ -265,9 +259,7 @@ public class Actions implements API.Events {
                             .contains(stateCopy.searchFriends.toUpperCase()))
                     .collect(Collectors.toList());
 
-
             mTransitions.renderFriendList(filteredFriendsList);
-
 
             // Get user range
             send(GET_USER_RANGE_REQUEST, payload, successUsers -> {
@@ -276,12 +268,12 @@ public class Actions implements API.Events {
                 var usersList = new ArrayList<JSONObject>();
                 usersRange.forEach(user -> {
 
-                    var userjson = (JSONObject)user;
+                    var userjson = (JSONObject) user;
                     int userId = userjson.getInt(FieldNames.USER_ID);
 
                     // Only add users who are not in the friends list
                     boolean found = false;
-                    for (var friend: friendsList) {
+                    for (var friend : friendsList) {
                         var friendId = friend.getInt(FieldNames.USER_ID);
                         if (friendId == userId || userId == stateCopy.userId) {
                             found = true;
@@ -289,15 +281,13 @@ public class Actions implements API.Events {
                         }
                     }
                     if (!found) {
-                        usersList.add((JSONObject)user);
+                        usersList.add((JSONObject) user);
                     }
                 });
 
                 // Filter user by search
-                var filteredUserList = usersList.stream()
-                        .filter(user -> user.getString(FieldNames.USERNAME).toUpperCase()
-                                .contains(stateCopy.searchUsers.toUpperCase()))
-                        .collect(Collectors.toList());
+                var filteredUserList = usersList.stream().filter(user -> user.getString(FieldNames.USERNAME)
+                        .toUpperCase().contains(stateCopy.searchUsers.toUpperCase())).collect(Collectors.toList());
 
                 // Filter ignored by search
                 var filteredIgnoredList = friendsList.stream()
@@ -307,7 +297,7 @@ public class Actions implements API.Events {
                         .collect(Collectors.toList());
 
                 mTransitions.renderUserList(filteredUserList, filteredIgnoredList);
-            
+
             });
         });
     }
@@ -342,10 +332,9 @@ public class Actions implements API.Events {
         var game = new JSONObject();
         game.put(FieldNames.GAME_ID, gameId);
         game.put(FieldNames.NAME, "Game " + gameId);
-        game.put(FieldNames.PLAYER_ID, new JSONArray(new int[]{}));
+        game.put(FieldNames.PLAYER_ID, new JSONArray(new int[] {}));
         return game;
     }
-
 
     /**
      * Create chat and add as active
@@ -368,7 +357,7 @@ public class Actions implements API.Events {
         chat.json = chatJSON;
         chat.json.put(FieldNames.NAME, chatName);
         mState.commit(state -> {
-            state.activeChats.put(clientChatId , chat);
+            state.activeChats.put(clientChatId, chat);
         });
         mTransitions.newChat(clientChatId, chat.json);
     }
@@ -379,10 +368,9 @@ public class Actions implements API.Events {
         var chat = new JSONObject();
         chat.put(CHAT_ID, chatId);
         chat.put(FieldNames.NAME, "Chat " + chatId);
-        chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
+        chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[] {}));
         return chat;
     }
-
 
     /**
      * Send friend request to a set of users
@@ -402,7 +390,7 @@ public class Actions implements API.Events {
 
         send(FRIEND_REQUEST, payload, success -> {
             this.gotoOverview();
-    
+
         });
     }
 
@@ -446,7 +434,7 @@ public class Actions implements API.Events {
 
         send(IGNORE_REQUEST, payload, success -> {
             this.gotoOverview();
-        
+
         });
     }
 
@@ -489,7 +477,7 @@ public class Actions implements API.Events {
         });
 
         mState.commit(state -> {
-            chatsId.forEach(id ->  {
+            chatsId.forEach(id -> {
                 state.activeChats.remove(id);
             });
         });
@@ -544,7 +532,7 @@ public class Actions implements API.Events {
 
         send(SEND_CHAT_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
-        
+
         });
     }
 
@@ -564,7 +552,7 @@ public class Actions implements API.Events {
 
         send(JOIN_GAME_REQUEST, payload, success -> {
             this.gotoOverview();
-        
+
         });
     }
 
@@ -584,11 +572,11 @@ public class Actions implements API.Events {
 
         send(LEAVE_GAME_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
-        
+
         });
 
         mState.commit(state -> {
-            gamesId.forEach(id ->  {
+            gamesId.forEach(id -> {
                 state.activeGames.remove(id);
             });
         });
@@ -614,7 +602,7 @@ public class Actions implements API.Events {
 
         send(SEND_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
-    
+
         });
     }
 
@@ -633,7 +621,7 @@ public class Actions implements API.Events {
 
         send(DECLINE_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
-       
+
         });
     }
 
@@ -658,10 +646,6 @@ public class Actions implements API.Events {
         this.logAction("movePiece");
     }
 
-
-
-
-
     // ------------------- GET REQUESTS -------------------
 
     /**
@@ -671,7 +655,6 @@ public class Actions implements API.Events {
         this.logAction("login");
     }
 
-
     /**
      *
      */
@@ -680,6 +663,7 @@ public class Actions implements API.Events {
         this.logAction("getUser");
 
     }
+
     /**
      *
      */
@@ -701,7 +685,6 @@ public class Actions implements API.Events {
         this.logAction("getGameState");
     }
 
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // API.Events implementation
@@ -710,32 +693,38 @@ public class Actions implements API.Events {
     /**
      * Something in the friends list has changed
      */
-    public void friendUpdate() { }
+    public void friendUpdate() {
+    }
 
     /**
      * Notify which chats has changed
      */
-    public void chatUpdate(ArrayList<JSONObject> chats) { }
+    public void chatUpdate(ArrayList<JSONObject> chats) {
+    }
 
     /**
      * Handle incoming chat notifications
      */
-    public void chatInvite(ArrayList<JSONObject> chatInvites) {}
+    public void chatInvite(ArrayList<JSONObject> chatInvites) {
+    }
 
     /**
      * Handle incoming chat messages
      */
-    public void chatMessage(ArrayList<JSONObject> messages) {}
+    public void chatMessage(ArrayList<JSONObject> messages) {
+    }
 
     /**
      * Notify which games has been changed
      */
-    public void gameUpdate(ArrayList<JSONObject> games) {}
+    public void gameUpdate(ArrayList<JSONObject> games) {
+    }
 
     /**
      * Handle incoming game invites
      */
-    public void gameInvite(ArrayList<JSONObject> gameInvites) {}
+    public void gameInvite(ArrayList<JSONObject> gameInvites) {
+    }
 
     /**
      * Server has logged you out. Deal with it.
@@ -743,7 +732,6 @@ public class Actions implements API.Events {
     public void forceLogout() {
         this.gotoLogin();
     }
-
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -762,7 +750,7 @@ public class Actions implements API.Events {
     private void logError(JSONObject error) {
         var codes = error.getJSONArray(FieldNames.CODE);
         codes.forEach(code -> {
-            Logger.log(Level.WARN, "code -> " + no.ntnu.imt3281.ludo.api.Error.fromInt((int)code).toString());
+            Logger.log(Level.WARN, "code -> " + no.ntnu.imt3281.ludo.api.Error.fromInt((int) code).toString());
         });
     }
 
@@ -778,20 +766,20 @@ public class Actions implements API.Events {
     /**
      * Wrapper for the mAPI.send() and RequestFactory.make()
      *
-     * @param type request type
+     * @param type    request type
      * @param payload request payload
      * @param success success callback function
-     * @param error error callback function
+     * @param error   error callback function
      */
-    private void send(RequestType type, JSONObject payload, RequestCallback success,RequestCallback error) {
+    private void send(RequestType type, JSONObject payload, RequestCallback success, RequestCallback error) {
         mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success, error));
     }
 
     /**
-     * Wrapper for the mAPI.send() and RequestFactory.make().
-     * Sends all errors to this::logError
+     * Wrapper for the mAPI.send() and RequestFactory.make(). Sends all errors to
+     * this::logError
      *
-     * @param type request type
+     * @param type    request type
      * @param payload request payload
      * @param success success callback function
      */
@@ -800,14 +788,14 @@ public class Actions implements API.Events {
     }
 
     /**
-     * Wrapper for the mAPI.send() and RequestFactory.make()
-     * Sends all errors to this::logError
+     * Wrapper for the mAPI.send() and RequestFactory.make() Sends all errors to
+     * this::logError
      *
-     * @param type request type
+     * @param type    request type
      * @param payload request payload
      * @param success success callback function
      */
     private void send(RequestType type, ArrayList<JSONObject> payload, RequestCallback success) {
-        mAPI.send(mRequests.make(type,payload,mState.getAuthToken(), success, this::logError));
+        mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success, this::logError));
     }
 }

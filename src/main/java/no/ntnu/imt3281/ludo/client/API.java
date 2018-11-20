@@ -10,18 +10,23 @@ import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.ArrayList;
 
-
 public class API {
     /**
      * Interface used to respond to events from server
      */
     interface Events {
         void friendUpdate();
+
         void chatUpdate(ArrayList<JSONObject> chats);
+
         void chatInvite(ArrayList<JSONObject> chatInvites);
+
         void chatMessage(ArrayList<JSONObject> messages);
+
         void gameUpdate(ArrayList<JSONObject> games);
+
         void gameInvite(ArrayList<JSONObject> gameInvites);
+
         void forceLogout();
     }
 
@@ -49,7 +54,7 @@ public class API {
         new Thread(() -> {
             try {
                 mPendingRequests.put(request);
-            } catch(InterruptedException e) {
+            } catch (InterruptedException e) {
                 Logger.log(Logger.Level.INFO, "mPendingRequests.put() interrupted" + e.toString());
                 return;
             }
@@ -66,8 +71,8 @@ public class API {
     }
 
     /**
-     * Read a message from socket. Determine if the message is a responseType or eventType message.
-     * Parse message to json.
+     * Read a message from socket. Determine if the message is a responseType or
+     * eventType message. Parse message to json.
      *
      * @param message string from socket
      */
@@ -96,7 +101,7 @@ public class API {
         ResponseType reqType = ResponseType.fromString(messageType);
         EventType eventType = EventType.fromString(messageType);
 
-        if (reqType == null && eventType == null){
+        if (reqType == null && eventType == null) {
             Logger.log(Level.WARN, "Unkown message type: " + messageType);
             mPendingRequests.poll(); // Throw away request to avoid blocking
             return;
@@ -154,23 +159,37 @@ public class API {
      * @param event event as json
      */
     private void handleEvent(EventType type, JSONObject event) {
-        
+
         var payloadJSON = event.getJSONArray("payload");
 
         var payload = new ArrayList<JSONObject>();
         payloadJSON.forEach(item -> {
-            payload.add((JSONObject)item);
+            payload.add((JSONObject) item);
         });
 
         Logger.log(Level.DEBUG, "Event payload -> " + payloadJSON.toString());
         switch (type) {
-            case FRIEND_UPDATE: mEvents.friendUpdate(); break;
-            case CHAT_UPDATE: mEvents.chatUpdate(payload); break;
-            case CHAT_INVITE: mEvents.chatInvite(payload); break;
-            case CHAT_MESSAGE: mEvents.chatMessage(payload); break;
-            case GAME_UPDATE: mEvents.gameUpdate(payload); break;
-            case GAME_INVITE: mEvents.gameInvite(payload); break;
-            case FORCE_LOGOUT: mEvents.forceLogout(); break;
+        case FRIEND_UPDATE:
+            mEvents.friendUpdate();
+            break;
+        case CHAT_UPDATE:
+            mEvents.chatUpdate(payload);
+            break;
+        case CHAT_INVITE:
+            mEvents.chatInvite(payload);
+            break;
+        case CHAT_MESSAGE:
+            mEvents.chatMessage(payload);
+            break;
+        case GAME_UPDATE:
+            mEvents.gameUpdate(payload);
+            break;
+        case GAME_INVITE:
+            mEvents.gameInvite(payload);
+            break;
+        case FORCE_LOGOUT:
+            mEvents.forceLogout();
+            break;
         }
     }
 }

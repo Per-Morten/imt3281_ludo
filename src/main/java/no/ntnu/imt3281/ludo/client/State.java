@@ -39,7 +39,6 @@ public class State {
     public Map<Integer, JSONObject> gameInvites = new HashMap<>();
     public Map<Integer, JSONObject> chatInvites = new HashMap<>();
 
-
     static State shallowCopy(State state) {
         var copy = new State();
         copy.authToken = state.authToken;

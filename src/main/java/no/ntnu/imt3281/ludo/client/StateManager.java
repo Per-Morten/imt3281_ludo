@@ -26,7 +26,7 @@ public class StateManager {
      *
      * @return userid logged in user
      */
-     int getUserId() {
+    int getUserId() {
         int copy = -1;
         try {
             State state = mState.take();
@@ -38,13 +38,12 @@ public class StateManager {
         return copy;
     }
 
-
     /**
      * Get a copy of the auth token
      *
      * @return auth token of logged in user
      */
-     String getAuthToken() {
+    String getAuthToken() {
         String copy = "";
         try {
             State state = mState.take();
@@ -55,14 +54,13 @@ public class StateManager {
         }
         return copy;
     }
-    
 
     /**
      * Full deep copy of the current state. Blocking in case ongoing mutation
      *
      * @return state object
      */
-     public State copy() {
+    public State copy() {
         State copy = new State();
         try {
             State state = mState.take();
@@ -86,7 +84,7 @@ public class StateManager {
 
             try {
                 mutation.run(state);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 Logger.logException(Logger.Level.WARN, e, "Exception in mutation");
                 mState.put(state);
                 return;
@@ -97,16 +95,15 @@ public class StateManager {
         }
     }
 
-
-
     /**
      * Load state object from client-state.json
      */
-     void load() throws InterruptedException {
+    void load() throws InterruptedException {
 
         var state = new State();
         try {
-            String encryptedText = new String(Files.readAllBytes(Paths.get(StateManager.filepath)), StandardCharsets.UTF_8);
+            String encryptedText = new String(Files.readAllBytes(Paths.get(StateManager.filepath)),
+                    StandardCharsets.UTF_8);
             String text = mEncryptDecrypt.decrypt(encryptedText);
 
             var json = new JSONObject(text);
@@ -129,24 +126,24 @@ public class StateManager {
     /**
      * Dump state object into a client-state.json file
      */
-     void dump() {
-         var state = this.copy();
+    void dump() {
+        var state = this.copy();
 
-         var json = new JSONObject();
-         json.put(FieldNames.AUTH_TOKEN, "");
-         json.put(FieldNames.USERNAME, state.username);
-         json.put(FieldNames.PASSWORD, state.password);
-         json.put(FieldNames.EMAIL, state.email);
-         json.put(FieldNames.USER_ID, state.userId);
-         json.put(FieldNames.AVATAR_URI, state.avatarURI);
+        var json = new JSONObject();
+        json.put(FieldNames.AUTH_TOKEN, "");
+        json.put(FieldNames.USERNAME, state.username);
+        json.put(FieldNames.PASSWORD, state.password);
+        json.put(FieldNames.EMAIL, state.email);
+        json.put(FieldNames.USER_ID, state.userId);
+        json.put(FieldNames.AVATAR_URI, state.avatarURI);
 
-         try (var writer = new FileWriter(StateManager.filepath)) {
+        try (var writer = new FileWriter(StateManager.filepath)) {
 
-             var plainText = json.toString();
-             var encryptedText = mEncryptDecrypt.encrypt(plainText);
-             writer.write(encryptedText);
-         } catch (Exception e) {
-             Logger.logException(Logger.Level.WARN, e, "Failed to write to " + StateManager.filepath);
-         }
+            var plainText = json.toString();
+            var encryptedText = mEncryptDecrypt.encrypt(plainText);
+            writer.write(encryptedText);
+        } catch (Exception e) {
+            Logger.logException(Logger.Level.WARN, e, "Failed to write to " + StateManager.filepath);
+        }
     }
 }

@@ -24,10 +24,8 @@ class EncryptDecrypt {
     private final String secret = "EUhsCMzYZcYRJM76NO9QExvQaMZjhf1Z";
 
     // 8-byte Salt
-    private final byte[] salt = {
-            (byte) 0xA9, (byte) 0x9B, (byte) 0xC8, (byte) 0x32,
-            (byte) 0x56, (byte) 0x35, (byte) 0xE3, (byte) 0x03
-    };
+    private final byte[] salt = { (byte) 0xA9, (byte) 0x9B, (byte) 0xC8, (byte) 0x32, (byte) 0x56, (byte) 0x35,
+            (byte) 0xE3, (byte) 0x03 };
 
     // Iteration count
     private int iterationCount = 19;
@@ -46,26 +44,19 @@ class EncryptDecrypt {
      * @throws javax.crypto.BadPaddingException
      *
      */
-     String encrypt(String plainText)
-            throws NoSuchAlgorithmException,
-            InvalidKeySpecException,
-            NoSuchPaddingException,
-            InvalidKeyException,
-            InvalidAlgorithmParameterException,
-            UnsupportedEncodingException,
-            IllegalBlockSizeException,
-            BadPaddingException {
+    String encrypt(String plainText) throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException,
+            InvalidKeyException, InvalidAlgorithmParameterException, UnsupportedEncodingException,
+            IllegalBlockSizeException, BadPaddingException {
 
-         Cipher ecipher;
+        Cipher ecipher;
 
-
-         //Key generation for enc and desc
+        // Key generation for enc and desc
         KeySpec keySpec = new PBEKeySpec(secret.toCharArray(), salt, iterationCount);
         SecretKey key = SecretKeyFactory.getInstance("PBEWithMD5AndDES").generateSecret(keySpec);
         // Prepare the parameter to the ciphers
         AlgorithmParameterSpec paramSpec = new PBEParameterSpec(salt, iterationCount);
 
-        //Enc process
+        // Enc process
         ecipher = Cipher.getInstance(key.getAlgorithm());
         ecipher.init(Cipher.ENCRYPT_MODE, key, paramSpec);
         String charSet = "UTF-8";
@@ -87,25 +78,18 @@ class EncryptDecrypt {
      * @throws javax.crypto.IllegalBlockSizeException
      * @throws javax.crypto.BadPaddingException
      */
-    public String decrypt(String encryptedText)
-            throws NoSuchAlgorithmException,
-            InvalidKeySpecException,
-            NoSuchPaddingException,
-            InvalidKeyException,
-            InvalidAlgorithmParameterException,
-            UnsupportedEncodingException,
-            IllegalBlockSizeException,
-            BadPaddingException,
-            IOException {
+    public String decrypt(String encryptedText) throws NoSuchAlgorithmException, InvalidKeySpecException,
+            NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException,
+            UnsupportedEncodingException, IllegalBlockSizeException, BadPaddingException, IOException {
 
         Cipher dcipher;
 
-        //Key generation for enc and desc
+        // Key generation for enc and desc
         KeySpec keySpec = new PBEKeySpec(secret.toCharArray(), salt, iterationCount);
         SecretKey key = SecretKeyFactory.getInstance("PBEWithMD5AndDES").generateSecret(keySpec);
         // Prepare the parameter to the ciphers
         AlgorithmParameterSpec paramSpec = new PBEParameterSpec(salt, iterationCount);
-        //Decryption process; same key will be used for decr
+        // Decryption process; same key will be used for decr
         dcipher = Cipher.getInstance(key.getAlgorithm());
         dcipher.init(Cipher.DECRYPT_MODE, key, paramSpec);
         byte[] enc = Base64.getDecoder().decode(encryptedText);

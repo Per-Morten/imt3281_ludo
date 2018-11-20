@@ -9,7 +9,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
-
 public class LiveController extends BaseController {
 
     @FXML
@@ -50,22 +49,25 @@ public class LiveController extends BaseController {
 
     @FXML
     void onNewGame(KeyEvent event) {
-        if(!event.getCode().equals(KeyCode.ENTER)) return;
-        if(mGameName.getText().isEmpty()) return;
+        if (!event.getCode().equals(KeyCode.ENTER))
+            return;
+        if (mGameName.getText().isEmpty())
+            return;
 
         mActions.createGame(mGameName.getText());
-        Platform.runLater(() -> mGameName.setText("") );
+        Platform.runLater(() -> mGameName.setText(""));
     }
 
     @FXML
     void onNewChat(KeyEvent event) {
-        if(!event.getCode().equals(KeyCode.ENTER)) return;
-        if(mChatName.getText().isEmpty()) return;
+        if (!event.getCode().equals(KeyCode.ENTER))
+            return;
+        if (mChatName.getText().isEmpty())
+            return;
 
         mActions.createChat(mChatName.getText());
-        Platform.runLater(() ->mChatName.setText("") );
+        Platform.runLater(() -> mChatName.setText(""));
     }
-
 
     @FXML
     void initialize() {
