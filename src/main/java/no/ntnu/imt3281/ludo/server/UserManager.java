@@ -475,6 +475,16 @@ public class UserManager {
         return false;
     }
 
+    public boolean tokenExists(String token) {
+        try {
+            var user = mDB.getUserByToken(token);
+            return user != null;
+        } catch (SQLException e) {
+            Logger.logException(Logger.Level.WARN, e, "Unexpected SQL Exception when trying to getUserByToken");
+            return false;
+        }
+    }
+
     private String randomGenerateSalt() {
         var random = new java.security.SecureRandom();
         var bytes = new byte[32];

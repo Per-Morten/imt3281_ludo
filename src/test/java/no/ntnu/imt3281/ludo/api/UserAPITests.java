@@ -8,20 +8,15 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class UserAPITests {
     private static final Database.User USER_1 = new Database.User(1, "User1", null, "User1@mail.com", null, null, "User1Password");
     private static final Database.User USER_2 = new Database.User(2, "User2", null, "User2@mail.com", null, null, "User2Password");
     private static final Database.User USER_3 = new Database.User(3, "User3", null, "User3@mail.com", null, null, "User3Password");
-    private static final Database.User LOGGED_IN_USER = new Database.User(4, "LoggedInUser", null, "LoggedInUser@mail.com", null, null, "LoggedInPassword");
-    private static final Database.User USER_TO_BE_UPDATED = new Database.User(5, "UserToBeUpdated", null, "UserToBeUpdated@mail.com", null, null, "UserToBeUpdatedPassword");
-    private static final Database.User USER_TO_BE_DELETED = new Database.User(6, "UserToBeDeleted", null, "UserToBeDeleted@mail.com", null, null, "UserToBeDeletedPassword");
-
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -29,26 +24,13 @@ public class UserAPITests {
 
         TestServer.start();
 
-        var usersToCreate = new Database.User[] {
-                USER_1, USER_2, USER_3, LOGGED_IN_USER, USER_TO_BE_UPDATED, USER_TO_BE_DELETED,
+        var usersToCreate = new Database.User[]{
+                USER_1, USER_2, USER_3,
         };
 
         for (var user : usersToCreate) {
-            TestUtility.sendPreparationMessageToServer(TestUtility.createUserRequest(user.username, user.email, user.password), null);
-        }
-
-        var usersToLogIn = new Database.User[] {
-            LOGGED_IN_USER, USER_TO_BE_UPDATED, USER_TO_BE_DELETED,
-        };
-
-        for (var user : usersToLogIn) {
-            TestUtility.sendPreparationMessageToServer(TestUtility.createLoginRequest(user.email, user.password), (json) -> {
-                var success = json.getJSONArray(FieldNames.SUCCESS);
-                if (success.length() != 1) {
-                    throw new RuntimeException("Did not get a valid log in back");
-                }
-                user.token = success.getJSONObject(0).getString(FieldNames.AUTH_TOKEN);
-            });
+            TestUtility.runTestWithNewUser(user.username, user.email, user.password, null);
+            //TestUtility.sendPreparationMessageToServer(TestUtility.createUserRequest(user.username, user.email, user.password), null);
         }
     }
 
@@ -63,269 +45,204 @@ public class UserAPITests {
     ///////////////////////////////////////////////////////
     @Test
     public void canCreateUser() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            var msgID = json.getInt(FieldNames.ID);
-            assertEquals(0, msgID);
-            var type = json.getString(FieldNames.TYPE);
-            assertEquals(ResponseType.CREATE_USER_RESPONSE.toLowerCaseString(), type);
-            var success = json.getJSONArray(FieldNames.SUCCESS);
-            assertEquals(1, success.length());
-            var firstSuccess = success.getJSONObject(0);
-            var id = firstSuccess.get(FieldNames.ID);
-            assertEquals(0, id);
-            var userID = firstSuccess.getInt(FieldNames.USER_ID);
-            var error = json.getJSONArray(FieldNames.ERROR);
-            assert (error.length() == 0);
-
-            context.running.set(false);
+        TestUtility.runTestWithNewUser("USER_TO_TEST_CREATE", "USER_TO_TEST_CREATE@mail", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.CREATE_USER_RESPONSE) {
+                var successes = msg.getJSONArray(FieldNames.SUCCESS);
+                assertEquals(1, successes.length());
+                context.running.set(false);
+            }
         });
-
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.USERNAME, "JohnDoe");
-        request.put(FieldNames.PASSWORD, "Secret Password");
-        request.put(FieldNames.EMAIL, "john.doe@ubermail.com");
-        payload.put(0, request);
-
-        TestUtility.runTest(TestUtility.createRequest(RequestType.CREATE_USER_REQUEST, payload).toString(), callback);
     }
 
     @Test
     public void canLogIn() {
-
-        // Desired ID is 1 because we are logging in as the first test user.
-        int desiredID = 1;
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            var msgID = json.getInt(FieldNames.ID);
-            assertEquals(0, msgID);
-            var type = json.getString(FieldNames.TYPE);
-            assertEquals(ResponseType.LOGIN_RESPONSE.toLowerCaseString(), type);
-            var success = json.getJSONArray(FieldNames.SUCCESS);
-            assertEquals(1, success.length());
-            var firstSuccess = success.getJSONObject(0);
-            var id = firstSuccess.get(FieldNames.ID);
-            assertEquals(0, id);
-            var userID = firstSuccess.getInt(FieldNames.USER_ID);
-            assertEquals(desiredID, userID);
-            var token = firstSuccess.getString(FieldNames.AUTH_TOKEN);
-            var error = json.getJSONArray(FieldNames.ERROR);
-            assertEquals(0, error.length());
-
-            context.running.set(false);
+        TestUtility.runTestWithNewUser("USER_TO_TEST_LOGIN", "USER_TO_TEST_LOGIN@mail", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var successes = msg.getJSONArray(FieldNames.SUCCESS);
+                assertEquals(1, successes.length());
+                context.running.set(false);
+            }
         });
-
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.PASSWORD, USER_1.password);
-        request.put(FieldNames.EMAIL, USER_1.email);
-        payload.put(0, request);
-
-        TestUtility.runTest(TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString(), callback);
     }
 
     @Test
     public void canLogOut() {
+        TestUtility.runTestWithNewUser("USER_TO_LOG_OUT", "USER_TO_LOG_OUT@mail", "pwd", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, context.user.id);
+                request.put(FieldNames.USER_ID, context.user.id);
+                payload.put(0, request);
+                var json = TestUtility.createRequest(RequestType.LOGOUT_REQUEST, payload);
+                json.put(FieldNames.AUTH_TOKEN, context.user.token);
+                TestUtility.sendMessage(context.socket, json);
+            }
 
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            var msgID = json.getInt(FieldNames.ID);
-            assertEquals(0, msgID);
-            var type = json.getString(FieldNames.TYPE);
-            assertEquals(ResponseType.LOGOUT_RESPONSE.toLowerCaseString(), type);
-            var success = json.getJSONArray(FieldNames.SUCCESS);
-            assertEquals(1, success.length());
-            var firstSuccess = success.getJSONObject(0);
-            var id = firstSuccess.get(FieldNames.ID);
-            assertEquals(0, id);
-            var error = json.getJSONArray(FieldNames.ERROR);
-            assert (error.length() == 0);
+            if (ResponseType.fromString(type) == ResponseType.LOGOUT_RESPONSE) {
+                var msgID = msg.getInt(FieldNames.ID);
+                assertEquals(0, msgID);
+                var success = msg.getJSONArray(FieldNames.SUCCESS);
+                assertEquals(1, success.length());
+                var firstSuccess = success.getJSONObject(0);
+                var id = firstSuccess.get(FieldNames.ID);
+                assertEquals(context.user.id, id);
+                var error = msg.getJSONArray(FieldNames.ERROR);
+                assert (error.length() == 0);
 
-            context.running.set(false);
+                context.running.set(false);
+            }
         });
-
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.USER_ID, LOGGED_IN_USER.id);
-        payload.put(0, request);
-        var json = TestUtility.createRequest(RequestType.LOGOUT_REQUEST, payload);
-        json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
-        TestUtility.runTest(json.toString(), callback);
     }
 
     @Test
     public void canGetUser() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            var msgID = json.getInt(FieldNames.ID);
-            assertEquals(0, msgID);
-            var type = json.getString(FieldNames.TYPE);
-            assertEquals(ResponseType.GET_USER_RESPONSE.toLowerCaseString(), type);
-            var success = json.getJSONArray(FieldNames.SUCCESS);
-            assertEquals(1, success.length());
-            var firstSuccess = success.getJSONObject(0);
-            var id = firstSuccess.get(FieldNames.ID);
-            assertEquals(0, id);
-            assertEquals(1, firstSuccess.getInt(FieldNames.USER_ID));
-            assertEquals(USER_1.username, firstSuccess.getString(FieldNames.USERNAME));
-            assertEquals(USER_1.avatarURI, firstSuccess.getString(FieldNames.AVATAR_URI));
+        TestUtility.runTestWithNewUser("USER_TO_CHECK_GET", "USER_TO_CHECK_GET@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                TestUtility.sendMessage(context.socket, TestUtility.createGetUserRequest(USER_1.id, context.user.token));
+            }
 
-            var error = json.getJSONArray(FieldNames.ERROR);
-            assert (error.length() == 0);
+            if (ResponseType.fromString(type) == ResponseType.GET_USER_RESPONSE) {
+                var msgID = msg.getInt(FieldNames.ID);
+                assertEquals(0, msgID);
+                var success = msg.getJSONArray(FieldNames.SUCCESS);
+                assertEquals(1, success.length());
+                var firstSuccess = success.getJSONObject(0);
+                var id = firstSuccess.get(FieldNames.ID);
+                assertEquals(0, id);
+                assertEquals(1, firstSuccess.getInt(FieldNames.USER_ID));
+                assertEquals(USER_1.username, firstSuccess.getString(FieldNames.USERNAME));
+                assertEquals(USER_1.avatarURI, firstSuccess.getString(FieldNames.AVATAR_URI));
 
-            context.running.set(false);
+                var error = msg.getJSONArray(FieldNames.ERROR);
+                assert (error.length() == 0);
+
+                context.running.set(false);
+            }
         });
-
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.USER_ID, USER_1.id);
-        payload.put(0, request);
-        var json = TestUtility.createRequest(RequestType.GET_USER_REQUEST, payload);
-        json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
-        TestUtility.runTest(json.toString(), callback);
     }
 
     @Test
     public void canGetUserRange() {
-        var callback = TestUtility.createCallback((context, string) -> {
-           var json = new JSONObject(string);
-           assertEquals(ResponseType.GET_USER_RANGE_RESPONSE, ResponseType.fromString(json.getString(FieldNames.TYPE)));
-           var success = json.getJSONArray(FieldNames.SUCCESS);
-           assertEquals(1, success.length());
-           // Since the tests aren't necessarily run after each other, we only check the first 3 users, because we know what their values are supposed to be.
-           var firstPage = success.getJSONObject(0);
-           assertEquals(0, firstPage.getInt(FieldNames.ID));
-           var users = firstPage.getJSONArray(FieldNames.RANGE);
-           var userTruth = new Database.User[]{USER_1, USER_2, USER_3,};
-           assertTrue(users.length() >= 3);
-           for (int i = 0; i < 3; i++) {
-               var user = users.getJSONObject(i);
-               assertEquals(userTruth[i].id, user.getInt(FieldNames.USER_ID));
-               assertEquals(userTruth[i].username, user.getString(FieldNames.USERNAME));
-               assertEquals(userTruth[i].avatarURI, user.getString(FieldNames.AVATAR_URI));
-           }
+        TestUtility.runTestWithNewUser("USER_TO_CHECK_GET_RANGE", "USER_TO_CHECK_GET_RANGE@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.PAGE_INDEX, 0);
+                payload.put(request);
+                var json = TestUtility.createRequest(RequestType.GET_USER_RANGE_REQUEST, payload);
+                json.put(FieldNames.AUTH_TOKEN, context.user.token);
 
-           context.running.set(false);
+                TestUtility.sendMessage(context.socket, json);
+            }
+
+            if (ResponseType.fromString(type) == ResponseType.GET_USER_RANGE_RESPONSE) {
+                Logger.log(Logger.Level.DEBUG, "Received message here: %s", msg.toString());
+                var success = msg.getJSONArray(FieldNames.SUCCESS);
+                assertEquals(1, success.length());
+                // Since the tests aren't necessarily run after each other, we only check the first 3 users, because we know what their values are supposed to be.
+                var firstPage = success.getJSONObject(0);
+                assertEquals(0, firstPage.getInt(FieldNames.ID));
+                var users = firstPage.getJSONArray(FieldNames.RANGE);
+                var userTruth = new Database.User[]{USER_1, USER_2, USER_3,};
+                assertTrue(users.length() >= 3);
+                for (int i = 0; i < 3; i++) {
+                    var user = users.getJSONObject(i);
+                    assertEquals(userTruth[i].id, user.getInt(FieldNames.USER_ID));
+                    assertEquals(userTruth[i].username, user.getString(FieldNames.USERNAME));
+                    assertEquals(userTruth[i].avatarURI, user.getString(FieldNames.AVATAR_URI));
+                }
+
+                context.running.set(false);
+            }
         });
-
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.PAGE_INDEX, 0);
-        payload.put(request);
-        var json = TestUtility.createRequest(RequestType.GET_USER_RANGE_REQUEST, payload);
-        json.put(FieldNames.AUTH_TOKEN, LOGGED_IN_USER.token);
-        TestUtility.runTest(json.toString(), callback);
-
-        // TODO: Ask Jonas if we can update the API to not say friends, chats, or games for the reponses
-        // to the ranges, as that isn't generic.
     }
 
     @Test
     public void canUpdateUser() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            if (context.count.get() == 0) {
-                var json = new JSONObject(string);
-                var msgID = json.getInt(FieldNames.ID);
-                assertEquals(0, msgID);
-                var type = json.getString(FieldNames.TYPE);
-                assertEquals(ResponseType.UPDATE_USER_RESPONSE.toLowerCaseString(), type);
-                var success = json.getJSONArray(FieldNames.SUCCESS);
-                assertEquals(1, success.length());
-                var firstSuccess = success.getJSONObject(0);
-                var id = firstSuccess.get(FieldNames.ID);
-                assertEquals(0, id);
-                var error = json.getJSONArray(FieldNames.ERROR);
-                assert (error.length() == 0);
-
-                try {
-                    context.socket.send(TestUtility.createGetUserRequest(USER_TO_BE_UPDATED.id, USER_TO_BE_UPDATED.token).toString());
-                } catch (IOException e) {
-                    fail();
-                }
+        TestUtility.runTestWithNewUser("USER_TO_TEST_UPDATE", "USER_TO_TEST_UPDATE@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.USER_ID, context.user.id);
+                request.put(FieldNames.USERNAME, context.user.username);
+                request.put(FieldNames.PASSWORD, context.user.password);
+                request.put(FieldNames.EMAIL, context.user.email);
+                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                payload.put(0, request);
+                TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
             }
-            if (context.count.get() == 1) {
-                var json = new JSONObject(string);
-                var success = json.getJSONArray(FieldNames.SUCCESS);
+
+            if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
+                var success = msg.getJSONArray(FieldNames.SUCCESS);
+                assertEquals(1, success.length());
+                TestUtility.sendMessage(context.socket, TestUtility.createGetUserRequest(context.user.id, context.user.token));
+            }
+
+            if (ResponseType.fromString(type) == ResponseType.GET_USER_RESPONSE) {
+                Logger.log(Logger.Level.DEBUG, "Got message: %s", msg.toString());
+                var success = msg.getJSONArray(FieldNames.SUCCESS);
                 assertEquals(1, success.length());
                 var firstUser = success.getJSONObject(0);
                 assertEquals("Some Cool Avatar", firstUser.getString(FieldNames.AVATAR_URI));
-            }
-
-
-            context.count.incrementAndGet();
-            if (context.count.get() >= 2) {
                 context.running.set(false);
             }
         });
-
-
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.USER_ID, USER_TO_BE_UPDATED.id);
-        request.put(FieldNames.USERNAME, USER_TO_BE_UPDATED.username);
-        request.put(FieldNames.PASSWORD, USER_TO_BE_UPDATED.password);
-        request.put(FieldNames.EMAIL, USER_TO_BE_UPDATED.email);
-        request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
-        payload.put(0, request);
-        var json = TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, USER_TO_BE_UPDATED.token);
-        TestUtility.runTest(json.toString(), callback);
-
     }
 
     @Test
     public void canDeleteUser() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            if (context.count.get() == 0) {
-                var json = new JSONObject(string);
-                var msgID = json.getInt(FieldNames.ID);
+        // Hate using atomic integers this way, but I cannot modify an Integer class within the callback (Java, you are stupid at times!))
+        final var userID = new AtomicInteger(0);
+
+        TestUtility.runTestWithNewUser("USER_TO_BE_DELETED", "USER_TO_BE_DELETED@mail", "password", (context, message) -> {
+            var type = message.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.USER_ID, context.user.id);
+                payload.put(0, request);
+                var json = TestUtility.createRequest(RequestType.DELETE_USER_REQUEST, payload);
+                json.put(FieldNames.AUTH_TOKEN, context.user.token);
+                TestUtility.sendMessage(context.socket, json);
+            }
+
+            if (ResponseType.fromString(type) == ResponseType.DELETE_USER_RESPONSE) {
+                var msgID = message.getInt(FieldNames.ID);
                 assertEquals(0, msgID);
-                var type = json.getString(FieldNames.TYPE);
-                assertEquals(ResponseType.DELETE_USER_RESPONSE.toLowerCaseString(), type);
-                var success = json.getJSONArray(FieldNames.SUCCESS);
+                var success = message.getJSONArray(FieldNames.SUCCESS);
                 assertEquals(1, success.length());
                 var firstSuccess = success.getJSONObject(0);
                 var id = firstSuccess.get(FieldNames.ID);
                 assertEquals(0, id);
-                var error = json.getJSONArray(FieldNames.ERROR);
+                var error = message.getJSONArray(FieldNames.ERROR);
                 assert (error.length() == 0);
 
-                try {
-                    context.socket.send(TestUtility.createGetUserRequest(USER_TO_BE_DELETED.id, USER_TO_BE_DELETED.token).toString());
-                } catch (IOException e) {
-                    fail();
-                }
-            }
-
-            if (context.count.get() == 1) {
-                var json = new JSONObject(string);
-                var error = json.getJSONArray(FieldNames.ERROR);
-                assertEquals(1, error.length());
-                var firstError = error.getJSONObject(0);
-                assertEquals(0, firstError.getInt(FieldNames.ID));
-                assertEquals(Error.USER_ID_NOT_FOUND, Error.fromInt(firstError.getJSONArray(FieldNames.CODE).getInt(0)));
-            }
-
-            context.count.incrementAndGet();
-            if (context.count.get() >= 2) {
+                userID.set(context.user.id);
                 context.running.set(false);
             }
         });
 
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.USER_ID, USER_TO_BE_DELETED.id);
-        payload.put(0, request);
-        var json = TestUtility.createRequest(RequestType.DELETE_USER_REQUEST, payload);
-        json.put(FieldNames.AUTH_TOKEN, USER_TO_BE_DELETED.token);
-        TestUtility.runTest(json.toString(), callback);
+        TestUtility.runTestWithNewUser("USER_TO_CHECK_DELETED", "USER_TO_CHECK_DELETED@mail.com", "Password", (context, message) -> {
+            var type = message.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                TestUtility.sendMessage(context.socket, TestUtility.createGetUserRequest(userID.get(), context.user.token));
+            }
+
+            if (ResponseType.fromString(type) == ResponseType.GET_USER_RESPONSE) {
+                TestUtility.assertError(Error.USER_ID_NOT_FOUND, message);
+                context.running.set(false);
+            }
+        });
     }
 
     ///////////////////////////////////////////////////////
@@ -333,18 +250,18 @@ public class UserAPITests {
     ///////////////////////////////////////////////////////
     @Test
     public void errorOnGetIllegalUserID() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            var error = json.getJSONArray(FieldNames.ERROR);
-            assertEquals(1, error.length());
-            var firstError = error.getJSONObject(0);
-            assertEquals(0, firstError.getInt(FieldNames.ID));
-            assertEquals(Error.USER_ID_NOT_FOUND, Error.fromInt(firstError.getJSONArray(FieldNames.CODE).getInt(0)));
+        TestUtility.runTestWithNewUser("USER_TO_TEST_ILLEGAL_ID", "USER_TO_TEST_ILLEGAL_ID@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
 
-            context.running.set(false);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                TestUtility.sendMessage(context.socket, TestUtility.createGetUserRequest(500, context.user.token));
+            }
+
+            if (ResponseType.fromString(type) == ResponseType.GET_USER_RESPONSE) {
+                TestUtility.assertError(Error.USER_ID_NOT_FOUND, msg);
+                context.running.set(false);
+            }
         });
-
-        TestUtility.runTest(TestUtility.createGetUserRequest(500, LOGGED_IN_USER.token).toString(), callback);
     }
 
     @Test
@@ -355,7 +272,7 @@ public class UserAPITests {
             context.running.set(false);
         });
 
-        TestUtility.runTest(TestUtility.createUserRequest(USER_1.username, "TotallyUniqueEmail1923@email", USER_1.password).toString(), callback);
+        TestUtility.runTestNotRequiringLogin(TestUtility.createUserRequest(USER_1.username, "TotallyUniqueEmail1923@email", USER_1.password).toString(), callback);
     }
 
     @Test
@@ -366,105 +283,127 @@ public class UserAPITests {
             context.running.set(false);
         });
 
-        TestUtility.runTest(TestUtility.createUserRequest("TotallyUniqueUsername29843905", USER_1.email, USER_1.password).toString(), callback);
+        TestUtility.runTestNotRequiringLogin(TestUtility.createUserRequest("TotallyUniqueUsername29843905", USER_1.email, USER_1.password).toString(), callback);
     }
 
     @Test
     public void errorOnUpdateNonUniqueUserName() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            TestUtility.assertError(Error.NOT_UNIQUE_USERNAME, json);
-            context.running.set(false);
-        });
+        TestUtility.runTestWithNewUser("USER_TO_TEST_NON_UNIQUE_USERNAME_UPDATE", "USER_TO_TEST_NON_UNIQUE_USERNAME_UPDATE@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.USER_ID, context.user.id);
+                request.put(FieldNames.USERNAME, USER_1.username);
+                request.put(FieldNames.PASSWORD, context.user.password);
+                request.put(FieldNames.EMAIL, context.user.email);
+                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                payload.put(0, request);
+                TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
+            }
 
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.USER_ID, USER_TO_BE_UPDATED.id);
-        request.put(FieldNames.USERNAME, USER_1.username);
-        request.put(FieldNames.PASSWORD, USER_TO_BE_UPDATED.password);
-        request.put(FieldNames.EMAIL, USER_TO_BE_UPDATED.email);
-        request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
-        payload.put(0, request);
-        var json = TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, USER_TO_BE_UPDATED.token);
-        TestUtility.runTest(json.toString(), callback);
+            if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
+                TestUtility.assertError(Error.NOT_UNIQUE_USERNAME, msg);
+                context.running.set(false);
+            }
+        });
     }
 
     @Test
     public void errorOnUpdateNonUniqueEmail() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            TestUtility.assertError(Error.NOT_UNIQUE_EMAIL, json);
-            context.running.set(false);
-        });
+        TestUtility.runTestWithNewUser("USER_TO_TEST_NON_UNIQUE_EMAIL_UPDATE", "USER_TO_TEST_NON_UNIQUE_EMAIL_UPDATE@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.USER_ID, context.user.id);
+                request.put(FieldNames.USERNAME, context.user.username);
+                request.put(FieldNames.PASSWORD, context.user.password);
+                request.put(FieldNames.EMAIL, USER_1.email);
+                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                payload.put(0, request);
+                TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
+            }
 
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.USER_ID, USER_TO_BE_UPDATED.id);
-        request.put(FieldNames.USERNAME, USER_TO_BE_UPDATED.username);
-        request.put(FieldNames.PASSWORD, USER_TO_BE_UPDATED.password);
-        request.put(FieldNames.EMAIL, USER_1.email);
-        request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
-        payload.put(0, request);
-        var json = TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, USER_TO_BE_UPDATED.token);
-        TestUtility.runTest(json.toString(), callback);
+            if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
+                TestUtility.assertError(Error.NOT_UNIQUE_EMAIL, msg);
+                context.running.set(false);
+            }
+        });
     }
 
     @Test
     public void getUnauthorizedErrorOnDeletingSomeoneElsesAccount() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            TestUtility.assertError(Error.UNAUTHORIZED, json);
-            context.running.set(false);
-        });
+        TestUtility.runTestWithNewUser("USER_TO_TEST_DELETING_SOMEONE_ELSES_ACCOUNT", "USER_TO_TEST_DELETING_SOMEONE_ELSES_ACCOUNT@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.USER_ID, USER_1.id);
+                payload.put(0, request);
+                TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.DELETE_USER_REQUEST, payload, context.user.token));
+            }
 
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.USER_ID, USER_1.id);
-        payload.put(0, request);
-        TestUtility.runTest(TestUtility.createRequest(RequestType.DELETE_USER_REQUEST, payload, LOGGED_IN_USER.token).toString(), callback);
+            if (ResponseType.fromString(type) == ResponseType.DELETE_USER_RESPONSE) {
+                TestUtility.assertError(Error.UNAUTHORIZED, msg);
+                context.running.set(false);
+            }
+        });
     }
 
     @Test
     public void getUnauthorizedErrorOnUpdatingSomeoneElsesAccount() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            TestUtility.assertError(Error.UNAUTHORIZED, json);
-            context.running.set(false);
+        TestUtility.runTestWithNewUser("USER_TO_TEST_UPDATING_SOMEONE_ELSE", "USER_TO_TEST_UPDATING_SOMEONE_ELSE@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.USER_ID, USER_1.id);
+                request.put(FieldNames.USERNAME, context.user.username);
+                request.put(FieldNames.PASSWORD, context.user.password);
+                request.put(FieldNames.EMAIL, USER_1.email);
+                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                payload.put(0, request);
+                TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
+            }
+
+            if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
+                TestUtility.assertError(Error.UNAUTHORIZED, msg);
+                context.running.set(false);
+            }
         });
-
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.USER_ID, USER_1.id);
-        request.put(FieldNames.USERNAME, "Something");
-        request.put(FieldNames.PASSWORD, "Something");
-        request.put(FieldNames.AVATAR_URI, "Something");
-        request.put(FieldNames.EMAIL, "Something@email.com");
-        payload.put(0, request);
-        TestUtility.runTest(TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, LOGGED_IN_USER.token).toString(), callback);
-
     }
 
     @Test
     public void errorOnLoggingInWithWrongPassword() {
-        var callback = TestUtility.createCallback((context, string) -> {
-            var json = new JSONObject(string);
-            TestUtility.assertError(Error.INVALID_USERNAME_OR_PASSWORD, json);
-            context.running.set(false);
+        TestUtility.runTestWithNewUser("USER_TO_TEST_INVALID_PASSWORD", "USER_TO_TEST_INVALID_PASSWORD@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+
+            Logger.log(Logger.Level.DEBUG, "Got message: %s", msg.toString());
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                if (context.count.get() == 0) {
+                    var payload = new JSONArray();
+                    var request = new JSONObject();
+                    request.put(FieldNames.ID, 0);
+                    request.put(FieldNames.PASSWORD, "WRONG PASSWORD");
+                    request.put(FieldNames.EMAIL, context.user.email);
+                    payload.put(0, request);
+                    TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload));
+                    context.count.incrementAndGet();
+
+                } else if (context.count.get() == 1) {
+                    TestUtility.assertError(Error.INVALID_USERNAME_OR_PASSWORD, msg);
+                    context.running.set(false);
+                }
+            }
         });
-
-        var payload = new JSONArray();
-        var request = new JSONObject();
-        request.put(FieldNames.ID, 0);
-        request.put(FieldNames.PASSWORD, "WRONG PASSWORD");
-        request.put(FieldNames.EMAIL, USER_1.email);
-        payload.put(0, request);
-
-        TestUtility.runTest(TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString(), callback);
     }
+
+    // TODO: Test receive forced logout event
 
     @Test
     public void errorOnLoggingInWithWrongEmail() {
@@ -481,6 +420,6 @@ public class UserAPITests {
         request.put(FieldNames.EMAIL, "WRONG PASSWORD");
         payload.put(0, request);
 
-        TestUtility.runTest(TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString(), callback);
+        TestUtility.runTestNotRequiringLogin(TestUtility.createRequest(RequestType.LOGIN_REQUEST, payload).toString(), callback);
     }
 }
