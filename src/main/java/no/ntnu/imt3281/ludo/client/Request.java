@@ -24,6 +24,7 @@ public class Request {
         json.put(FieldNames.ID, id);
         json.put(FieldNames.TYPE, type.toLowerCaseString());
         json.put(FieldNames.PAYLOAD, payload);
+
         if (!token.isEmpty()) {
             json.put(FieldNames.AUTH_TOKEN, token);
         }

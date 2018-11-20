@@ -2,6 +2,7 @@ package no.ntnu.imt3281.ludo.client;
 
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
+import no.ntnu.imt3281.ludo.api.RequestType;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.Transitions;
@@ -87,7 +88,7 @@ public class Actions {
             });
 
             mTransitions.renderLogin();
-        }, this::logError);
+        });
     }
 
     /**
@@ -111,7 +112,7 @@ public class Actions {
             });
             this.gotoUser();
         
-        }, this::logError);
+        });
     }
 
 
@@ -124,8 +125,7 @@ public class Actions {
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, mState.getUserId());
 
-        send(LOGOUT_REQUEST, payload, success -> this.gotoLogin(),
-            this::logError);
+        send(LOGOUT_REQUEST, payload, success -> this.gotoLogin());
 
     }
 
@@ -152,7 +152,7 @@ public class Actions {
 
             this.gotoUser();
 
-        }, this::logError);
+        });
     }
 
     /**
@@ -162,12 +162,12 @@ public class Actions {
         this.logAction("deleteUser");
 
         var payload = new JSONObject();
-        payload.put(FieldNames.USER_ID, state.copy().userId);
+        payload.put(FieldNames.USER_ID, mState.getUserId());
 
         send(DELETE_USER_REQUEST, payload, success -> {
             this.logout();
         
-        }, this::logError);
+        });
     }
 
     /**
@@ -191,7 +191,7 @@ public class Actions {
             });
             mTransitions.renderUser(user);
         
-        }, this::logError);
+        });
     }
 
     /**
@@ -200,6 +200,7 @@ public class Actions {
     public void gotoLive() {
         this.logAction("gotoLive");
 
+        var state = mState.copy();
         mTransitions.renderLive();
         mTransitions.renderGameTabs(state.activeGames);
         mTransitions.renderChatTabs(state.activeChats);
@@ -305,8 +306,8 @@ public class Actions {
 
                 mTransitions.renderUserList(filteredUserList, filteredIgnoredList);
             
-            }, this::logError);
-        }, this::logError);
+            });
+        });
     }
 
     /**
@@ -325,7 +326,7 @@ public class Actions {
         send(CREATE_GAME_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
         
-        }, this::logError);
+        });
 
         mState.commit(state -> {
             state.activeGames.put(clientGameId, game);
@@ -359,7 +360,7 @@ public class Actions {
 
         send(CREATE_CHAT_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
-        }, this::logError);
+        });
 
         var chat = new Chat();
         chat.json = chatJSON;
@@ -399,7 +400,7 @@ public class Actions {
         send(FRIEND_REQUEST, payload, success -> {
             this.gotoOverview();
     
-        }, this::logError);
+        });
     }
 
     /**
@@ -421,7 +422,7 @@ public class Actions {
         send(UNFRIEND_REQUEST, payload, success -> {
             this.gotoOverview();
 
-        }, this::logError);
+        });
     }
 
     /**
@@ -443,7 +444,7 @@ public class Actions {
         send(IGNORE_REQUEST, payload, success -> {
             this.gotoOverview();
         
-        }, this::logError);
+        });
     }
 
     /**
@@ -463,7 +464,7 @@ public class Actions {
         send(JOIN_CHAT_REQUEST, payload, success -> {
             this.gotoOverview();
 
-        }, this::logError);
+        });
     }
 
     /**
@@ -482,7 +483,7 @@ public class Actions {
 
         send(LEAVE_CHAT_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
-        }, this::logError);
+        });
 
         mState.commit(state -> {
             chatsId.forEach(id ->  {
@@ -507,17 +508,18 @@ public class Actions {
         send(SEND_CHAT_MESSAGE_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
 
-        }, this::logError);
+        });
 
+        var stateCopy = mState.copy();
         var messageJSON = new JSONObject();
         messageJSON.put(FieldNames.MESSAGE, message);
-        messageJSON.put(FieldNames.USERNAME, state.username);
+        messageJSON.put(FieldNames.USERNAME, stateCopy.username);
 
         mState.commit(state -> {
             Logger.log(Level.DEBUG, "!!!chatId: " + String.valueOf(chatId));
             state.activeChats.get(chatId).messages.add(messageJSON);
         });
-        mTransitions.newMessage(chatId, state.username, message);
+        mTransitions.newMessage(chatId, stateCopy.username, message);
     }
 
     /**
@@ -540,7 +542,7 @@ public class Actions {
         send(SEND_CHAT_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
         
-        }, this::logError);
+        });
     }
 
     /**
@@ -560,7 +562,7 @@ public class Actions {
         send(JOIN_GAME_REQUEST, payload, success -> {
             this.gotoOverview();
         
-        }, this::logError);
+        });
     }
 
     /**
@@ -580,7 +582,7 @@ public class Actions {
         send(LEAVE_GAME_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
         
-        }, this::logError);
+        });
 
         mState.commit(state -> {
             gamesId.forEach(id ->  {
@@ -610,7 +612,7 @@ public class Actions {
         send(SEND_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
     
-        }, this::logError);
+        });
     }
 
     /**
@@ -629,7 +631,7 @@ public class Actions {
         send(DECLINE_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
        
-        }, this::logError);
+        });
     }
 
     /**
@@ -738,7 +740,7 @@ public class Actions {
      *
      * @param methodName name of callee
      */
-    private State logAction(String methodName) {
+    private void logAction(String methodName) {
         Logger.log(Level.INFO, "Action -> " + methodName);
     }
 
@@ -753,11 +755,11 @@ public class Actions {
         return ThreadLocalRandom.current().nextInt(1000000, 9999999);
     }
 
-    private void send(RequestType type, JSONObject payload, RequestCallback success, RequestCallback error) {
-        mAPI.send(mRequests.make(type,payload,mState.getAuthToken(), success,error));
+    private void send(RequestType type, JSONObject payload, RequestCallback success) {
+        mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success, this::logError));
     }
 
-    private void send(RequestType type, ArrayList<JSONObject> payload, RequestCallback success, RequestCallback error) {
-        mAPI.send(mRequests.make(type,payload,mState.getAuthToken(), success,error));
+    private void send(RequestType type, ArrayList<JSONObject> payload, RequestCallback success) {
+        mAPI.send(mRequests.make(type,payload,mState.getAuthToken(), success, this::logError));
     }
 }

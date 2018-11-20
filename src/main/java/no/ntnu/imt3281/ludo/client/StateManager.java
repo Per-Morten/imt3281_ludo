@@ -26,7 +26,7 @@ public class StateManager {
      * @return userid logged in user
      */
     public int getUserId() {
-        int copy;
+        int copy = -1;
         try {
             State state = mState.take();
             copy = state.userId;
@@ -44,7 +44,7 @@ public class StateManager {
      * @return auth token of logged in user
      */
     public String getAuthToken() {
-        String copy;
+        String copy = "";
         try {
             State state = mState.take();
             copy = state.authToken;
