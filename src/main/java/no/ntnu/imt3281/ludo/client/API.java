@@ -55,32 +55,6 @@ public class API {
     }
 
     /**
-     * Same as above, but without token.
-     *
-     * @param request to be sent to server
-     */
-    public void sendNoToken(Request request) {
-        new Thread(() -> {
-            try {
-                mPendingRequests.put(request);
-            } catch(InterruptedException e) {
-                Logger.log(Logger.Level.INFO, "mPendingRequests.put() interrupted" + e.toString());
-                return;
-            }
-
-            try {
-                Logger.log(Level.INFO, "Sending request: " + request.toJSON().toString());
-                mSocketManager.send(request.toJSONWithoutToken().toString());
-            } catch (NullPointerException | IOException e) {
-                Logger.log(Level.WARN, "No connection with server: " + e.toString());
-                mPendingRequests.poll(); // Throw away request to avoid blocking
-                mActions.forceLogout();
-            }
-        }).start();
-    }
-
-
-    /**
      * Read a message from socket. Determine if the message is a responseType or eventType message.
      * Parse message to json.
      *

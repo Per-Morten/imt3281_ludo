@@ -19,7 +19,7 @@ public class Actions {
 
     private Transitions mTransitions;
     private API mAPI;
-    private StateManager mStateManager;
+    private StateManager mState;
     private final RequestFactory mRequests = new RequestFactory();
 
     /**
@@ -30,7 +30,7 @@ public class Actions {
      */
     void bind(Transitions transitions, API API, StateManager stateManager) {
         mTransitions = transitions;
-        mStateManager = stateManager;
+        mState = stateManager;
         mAPI = API;
     }
 
@@ -38,9 +38,9 @@ public class Actions {
      * Goto the login screen
      */
     void gotoLogin() {
-        this.startAction("gotoLogin");
+        this.logAction("gotoLogin");
 
-        mStateManager.commit(gState -> {
+        mState.commit(gState -> {
             gState.userId = -1;
             gState.email = "";
             gState.authToken = "";
@@ -62,148 +62,143 @@ public class Actions {
     }
 
     /**
+     * login user with username and password
+     *
+     * @param email    user provided email
+     * @param username user provided username
+     * @param password user provided password
+     */
+    public void createUser(String email, String password, String username) {
+        this.logAction("createUser");
+
+        mTransitions.renderLogin();
+
+        var payload = new JSONObject();
+        payload.put(FieldNames.EMAIL, email);
+        payload.put(FieldNames.PASSWORD, password);
+        payload.put(FieldNames.USERNAME, username);
+
+        send(CREATE_USER_REQUEST, payload, success -> {
+
+            mState.commit(state -> {
+                state.userId = success.getInt(FieldNames.USER_ID);
+                state.email = email;
+                state.username = username;
+            });
+
+            mTransitions.renderLogin();
+        }, this::logError);
+    }
+
+    /**
      * Login user with username and password.
      *
      * @param email    valid email
      * @param password valid password
      */
     public void login(String email, String password) {
-        this.startAction("login");
+        this.logAction("login");
 
         var payload = new JSONObject();
         payload.put(FieldNames.EMAIL, email);
         payload.put(FieldNames.PASSWORD, password);
 
-        mAPI.sendNoToken(mRequests.make(LOGIN_REQUEST, payload, "", success -> {
+        send(LOGIN_REQUEST, payload, success -> {
 
-            mStateManager.commit(gState -> {
-                gState.userId = success.getInt(FieldNames.USER_ID);
-                gState.authToken = success.getString(FieldNames.AUTH_TOKEN);
+            mState.commit(state -> {
+                state.userId = success.getInt(FieldNames.USER_ID);
+                state.authToken = success.getString(FieldNames.AUTH_TOKEN);
             });
-
             this.gotoUser();
-        },
-        this::logError));
+        
+        }, this::logError);
     }
 
-    /**
-     * login user with username and password
-     *
-     * @param email    valid email
-     * @param username valid username
-     * @param password valid password
-     */
-    public void createUser(String email, String password, String username) {
-        this.startAction("createUser");
-
-        mTransitions.renderLogin();
-
-        var item = new JSONObject();
-        item.put(FieldNames.EMAIL, email);
-        item.put(FieldNames.PASSWORD, password);
-        item.put(FieldNames.USERNAME, username);
-
-        mAPI.sendNoToken(mRequests.make(CREATE_USER_REQUEST, item, "",
-            success -> {
-                mStateManager.commit(gState -> {
-                    gState.userId = success.getInt(FieldNames.USER_ID);
-                    gState.email = email;
-                    gState.username = username;
-                });
-
-                mTransitions.renderLogin();
-            },
-            this::logError));
-
-    }
 
     /**
      * Logout user. Return to login screen
      */
     public void logout() {
-        var state = this.startAction("logout");
+        this.logAction("logout");
 
-        var item = new JSONObject();
-        item.put(FieldNames.USER_ID, state.userId);
+        var payload = new JSONObject();
+        payload.put(FieldNames.USER_ID, mState.getUserId());
 
-        mAPI.send(mRequests.make(LOGOUT_REQUEST, item, state.authToken,
-            success -> {},
-            this::logError));
+        send(LOGOUT_REQUEST, payload, success -> this.gotoLogin(),
+            this::logError);
 
-        this.gotoLogin();
     }
 
     /**
      * Update currently logged in user
      */
     public void updateUser(String username, String email, String password, String avatarURI) {
-        var state = this.startAction("updateUser");
+        this.logAction("updateUser");
 
         var payload = new JSONObject();
-        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(FieldNames.USERNAME, username);
         payload.put(FieldNames.EMAIL, email);
         payload.put(FieldNames.PASSWORD, password);
         payload.put(FieldNames.AVATAR_URI, avatarURI);
 
-        mAPI.send(mRequests.make(UPDATE_USER_REQUEST, payload, state.authToken, success -> {
+        send(UPDATE_USER_REQUEST, payload, success -> {
 
-            mStateManager.commit(gState -> {
-                gState.username = username;
-                gState.email = email;
-                gState.avatarURI = avatarURI;
+            mState.commit(state -> {
+                state.username = username;
+                state.email = email;
+                state.avatarURI = avatarURI;
             });
 
             this.gotoUser();
 
-        }, this::logError));
+        }, this::logError);
     }
 
     /**
      * Delete currently logged in user
      */
     public void deleteUser() {
-        var state = this.startAction("deleteUser");
+        this.logAction("deleteUser");
 
         var payload = new JSONObject();
-        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.USER_ID, state.copy().userId);
 
-        mAPI.send(mRequests.make(DELETE_USER_REQUEST, payload, state.authToken, success -> {
+        send(DELETE_USER_REQUEST, payload, success -> {
             this.logout();
-        }, this::logError));
+        
+        }, this::logError);
     }
 
     /**
      * Goto the user screen. Get details about logged in user
      */
     public void gotoUser() {
-        var state = this.startAction("gotoUser");
+        this.logAction("gotoUser");
 
         var payload = new JSONObject();
-        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.USER_ID, mState.getUserId());
 
-        mAPI.send(mRequests.make(GET_USER_REQUEST, payload, state.authToken, success -> {
+        send(GET_USER_REQUEST, payload, success -> {
 
             var user = new User();
             user.json = success;
 
-            mStateManager.commit(gState -> {
-                gState.username = success.getString(FieldNames.USERNAME);
-                gState.avatarURI = success.getString(FieldNames.AVATAR_URI);
+            mState.commit(state -> {
+                state.username = success.getString(FieldNames.USERNAME);
+                state.avatarURI = success.getString(FieldNames.AVATAR_URI);
                 // TODO Email does not exist in get_user_request.
-
             });
-
             mTransitions.renderUser(user);
-        },
-        this::logError));
+        
+        }, this::logError);
     }
 
     /**
      * Goto the live screen
      */
     public void gotoLive() {
-        var state = this.startAction("gotoLive");
+        this.logAction("gotoLive");
 
         mTransitions.renderLive();
         mTransitions.renderGameTabs(state.activeGames);
@@ -216,27 +211,29 @@ public class Actions {
      * Filter the aforementioned lists by the value of each correponding search field.
      */
     public void gotoOverview() {
-        var state = this.startAction("gotoOverview");
+        this.logAction("gotoOverview");
+
+        var stateCopy = mState.copy();
 
         // Filter based on search
-        var filteredGames = state.activeGames.values().stream()
+        var filteredGames = stateCopy.activeGames.values().stream()
                 .filter(game -> game.getString(FieldNames.NAME).toUpperCase()
-                        .contains(state.searchGames.toUpperCase()))
+                        .contains(stateCopy.searchGames.toUpperCase()))
                 .collect(Collectors.toList());
 
-        var filteredGameInvites = state.gameInvites.values().stream()
+        var filteredGameInvites = stateCopy.gameInvites.values().stream()
                 .filter(gameInv -> gameInv.getString(FieldNames.NAME).toUpperCase()
-                            .contains(state.searchGames.toUpperCase()))
+                            .contains(stateCopy.searchGames.toUpperCase()))
                 .collect(Collectors.toList());
 
-        var filteredChats = state.activeChats.values().stream()
+        var filteredChats = stateCopy.activeChats.values().stream()
                 .filter(chat -> chat.json.getString(FieldNames.NAME).toUpperCase()
-                            .contains(state.searchChats.toUpperCase()))
+                            .contains(stateCopy.searchChats.toUpperCase()))
                 .collect(Collectors.toList());
 
-        var filteredChatInvites = state.chatInvites.values().stream()
+        var filteredChatInvites = stateCopy.chatInvites.values().stream()
                 .filter(chatInv -> chatInv.getString(FieldNames.NAME).toUpperCase()
-                        .contains(state.searchChats.toUpperCase()))
+                        .contains(stateCopy.searchChats.toUpperCase()))
                 .collect(Collectors.toList());
 
 
@@ -247,9 +244,9 @@ public class Actions {
         // Get friends range
         final var payload = new JSONObject();
         payload.put(FieldNames.PAGE_INDEX, 0);
-        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.USER_ID, stateCopy.userId);
 
-        mAPI.send(mRequests.make(GET_FRIEND_RANGE_REQUEST, payload, state.authToken, successFriends -> {
+        send(GET_FRIEND_RANGE_REQUEST, payload, successFriends -> {
 
             var friendsRange = successFriends.getJSONArray(FieldNames.RANGE);
             var friendsList = new ArrayList<JSONObject>();
@@ -262,7 +259,7 @@ public class Actions {
             var filteredFriendsList = friendsList.stream()
                     .filter(friend -> friend.getInt(FieldNames.STATUS) != FriendStatus.IGNORED.toInt())
                     .filter(friend -> friend.getString(FieldNames.USERNAME).toUpperCase()
-                            .contains(state.searchFriends.toUpperCase()))
+                            .contains(stateCopy.searchFriends.toUpperCase()))
                     .collect(Collectors.toList());
 
 
@@ -270,7 +267,7 @@ public class Actions {
 
 
             // Get user range
-            mAPI.send(mRequests.make(GET_USER_RANGE_REQUEST, payload, state.authToken, successUsers -> {
+            send(GET_USER_RANGE_REQUEST, payload, successUsers -> {
 
                 var usersRange = successUsers.getJSONArray(FieldNames.RANGE);
                 var usersList = new ArrayList<JSONObject>();
@@ -283,7 +280,7 @@ public class Actions {
                     boolean found = false;
                     for (var friend: friendsList) {
                         var friendId = friend.getInt(FieldNames.USER_ID);
-                        if (friendId == userId || userId == state.userId) {
+                        if (friendId == userId || userId == stateCopy.userId) {
                             found = true;
                             break;
                         }
@@ -296,43 +293,42 @@ public class Actions {
                 // Filter user by search
                 var filteredUserList = usersList.stream()
                         .filter(user -> user.getString(FieldNames.USERNAME).toUpperCase()
-                                .contains(state.searchUsers.toUpperCase()))
+                                .contains(stateCopy.searchUsers.toUpperCase()))
                         .collect(Collectors.toList());
 
                 // Filter ignored by search
                 var filteredIgnoredList = friendsList.stream()
                         .filter(friend -> friend.getInt(FieldNames.STATUS) == FriendStatus.IGNORED.toInt())
                         .filter(ignored -> ignored.getString(FieldNames.USERNAME).toUpperCase()
-                                .contains(state.searchUsers.toUpperCase()))
+                                .contains(stateCopy.searchUsers.toUpperCase()))
                         .collect(Collectors.toList());
 
                 mTransitions.renderUserList(filteredUserList, filteredIgnoredList);
-            },
-            this::logError));
-        },
-        this::logError));
+            
+            }, this::logError);
+        }, this::logError);
     }
 
     /**
      * Create game and add as active
      */
     public void createGame(/* TODO pass name*/) {
-        var state = this.startAction("createGame");
+        this.logAction("createGame");
 
         var game = makeGame();
         var clientGameId = game.getInt(FieldNames.GAME_ID);
 
         var payload = new JSONObject();
-        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(FieldNames.NAME, "Game " + clientGameId);
 
-        mAPI.send(mRequests.make(CREATE_GAME_REQUEST, payload, state.authToken, success -> {
+        send(CREATE_GAME_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
-        },
-        this::logError));
+        
+        }, this::logError);
 
-        mStateManager.commit(gState -> {
-            gState.activeGames.put(clientGameId, game);
+        mState.commit(state -> {
+            state.activeGames.put(clientGameId, game);
         });
         mTransitions.newGame(clientGameId, game);
     }
@@ -352,24 +348,23 @@ public class Actions {
      * Create chat and add as active
      */
     public void createChat(/* TODO pass name*/) {
-        var state = this.startAction("createChat");
+        this.logAction("createChat");
 
         var chatJSON = makeChat();
         var clientChatId = chatJSON.getInt(CHAT_ID);
 
         var payload = new JSONObject();
-        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(FieldNames.NAME, "Chat " + clientChatId);
 
-        mAPI.send(mRequests.make(CREATE_CHAT_REQUEST, payload, state.authToken, success -> {
+        send(CREATE_CHAT_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
-        },
-        this::logError));
+        }, this::logError);
 
         var chat = new Chat();
         chat.json = chatJSON;
-        mStateManager.commit(gState -> {
-            gState.activeChats.put(clientChatId , chat);
+        mState.commit(state -> {
+            state.activeChats.put(clientChatId , chat);
         });
         mTransitions.newChat(clientChatId, chat.json);
     }
@@ -391,21 +386,20 @@ public class Actions {
      * @param usersId the set of users ids which will receive the friend request
      */
     public void friend(HashSet<Integer> usersId) {
-        var state = this.startAction("friend");
+        this.logAction("friend");
 
         var payload = new ArrayList<JSONObject>();
         usersId.forEach(friendId -> {
             var item = new JSONObject();
-            item.put(FieldNames.USER_ID, state.userId);
+            item.put(FieldNames.USER_ID, mState.getUserId());
             item.put(FieldNames.OTHER_ID, friendId);
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(FRIEND_REQUEST, payload, state.authToken,
-            success -> {
-                this.gotoOverview();
-            },
-            this::logError));
+        send(FRIEND_REQUEST, payload, success -> {
+            this.gotoOverview();
+    
+        }, this::logError);
     }
 
     /**
@@ -414,21 +408,20 @@ public class Actions {
      * @param usersId the set of users ids which will be unfriended
      */
     public void unfriend(HashSet<Integer> usersId) {
-        var state = this.startAction("unfriend");
+        this.logAction("unfriend");
 
         var payload = new ArrayList<JSONObject>();
         usersId.forEach(friendId -> {
             var item = new JSONObject();
-            item.put(FieldNames.USER_ID, state.userId);
+            item.put(FieldNames.USER_ID, mState.getUserId());
             item.put(FieldNames.OTHER_ID, friendId);
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(UNFRIEND_REQUEST, payload, state.authToken,
-            success -> {
-                this.gotoOverview();
-            },
-            this::logError));
+        send(UNFRIEND_REQUEST, payload, success -> {
+            this.gotoOverview();
+
+        }, this::logError);
     }
 
     /**
@@ -437,66 +430,63 @@ public class Actions {
      * @param usersId the users which will be ignored
      */
     public void ignore(HashSet<Integer> usersId) {
-        var state = this.startAction("ignore");
+        this.logAction("ignore");
 
         var payload = new ArrayList<JSONObject>();
         usersId.forEach(userId -> {
             var item = new JSONObject();
-            item.put(FieldNames.USER_ID, state.userId);
+            item.put(FieldNames.USER_ID, mState.getUserId());
             item.put(FieldNames.OTHER_ID, userId);
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(IGNORE_REQUEST, payload, state.authToken, success -> {
+        send(IGNORE_REQUEST, payload, success -> {
             this.gotoOverview();
-        },
-        this::logError));
+        
+        }, this::logError);
     }
 
     /**
      *
      */
     public void joinChat(HashSet<Integer> chatsId) {
-        var state = this.startAction("joinChat");
+        this.logAction("joinChat");
 
         var payload = new ArrayList<JSONObject>();
         chatsId.forEach(chatId -> {
             var item = new JSONObject();
-            item.put(FieldNames.USER_ID, state.userId);
+            item.put(FieldNames.USER_ID, mState.getUserId());
             item.put(CHAT_ID, chatId);
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(JOIN_CHAT_REQUEST, payload, state.authToken,
-            success -> {
-                this.gotoOverview();
-            },
-            this::logError));
+        send(JOIN_CHAT_REQUEST, payload, success -> {
+            this.gotoOverview();
+
+        }, this::logError);
     }
 
     /**
      *
      */
     public void leaveChat(HashSet<Integer> chatsId) {
-        var state = this.startAction("leaveChat");
+        this.logAction("leaveChat");
 
         var payload = new ArrayList<JSONObject>();
         chatsId.forEach(chatId -> {
             var item = new JSONObject();
-            item.put(FieldNames.USER_ID, state.userId);
+            item.put(FieldNames.USER_ID, mState.getUserId());
             item.put(CHAT_ID, chatId);
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(LEAVE_CHAT_REQUEST, payload, state.authToken,
-            success -> {
-                // TODO SERVER UNIMPLEMENTED
-            },
-            this::logError));
+        send(LEAVE_CHAT_REQUEST, payload, success -> {
+            // TODO SERVER UNIMPLEMENTED
+        }, this::logError);
 
-        mStateManager.commit(gState -> {
+        mState.commit(state -> {
             chatsId.forEach(id ->  {
-                gState.activeChats.remove(id);
+                state.activeChats.remove(id);
             });
         });
 
@@ -507,27 +497,25 @@ public class Actions {
      *
      */
     public void sendChatMessage(int chatId, String message) {
-        var state = this.startAction("sendChatMessage");
+        this.logAction("sendChatMessage");
 
         var payload = new JSONObject();
-        payload.put(FieldNames.USER_ID, state.userId);
+        payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(CHAT_ID, chatId);
         payload.put(FieldNames.MESSAGE, message);
 
-        mAPI.send(mRequests.make(SEND_CHAT_MESSAGE_REQUEST, payload, state.authToken,
-            success -> {
-                // TODO SERVER UNIMPLEMENTED
+        send(SEND_CHAT_MESSAGE_REQUEST, payload, success -> {
+            // TODO SERVER UNIMPLEMENTED
 
-            },
-            this::logError));
+        }, this::logError);
 
         var messageJSON = new JSONObject();
         messageJSON.put(FieldNames.MESSAGE, message);
         messageJSON.put(FieldNames.USERNAME, state.username);
 
-        mStateManager.commit(gState -> {
+        mState.commit(state -> {
             Logger.log(Level.DEBUG, "!!!chatId: " + String.valueOf(chatId));
-            gState.activeChats.get(chatId).messages.add(messageJSON);
+            state.activeChats.get(chatId).messages.add(messageJSON);
         });
         mTransitions.newMessage(chatId, state.username, message);
     }
@@ -536,70 +524,67 @@ public class Actions {
      *
      */
     public void sendChatInvite(HashSet<Integer> chatsId, HashSet<Integer> friendsId) {
-        var state = this.startAction("sendChatInvite");
+        this.logAction("sendChatInvite");
 
         var payload = new ArrayList<JSONObject>();
         chatsId.forEach(chatId -> {
             friendsId.forEach(friendId -> {
                 var item = new JSONObject();
-                item.put(FieldNames.USER_ID, state.userId);
+                item.put(FieldNames.USER_ID, mState.getUserId());
                 item.put(FieldNames.OTHER_ID, friendId);
                 item.put(CHAT_ID, chatId);
                 payload.add(item);
             });
         });
 
-        mAPI.send(mRequests.make(SEND_CHAT_INVITE_REQUEST, payload, state.authToken,
-        success -> {
+        send(SEND_CHAT_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
-        },
-        this::logError));
+        
+        }, this::logError);
     }
 
     /**
      *
      */
     public void joinGame(HashSet<Integer> gamesId) {
-        var state = this.startAction("joinGame");
+        this.logAction("joinGame");
 
         var payload = new ArrayList<JSONObject>();
         gamesId.forEach(gameId -> {
             var item = new JSONObject();
-            item.put(FieldNames.USER_ID, state.userId);
+            item.put(FieldNames.USER_ID, mState.getUserId());
             item.put(FieldNames.GAME_ID, gameId);
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(JOIN_GAME_REQUEST, payload, state.authToken,
-        success -> {
+        send(JOIN_GAME_REQUEST, payload, success -> {
             this.gotoOverview();
-        },
-        this::logError));
+        
+        }, this::logError);
     }
 
     /**
      *
      */
     public void leaveGame(HashSet<Integer> gamesId) {
-        var state = this.startAction("leaveGame");
+        this.logAction("leaveGame");
 
         var payload = new ArrayList<JSONObject>();
         gamesId.forEach(gameId -> {
             var item = new JSONObject();
-            item.put(FieldNames.USER_ID, state.userId);
+            item.put(FieldNames.USER_ID, mState.getUserId());
             item.put(FieldNames.GAME_ID, gameId);
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(LEAVE_GAME_REQUEST, payload, state.authToken,
-        success -> {
+        send(LEAVE_GAME_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
-        },
-        this::logError));
+        
+        }, this::logError);
 
-        mStateManager.commit(gState -> {
+        mState.commit(state -> {
             gamesId.forEach(id ->  {
-                gState.activeGames.remove(id);
+                state.activeGames.remove(id);
             });
         });
         this.gotoOverview();
@@ -609,31 +594,30 @@ public class Actions {
      *
      */
     public void sendGameInvite(HashSet<Integer> gamesId, HashSet<Integer> friendsId) {
-        var state = this.startAction("sendGameInvite");
+        this.logAction("sendGameInvite");
 
         var payload = new ArrayList<JSONObject>();
         gamesId.forEach(gameId -> {
             friendsId.forEach(friendId -> {
                 var item = new JSONObject();
-                item.put(FieldNames.USER_ID, state.userId);
+                item.put(FieldNames.USER_ID, mState.getUserId());
                 item.put(FieldNames.OTHER_ID, friendId);
                 item.put(FieldNames.GAME_ID, gameId);
                 payload.add(item);
             });
         });
 
-        mAPI.send(mRequests.make(SEND_GAME_INVITE_REQUEST, payload, state.authToken,
-        success -> {
+        send(SEND_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
-        },
-        this::logError));
+    
+        }, this::logError);
     }
 
     /**
      *
      */
     public void declineGameInvite(HashSet<Integer> gamesId) {
-        var state = this.startAction("declineGameInvite");
+        this.logAction("declineGameInvite");
 
         var payload = new ArrayList<JSONObject>();
         gamesId.forEach(gameId -> {
@@ -642,32 +626,31 @@ public class Actions {
             payload.add(item);
         });
 
-        mAPI.send(mRequests.make(DECLINE_GAME_INVITE_REQUEST, payload, state.authToken,
-        success -> {
+        send(DECLINE_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
-        },
-        this::logError));
+       
+        }, this::logError);
     }
 
     /**
      *
      */
     public void startGame() {
-        var state = this.startAction("startGame");
+        this.logAction("startGame");
     }
 
     /**
      *
      */
     public void sendRollDice() {
-        var state = this.startAction("sendRollDice");
+        this.logAction("sendRollDice");
     }
 
     /**
      *
      */
     public void movePiece() {
-        var state = this.startAction("movePiece");
+        this.logAction("movePiece");
     }
 
 
@@ -680,7 +663,7 @@ public class Actions {
      *
      */
     public void getChat() {
-        var state = this.startAction("login");
+        this.logAction("login");
     }
 
 
@@ -689,28 +672,28 @@ public class Actions {
      */
     public void getUser(Collection<Integer> userIds) {
 
-        var state = this.startAction("getUser");
+        this.logAction("getUser");
 
     }
     /**
      *
      */
     public void getFriend() {
-        var state = this.startAction("getFriend");
+        this.logAction("getFriend");
     }
 
     /**
      *
      */
     public void getGame() {
-        var state = this.startAction("getGame");
+        this.logAction("getGame");
     }
 
     /**
      *
      */
     public void getGameState() {
-        var state = this.startAction("getGameState");
+        this.logAction("getGameState");
     }
 
     /**
@@ -755,9 +738,8 @@ public class Actions {
      *
      * @param methodName name of callee
      */
-    private State startAction(String methodName) {
+    private State logAction(String methodName) {
         Logger.log(Level.INFO, "Action -> " + methodName);
-        return mStateManager.copy();
     }
 
     private void logError(JSONObject error) {
@@ -769,5 +751,13 @@ public class Actions {
 
     private static int randomId() {
         return ThreadLocalRandom.current().nextInt(1000000, 9999999);
+    }
+
+    private void send(RequestType type, JSONObject payload, RequestCallback success, RequestCallback error) {
+        mAPI.send(mRequests.make(type,payload,mState.getAuthToken(), success,error));
+    }
+
+    private void send(RequestType type, ArrayList<JSONObject> payload, RequestCallback success, RequestCallback error) {
+        mAPI.send(mRequests.make(type,payload,mState.getAuthToken(), success,error));
     }
 }

@@ -21,6 +21,42 @@ public class StateManager {
     }
 
     /**
+     * Get a copy of the userId
+     *
+     * @return userid logged in user
+     */
+    public int getUserId() {
+        int copy;
+        try {
+            State state = mState.take();
+            copy = state.userId;
+            mState.put(state);
+        } catch (InterruptedException e) {
+            Platform.exit();
+        }
+        return copy;
+    }
+
+
+    /**
+     * Get a copy of the auth token
+     *
+     * @return auth token of logged in user
+     */
+    public String getAuthToken() {
+        String copy;
+        try {
+            State state = mState.take();
+            copy = state.authToken;
+            mState.put(state);
+        } catch (InterruptedException e) {
+            Platform.exit();
+        }
+        return copy;
+    }
+    
+
+    /**
      * Full deep copy of the current state. Blocking in case ongoing mutation
      *
      * @return state object

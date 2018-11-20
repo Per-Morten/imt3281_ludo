@@ -22,19 +22,11 @@ public class Request {
 
         var json = new JSONObject();
         json.put(FieldNames.ID, id);
-        json.put(FieldNames.AUTH_TOKEN, token);
         json.put(FieldNames.TYPE, type.toLowerCaseString());
         json.put(FieldNames.PAYLOAD, payload);
-
-        return json;
-    }
-
-    public JSONObject toJSONWithoutToken() {
-
-        var json = new JSONObject();
-        json.put(FieldNames.ID, id);
-        json.put(FieldNames.TYPE, type.toLowerCaseString());
-        json.put(FieldNames.PAYLOAD, payload);
+        if (!token.isEmpty()) {
+            json.put(FieldNames.AUTH_TOKEN, token);
+        }
 
         return json;
     }
