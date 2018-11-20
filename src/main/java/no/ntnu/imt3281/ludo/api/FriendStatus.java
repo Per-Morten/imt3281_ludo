@@ -31,4 +31,3 @@ public enum FriendStatus {
         return values[i];
     }
 }
-

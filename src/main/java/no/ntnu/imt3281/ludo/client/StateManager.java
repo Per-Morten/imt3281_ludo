@@ -1,6 +1,7 @@
 package no.ntnu.imt3281.ludo.client;
 
 import javafx.application.Platform;
+import no.ntnu.imt3281.ludo.common.Logger;
 
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -9,7 +10,7 @@ import java.util.concurrent.ArrayBlockingQueue;
  */
 public class StateManager {
 
-    private ArrayBlockingQueue<State> mState = new ArrayBlockingQueue<State>(1);
+    private ArrayBlockingQueue<State> mState = new ArrayBlockingQueue<>(1);
 
     public StateManager(State initialState) {
         try {
@@ -20,6 +21,42 @@ public class StateManager {
     }
 
     /**
+     * Get a copy of the userId
+     *
+     * @return userid logged in user
+     */
+    public int getUserId() {
+        int copy = -1;
+        try {
+            State state = mState.take();
+            copy = state.userId;
+            mState.put(state);
+        } catch (InterruptedException e) {
+            Platform.exit();
+        }
+        return copy;
+    }
+
+
+    /**
+     * Get a copy of the auth token
+     *
+     * @return auth token of logged in user
+     */
+    public String getAuthToken() {
+        String copy = "";
+        try {
+            State state = mState.take();
+            copy = state.authToken;
+            mState.put(state);
+        } catch (InterruptedException e) {
+            Platform.exit();
+        }
+        return copy;
+    }
+    
+
+    /**
      * Full deep copy of the current state. Blocking in case ongoing mutation
      *
      * @return state object
@@ -28,7 +65,7 @@ public class StateManager {
         State copy = new State();
         try {
             State state = mState.take();
-            copy = State.deepCopy(state);
+            copy = State.shallowCopy(state);
             mState.put(state);
         } catch (InterruptedException e) {
             Platform.exit();
@@ -45,7 +82,14 @@ public class StateManager {
     public void commit(Mutation mutation) {
         try {
             State state = mState.take();
-            mutation.run(state);
+
+            try {
+                mutation.run(state);
+            } catch(Exception e) {
+                Logger.logException(Logger.Level.WARN, e, "Exception in mutation");
+                mState.put(state);
+                return;
+            }
             mState.put(state);
         } catch (InterruptedException e) {
             Platform.exit();

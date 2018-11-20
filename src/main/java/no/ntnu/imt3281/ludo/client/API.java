@@ -7,20 +7,25 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.ArrayList;
+import static no.ntnu.imt3281.ludo.api.EventType.*;
 
 
 public class API {
     private final ArrayBlockingQueue<Request> mPendingRequests = new ArrayBlockingQueue<Request>(1);
     private SocketManager mSocketManager;
+    private Actions mActions;
 
     /**
      * Bind API dependencies
      *
      * @param socketManager need to do networking
      */
-    public void bind(SocketManager socketManager) {
+    public void bind(SocketManager socketManager, Actions actions) {
         mSocketManager = socketManager;
+        mActions = actions;
         mSocketManager.setOnReceiveCallback(this::read);
     }
 
@@ -34,20 +39,17 @@ public class API {
             try {
                 mPendingRequests.put(request);
             } catch(InterruptedException e) {
-                Logger.log(Logger.Level.INFO, "mPendingRequests.take() interrupted" + e.toString());
+                Logger.log(Logger.Level.INFO, "mPendingRequests.put() interrupted" + e.toString());
                 return;
             }
 
             try {
+                Logger.log(Level.DEBUG, "Sending request: " + request.toJSON().toString());
                 mSocketManager.send(request.toJSON().toString());
             } catch (NullPointerException | IOException e) {
                 Logger.log(Level.WARN, "No connection with server: " + e.toString());
-                try {
-                    mPendingRequests.take();
-                    // ... Request failed, so we throw it away, to avoid blocking new requests.
-                } catch (InterruptedException e2) {
-                    Logger.log(Logger.Level.INFO, "mPendingRequests.take() interrupted" + e.toString());
-                }
+                mPendingRequests.poll(); // Throw away request to avoid blocking
+                mActions.forceLogout();
             }
         }).start();
     }
@@ -60,37 +62,41 @@ public class API {
      */
     private void read(String message) {
 
-        Logger.log(Level.DEBUG, "Got a message: " + message);
+        Logger.log(Level.INFO, "Got response|event: " + message);
 
         var jsonResponse = new JSONObject();
         try {
             jsonResponse = new JSONObject(message);
         } catch (JSONException e) {
             Logger.log(Level.WARN, "JSONException when jsonifying message" + e.toString());
+            mPendingRequests.poll(); // Throw away request to avoid blocking
             return;
         }
 
-        String messageType = new String();
+        String messageType;
         try {
             messageType = jsonResponse.getString("type");
         } catch (JSONException e) {
             Logger.log(Level.WARN, "JSONException when parsing 'type':" + e.toString());
+            mPendingRequests.poll(); // Throw away request to avoid blocking
             return;
         }
 
         ResponseType reqType = ResponseType.fromString(messageType);
+        EventType eventType = EventType.fromString(messageType);
+
+        if (reqType == null && eventType == null){
+            Logger.log(Level.WARN, "Unkown message type: " + messageType);
+            mPendingRequests.poll(); // Throw away request to avoid blocking
+            return;
+        }
+
+        // Handle response or event
         if (reqType != null) {
             this.handleResponse(jsonResponse);
-            return;
+        } else {
+            this.handleEvent(eventType, jsonResponse);
         }
-
-        EventType eventType = EventType.fromString(messageType);
-        if (eventType != null) {
-            this.handleEvent(jsonResponse);
-            return;
-        }
-
-        Logger.log(Level.WARN, "Unkown message type: " + messageType);
     }
 
     /**
@@ -104,9 +110,10 @@ public class API {
 
         if (request == null) {
             Logger.log(Level.ERROR, "No matching request found when handling response");
+            return;
         }
 
-        var response = new Response();
+        Response response;
         try {
             response = Response.fromJSON(jsonResponse);
         } catch (JSONException e) {
@@ -116,32 +123,17 @@ public class API {
 
         if (request.id != response.id) {
             Logger.log(Level.ERROR, "requestId != responseId Request id and response id should match");
+            return;
         }
 
         response.success.forEach(successItem -> {
-
-            var requestItem = new JSONObject();
-            for (int i = 0; i < request.payload.size(); ++i) {
-                var reqItem = request.payload.get(i);
-                if (reqItem.getInt("id") == successItem.getInt("id")) {
-                    requestItem = reqItem;
-                    break;
-                }
-            };
-            request.onSuccess.run(requestItem, successItem);
+            Logger.log(Level.DEBUG, response.type.toLowerCaseString() + " -> success: " + successItem.toString());
+            request.onSuccess.run(successItem);
         });
 
         response.error.forEach(errorItem -> {
-
-            var requestItem = new JSONObject();
-            for (int i = 0; i < request.payload.size(); ++i) {
-                var reqItem = request.payload.get(i);
-                if (reqItem.getInt("id") == errorItem.getInt("id")) {
-                    requestItem = reqItem;
-                    break;
-                }
-            };
-            request.onError.run(requestItem, errorItem);
+            Logger.log(Level.DEBUG, response.type.toLowerCaseString() + " -> error: " + errorItem.toString());
+            request.onError.run(errorItem);
         });
     }
 
@@ -150,5 +142,24 @@ public class API {
      *
      * @param event event as json
      */
-    private void handleEvent(JSONObject event) {}
+    private void handleEvent(EventType type, JSONObject event) {
+        
+        var payload = event.getJSONArray("payload");
+
+        var payloadArray = new ArrayList<JSONObject>();
+        payload.forEach(item -> {
+            payloadArray.add((JSONObject)item);
+        });
+
+        Logger.log(Level.DEBUG, "Event payload -> " + payload.toString());
+        switch (type) {
+            case FRIEND_UPDATE: mActions.friendUpdate(); break;
+            case CHAT_UPDATE: mActions.chatUpdate(); break;
+            case CHAT_INVITE: mActions.chatInvite(payloadArray); break;
+            case CHAT_MESSAGE: mActions.chatMessage(payloadArray); break;
+            case GAME_UPDATE: mActions.gameUpdate(payloadArray); break;
+            case GAME_INVITE: mActions.gameInvite(payloadArray); break;
+            case FORCE_LOGOUT: mActions.forceLogout(); break;
+        }
+    }
 }

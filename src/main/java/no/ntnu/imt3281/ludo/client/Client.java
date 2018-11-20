@@ -57,7 +57,7 @@ public class Client extends Application {
         // Bind dependencies between important systems.
         State initialState = State.load();
         mStateManager = new StateManager(initialState);
-        mApi.bind(mSocketManager);
+        mApi.bind(mSocketManager, mActions);
         mActions.bind(mTransitions, mApi, mStateManager);
         mTransitions.bind(primaryStage, mActions, mStateManager);
 
@@ -73,7 +73,11 @@ public class Client extends Application {
             Platform.exit();
         });
 
-        mTransitions.renderLogin();
+        if (!initialState.authToken.isEmpty()) {
+            mActions.gotoUser();
+        } else {
+            mActions.gotoLogin();
+        }
     }
 
     /**

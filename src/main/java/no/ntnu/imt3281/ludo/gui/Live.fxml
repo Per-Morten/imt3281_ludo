@@ -7,7 +7,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="1000.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.SceneLiveController">
+<AnchorPane prefHeight="1000.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.LiveController">
    <children>
       <VBox prefHeight="200.0" prefWidth="100.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
@@ -26,7 +26,7 @@
                         <TabPane fx:id="mTabGames" prefHeight="882.0" prefWidth="1009.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" />
                      </children>
                   </VBox>
-                  <VBox prefHeight="934.0" prefWidth="857.0" style="-fx-border-color: #333;" HBox.hgrow="SOMETIMES">
+                  <VBox prefHeight="934.0" prefWidth="800.0" style="-fx-border-color: #333;" HBox.hgrow="SOMETIMES">
                      <children>
                         <HBox alignment="CENTER_RIGHT" style="-fx-background-color: #ddd;">
                            <children>
@@ -44,7 +44,7 @@
             <HBox alignment="CENTER" prefHeight="66.0" prefWidth="1600.0" style="-fx-background-color: #ddd; -fx-border-color: #333;">
                <children>
                   <Button fx:id="mBtnUser" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickUser" prefHeight="30.0" prefWidth="100.0" text="User" />
-                  <Button fx:id="mBtnSearch" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickSearch" prefHeight="30.0" prefWidth="100.0" text="Search" />
+                  <Button fx:id="mBtnOverview" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickOverview" prefHeight="30.0" prefWidth="100.0" text="Overview" />
                   <Button fx:id="mBtnLogout" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#onClickLogout" prefHeight="30.0" prefWidth="100.0" text="Logout" />
                </children>
                <padding>

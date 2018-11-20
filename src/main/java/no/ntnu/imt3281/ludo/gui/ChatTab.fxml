@@ -7,11 +7,11 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="100.0" minWidth="100.0" prefHeight="10000.0" prefWidth="10000.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.TabChatController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="100.0" minWidth="100.0" prefHeight="10000.0" prefWidth="10000.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.ChatTabController">
    <children>
       <VBox prefHeight="200.0" prefWidth="100.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <VBox fx:id="mListMessages" VBox.vgrow="ALWAYS" />
+            <VBox fx:id="mMessageList" VBox.vgrow="ALWAYS" />
             <HBox maxHeight="37.0" minHeight="37.0" minWidth="100.0" prefHeight="37.0" prefWidth="200.0">
                <children>
                   <TextField fx:id="mTextSend" alignment="TOP_LEFT" prefHeight="30.0" HBox.hgrow="ALWAYS">
