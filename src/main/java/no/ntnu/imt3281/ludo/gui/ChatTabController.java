@@ -4,6 +4,8 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.VBox;
 
 public class ChatTabController extends BaseController {
@@ -20,9 +22,10 @@ public class ChatTabController extends BaseController {
     private Button mBtnSend;
 
     @FXML
-    void onSend(ActionEvent event) {
-
+    void onSend(KeyEvent event) {
+        if(!event.getCode().equals(KeyCode.ENTER)) return;
         if (mTextSend.getText().equals("")) return;
+
         mActions.sendChatMessage(mId, mTextSend.getText());
         mTextSend.setText("");
     }
