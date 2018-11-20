@@ -46,6 +46,7 @@ public class Actions implements API.Events {
             gState.email = "";
             gState.authToken = "";
             gState.username = "";
+            gState.password = "";
             gState.avatarURI = "";
 
             gState.searchUsers = "";
@@ -109,9 +110,9 @@ public class Actions implements API.Events {
             mState.commit(state -> {
                 state.userId = success.getInt(FieldNames.USER_ID);
                 state.authToken = success.getString(FieldNames.AUTH_TOKEN);
+                state.password = password;
             });
             this.gotoUser();
-        
         });
     }
 
@@ -190,7 +191,8 @@ public class Actions implements API.Events {
                 // TODO Email does not exist in get_user_request.
             });
             mTransitions.renderUser(user);
-        
+        }, error -> {
+            gotoLogin();
         });
     }
 
@@ -771,6 +773,18 @@ public class Actions implements API.Events {
      */
     private static int randomInt() {
         return ThreadLocalRandom.current().nextInt(1000000, 9999999);
+    }
+
+    /**
+     * Wrapper for the mAPI.send() and RequestFactory.make()
+     *
+     * @param type request type
+     * @param payload request payload
+     * @param success success callback function
+     * @param error error callback function
+     */
+    private void send(RequestType type, JSONObject payload, RequestCallback success,RequestCallback error) {
+        mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success, error));
     }
 
     /**

@@ -64,8 +64,6 @@ public class Transitions {
      * @param user logged in user
      */
     public void renderUser(User user) {
-        Logger.log(Level.INFO, "Transition -> Render User");
-
         var userDoc = this.loadFXML(Path.USER);
         var userController = (UserController)userDoc.controller;
 
@@ -176,8 +174,6 @@ public class Transitions {
 
             overview.mListGames.getChildren().clear();
 
-            Logger.log(Level.DEBUG, "activeGames.size(): " + activeGames.size());
-
             activeGames.forEach(game -> {
                 var id = game.getInt(FieldNames.GAME_ID);
                 var item = this.loadFXML(Path.LIST_ITEM);
@@ -214,8 +210,6 @@ public class Transitions {
         Platform.runLater(()-> {
 
             overview.mListChats.getChildren().clear();
-
-            Logger.log(Level.DEBUG, "activeChats.size(): " + activeChats.size());
 
             activeChats.forEach(chat -> {
                 var id = chat.json.getInt(FieldNames.CHAT_ID);
