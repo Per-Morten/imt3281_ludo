@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import static no.ntnu.imt3281.ludo.api.FieldNames.CHAT_ID;
 import static no.ntnu.imt3281.ludo.api.RequestType.*;
 
-public class Actions {
+public class Actions implements API.Events {
 
     private Transitions mTransitions;
     private API mAPI;
@@ -336,7 +336,7 @@ public class Actions {
 
     // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE GAME
     private static JSONObject makeGame() {
-        var gameId = randomId();
+        var gameId = randomInt();
         var game = new JSONObject();
         game.put(FieldNames.GAME_ID, gameId);
         game.put(FieldNames.NAME, "Game " + gameId);
@@ -372,7 +372,7 @@ public class Actions {
 
     // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE CHAT
     private static JSONObject makeChat() {
-        var chatId = randomId();
+        var chatId = randomInt();
         var chat = new JSONObject();
         chat.put(CHAT_ID, chatId);
         chat.put(FieldNames.NAME, "Chat " + chatId);
@@ -698,42 +698,54 @@ public class Actions {
         this.logAction("getGameState");
     }
 
-    /**
-     *
-     */
-    void friendUpdate() {
 
-    }
-    void chatUpdate() {
-
-    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // API.Events implementation
+    //
 
     /**
-     *
+     * Something in the friends list has changed
      */
-    void chatInvite(ArrayList<JSONObject> chats) {}
+    public void friendUpdate() { }
 
     /**
-     *
+     * Notify which chats has changed
      */
-    void chatMessage(ArrayList<JSONObject> messages) {}
+    public void chatUpdate(ArrayList<JSONObject> chats) { }
 
     /**
-     *
+     * Handle incoming chat notifications
      */
-    void gameUpdate(ArrayList<JSONObject> games) {}
+    public void chatInvite(ArrayList<JSONObject> chatInvites) {}
 
     /**
-     *
+     * Handle incoming chat messages
      */
-    void gameInvite(ArrayList<JSONObject> gameInvites) {}
+    public void chatMessage(ArrayList<JSONObject> messages) {}
 
     /**
-     *
+     * Notify which games has been changed
      */
-    void forceLogout() {
+    public void gameUpdate(ArrayList<JSONObject> games) {}
+
+    /**
+     * Handle incoming game invites
+     */
+    public void gameInvite(ArrayList<JSONObject> gameInvites) {}
+
+    /**
+     * Server has logged you out. Deal with it.
+     */
+    public void forceLogout() {
         this.gotoLogin();
     }
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Private functions
+    //
 
     /**
      * Do prep-work for each action.
@@ -751,14 +763,33 @@ public class Actions {
         });
     }
 
-    private static int randomId() {
+    /**
+     * Generate random integer
+     *
+     * @return random integer
+     */
+    private static int randomInt() {
         return ThreadLocalRandom.current().nextInt(1000000, 9999999);
     }
 
+    /**
+     * Wrapper for the mAPI.send() function
+     *
+     * @param type request type
+     * @param payload request payload
+     * @param success success callback function
+     */
     private void send(RequestType type, JSONObject payload, RequestCallback success) {
         mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success, this::logError));
     }
 
+    /**
+     * Wrapper for the mAPI.send() function
+     *
+     * @param type request type
+     * @param payload request payload
+     * @param success success callback function
+     */
     private void send(RequestType type, ArrayList<JSONObject> payload, RequestCallback success) {
         mAPI.send(mRequests.make(type,payload,mState.getAuthToken(), success, this::logError));
     }

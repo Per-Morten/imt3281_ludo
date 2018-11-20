@@ -7,25 +7,36 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.ArrayList;
-import static no.ntnu.imt3281.ludo.api.EventType.*;
 
 
 public class API {
+    /**
+     * Interface used to respond to events from server
+     */
+    interface Events {
+        void friendUpdate();
+        void chatUpdate(ArrayList<JSONObject> chats);
+        void chatInvite(ArrayList<JSONObject> chatInvites);
+        void chatMessage(ArrayList<JSONObject> messages);
+        void gameUpdate(ArrayList<JSONObject> games);
+        void gameInvite(ArrayList<JSONObject> gameInvites);
+        void forceLogout();
+    }
+
     private final ArrayBlockingQueue<Request> mPendingRequests = new ArrayBlockingQueue<Request>(1);
     private SocketManager mSocketManager;
-    private Actions mActions;
+    private Events mEvents;
 
     /**
      * Bind API dependencies
      *
      * @param socketManager need to do networking
      */
-    public void bind(SocketManager socketManager, Actions actions) {
+    public void bind(SocketManager socketManager, Events events) {
         mSocketManager = socketManager;
-        mActions = actions;
+        mEvents = events;
         mSocketManager.setOnReceiveCallback(this::read);
     }
 
@@ -49,7 +60,7 @@ public class API {
             } catch (NullPointerException | IOException e) {
                 Logger.log(Level.WARN, "No connection with server: " + e.toString());
                 mPendingRequests.poll(); // Throw away request to avoid blocking
-                mActions.forceLogout();
+                mEvents.forceLogout();
             }
         }).start();
     }
@@ -144,22 +155,22 @@ public class API {
      */
     private void handleEvent(EventType type, JSONObject event) {
         
-        var payload = event.getJSONArray("payload");
+        var payloadJSON = event.getJSONArray("payload");
 
-        var payloadArray = new ArrayList<JSONObject>();
-        payload.forEach(item -> {
-            payloadArray.add((JSONObject)item);
+        var payload = new ArrayList<JSONObject>();
+        payloadJSON.forEach(item -> {
+            payload.add((JSONObject)item);
         });
 
-        Logger.log(Level.DEBUG, "Event payload -> " + payload.toString());
+        Logger.log(Level.DEBUG, "Event payload -> " + payloadJSON.toString());
         switch (type) {
-            case FRIEND_UPDATE: mActions.friendUpdate(); break;
-            case CHAT_UPDATE: mActions.chatUpdate(); break;
-            case CHAT_INVITE: mActions.chatInvite(payloadArray); break;
-            case CHAT_MESSAGE: mActions.chatMessage(payloadArray); break;
-            case GAME_UPDATE: mActions.gameUpdate(payloadArray); break;
-            case GAME_INVITE: mActions.gameInvite(payloadArray); break;
-            case FORCE_LOGOUT: mActions.forceLogout(); break;
+            case FRIEND_UPDATE: mEvents.friendUpdate(); break;
+            case CHAT_UPDATE: mEvents.chatUpdate(payload); break;
+            case CHAT_INVITE: mEvents.chatInvite(payload); break;
+            case CHAT_MESSAGE: mEvents.chatMessage(payload); break;
+            case GAME_UPDATE: mEvents.gameUpdate(payload); break;
+            case GAME_INVITE: mEvents.gameInvite(payload); break;
+            case FORCE_LOGOUT: mEvents.forceLogout(); break;
         }
     }
 }
