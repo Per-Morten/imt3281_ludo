@@ -105,6 +105,14 @@ class TestUtility {
         assertEquals(type, field);
     }
 
+    static void sendMessage(SocketManager socket, JSONObject message) {
+        try {
+            socket.send(message.toString());
+        } catch (IOException e) {
+            fail();
+        }
+    }
+
     /**
      * Function to hide the uglyness of typing BiConsumer all the time, but Java don't have proper type inference on
      * these things when you try to create them as local variables.
@@ -117,6 +125,10 @@ class TestUtility {
     static BiConsumer<TestContext, String> createCallback(BiConsumer<TestContext, String> callback) {
         return callback;
     }
+    ///////////////////////////////////////////////////////
+    /// Running tests Utility
+    ///////////////////////////////////////////////////////
+    // TODO: Find a way to refactor the three runTest functions so they call to each other instead, there is too much duplication here.
 
     static void runTestNotRequiringLogin(String firstMessage, BiConsumer<TestContext, String> onReceiveCallback) {
         final var context = new TestContext();
@@ -227,7 +239,6 @@ class TestUtility {
         }
     }
 
-
     static void runTestWithExistingUser(Database.User user, BiConsumer<TestContext, JSONObject> onReceiveCallback) {
         final var context = new TestContext();
 
@@ -283,14 +294,66 @@ class TestUtility {
         }
     }
 
+    ///////////////////////////////////////////////////////
+    /// Utility for generating different aspects
+    ///////////////////////////////////////////////////////
+    static void setupRelationshipEnvironment(Database.User[] users,
+                                                Database.User[][] friends,
+                                                Database.User[][] pendingRequests,
+                                                Database.User[][] breakups,
+                                                Database.User[][] ignored) {
+        // Creating the users
+        for (var user : users) {
+            TestUtility.runTestWithNewUser(user.username, user.email, user.password, (context, msg) -> {
+                var type = msg.getString(FieldNames.TYPE);
+                if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                    user.id = context.user.id;
+                    context.running.set(false);
+                }
+            });
+        }
 
-    public static void sendMessage(SocketManager socket, JSONObject message) {
-        try {
-            socket.send(message.toString());
-        } catch (IOException e) {
-            fail();
+        // Creating friendships
+        for (var friendPair : friends) {
+            for (int i = 0; i < 2; i++) {
+                final int idx = i;
+                TestUtility.runTestWithExistingUser(friendPair[i], (context, msg) -> {
+                    TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, friendPair[(idx + 1) % 2].id, context.user.token));
+                    context.running.set(false);
+                });
+            }
+        }
+
+        // Creating pending requests
+        for (var request : pendingRequests) {
+            final int i = 0;
+            TestUtility.runTestWithExistingUser(request[i], (context, msg) -> {
+                TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, request[(i + 1)].id, context.user.token));
+                context.running.set(false);
+            });
+        }
+
+        // Creating Existing Breakups
+        for (var breakup : breakups) {
+            for (int i = 0; i < 2; i++) {
+                final var idx = i;
+                TestUtility.runTestWithExistingUser(breakup[i], (context, msg) -> {
+                    TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.UNFRIEND_REQUEST, context.user.id, breakup[(idx + 1) % 2].id, context.user.token));
+                    context.running.set(false);
+                });
+            }
+        }
+
+        // Existing Ignores
+        for (var ignoredPair : ignored) {
+            final int i = 0;
+            TestUtility.runTestWithExistingUser(ignoredPair[i], (context, msg) -> {
+                TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.IGNORE_REQUEST, context.user.id, ignoredPair[(i + 1)].id, context.user.token));
+                context.running.set(false);
+            });
         }
     }
+
 
     private static String generatePWD() {
         var random = new java.security.SecureRandom();
@@ -302,6 +365,7 @@ class TestUtility {
 
         return builder.toString();
     }
+
 
     // Probably need to create lots of callbacks within each other.
     // However, not being able to log in should always fail.

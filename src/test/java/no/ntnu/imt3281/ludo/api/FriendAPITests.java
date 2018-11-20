@@ -58,69 +58,23 @@ public class FriendAPITests {
                 RALF_IGNORING_LARS, ARN_IGNORING_FRANK_WITHOUT_KNOWHING_HIM, FRANK
         };
 
-        // Creating the users
-        for (var user : users) {
-            TestUtility.runTestWithNewUser(user.username, user.email, user.password, (context, msg) -> {
-                var type = msg.getString(FieldNames.TYPE);
-                if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
-                    user.id = context.user.id;
-                    context.running.set(false);
-                }
-            });
-        }
-
-        // Create existing friendships
         var existingFriends = new Database.User[][]{
                 {FRED_FRIEND_OF_KARL, KARL_FRIEND_OF_FRED},
                 {LISA_TO_UNFRIEND_ARIN, ARIN_TO_BE_UNFRIENDED_BY_LISA},
                 {IVAR_ENEMY_OF_AGNES, AGNES_ENEMY_OF_IVAR},
         };
 
-        for (var friendPair : existingFriends) {
-            for (int i = 0; i < 2; i++) {
-                final int idx = i;
-                TestUtility.runTestWithExistingUser(friendPair[i], (context, msg) -> {
-                    TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, friendPair[(idx + 1) % 2].id, context.user.token));
-                    context.running.set(false);
-                });
-            }
-        }
-
-        // Create existing requests
         var existingFriendRequests = new Database.User[][]{
                 {LINN_TO_BE_IGNORED_BY_KARI, KARI_TO_IGNORE_LINN},
                 {LARS_TRYING_TO_STOP_BEING_IGNORED_BY_RALF, RALF_IGNORING_LARS},
         };
 
-        for (var friendPair : existingFriendRequests) {
-            final int i = 0;
-            TestUtility.runTestWithExistingUser(friendPair[i], (context, msg) -> {
-                TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, friendPair[(i + 1)].id, context.user.token));
-                context.running.set(false);
-            });
-        }
 
-        // Create existing "breakups"
         var existingBreakups = new Database.User[][]{
                 {IVAR_ENEMY_OF_AGNES, AGNES_ENEMY_OF_IVAR},
         };
 
-        for (var breakup : existingBreakups) {
-            for (int i = 0; i < 2; i++) {
-                final var idx = i;
-                TestUtility.runTestWithExistingUser(breakup[i], (context, msg) -> {
-                    TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.UNFRIEND_REQUEST, context.user.id, breakup[(idx + 1) % 2].id, context.user.token));
-                    context.running.set(false);
-                });
-            }
-        }
-
-        TestUtility.runTestWithExistingUser(RALF_IGNORING_LARS, (context, msg) -> {
-            TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.IGNORE_REQUEST, context.user.id, LARS_TRYING_TO_STOP_BEING_IGNORED_BY_RALF.id, context.user.token));
-            context.running.set(false);
-        });
-
-        //TestUtility.sendPreparationMessageToServer(TestUtility.createFriendRelationshipRequest(RequestType.IGNORE_REQUEST, RALF_IGNORING_LARS.id, LARS_TRYING_TO_STOP_BEING_IGNORED_BY_RALF.id, RALF_IGNORING_LARS.token), null);
+        TestUtility.setupRelationshipEnvironment(users, existingFriends, existingFriendRequests, existingBreakups, new Database.User[][] {{RALF_IGNORING_LARS, LARS_TRYING_TO_STOP_BEING_IGNORED_BY_RALF}});
     }
 
 
