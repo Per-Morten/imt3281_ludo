@@ -318,27 +318,32 @@ public class Transitions {
     }
 
     /**
-     *
+     * New game tab, append to existing tabs
      */
     public void newGame(int id, JSONObject game) {
         var live = (LiveController)this.getController(Path.LIVE);
 
+        var gameTab = this.loadFXML(Path.GAME_TAB, id);
+        Tab tab = new Tab(game.getString(FieldNames.NAME));
+
         Platform.runLater(() -> {
-            var gameTab = this.loadFXML(Path.GAME_TAB, id);
-            Tab tab = new Tab("Game " + id);
             tab.setContent(gameTab.root);
             live.mTabGames.getTabs().add(tab);
         });
     }
 
+    /**
+     * New chat tab, append to existing tabs
+     */
     public void newChat(int id, JSONObject chat) {
         var live = (LiveController)this.getController(Path.LIVE);
+
         var chatTab = this.loadFXML(Path.CHAT_TAB, id);
         var chatTabController = (ChatTabController)chatTab.controller;
+        Tab tab = new Tab(chat.getString(FieldNames.NAME));
         chatTabController.mId = id;
 
         Platform.runLater(() -> {
-            Tab tab = new Tab("Chat " + id);
             tab.setContent(chatTab.root);
             live.mTabChats.getTabs().add(tab);
         });

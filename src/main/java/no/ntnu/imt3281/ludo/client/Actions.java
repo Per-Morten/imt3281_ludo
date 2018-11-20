@@ -26,8 +26,8 @@ public class Actions implements API.Events {
     /**
      * Bind dependencies of Actions
      *
-     * @param transitions to feed mutations
-     * @param API         to push requests
+     * @param transitions to mutate the FXML state
+     * @param API to push requests to server, and get responses + events from server
      */
     void bind(Transitions transitions, API API, StateManager stateManager) {
         mTransitions = transitions;
@@ -313,7 +313,7 @@ public class Actions implements API.Events {
     /**
      * Create game and add as active
      */
-    public void createGame(/* TODO pass name*/) {
+    public void createGame(String gameName) {
         this.logAction("createGame");
 
         var game = makeGame();
@@ -321,13 +321,13 @@ public class Actions implements API.Events {
 
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, mState.getUserId());
-        payload.put(FieldNames.NAME, "Game " + clientGameId);
+        payload.put(FieldNames.NAME, gameName);
 
         send(CREATE_GAME_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
-        
         });
 
+        game.put(FieldNames.NAME, gameName);
         mState.commit(state -> {
             state.activeGames.put(clientGameId, game);
         });
@@ -348,7 +348,7 @@ public class Actions implements API.Events {
     /**
      * Create chat and add as active
      */
-    public void createChat(/* TODO pass name*/) {
+    public void createChat(String chatName) {
         this.logAction("createChat");
 
         var chatJSON = makeChat();
@@ -356,7 +356,7 @@ public class Actions implements API.Events {
 
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, mState.getUserId());
-        payload.put(FieldNames.NAME, "Chat " + clientChatId);
+        payload.put(FieldNames.NAME, chatName);
 
         send(CREATE_CHAT_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
@@ -364,6 +364,7 @@ public class Actions implements API.Events {
 
         var chat = new Chat();
         chat.json = chatJSON;
+        chat.json.put(FieldNames.NAME, chatName);
         mState.commit(state -> {
             state.activeChats.put(clientChatId , chat);
         });
@@ -773,7 +774,8 @@ public class Actions implements API.Events {
     }
 
     /**
-     * Wrapper for the mAPI.send() function
+     * Wrapper for the mAPI.send() and RequestFactory.make().
+     * Sends all errors to this::logError
      *
      * @param type request type
      * @param payload request payload
@@ -784,7 +786,8 @@ public class Actions implements API.Events {
     }
 
     /**
-     * Wrapper for the mAPI.send() function
+     * Wrapper for the mAPI.send() and RequestFactory.make()
+     * Sends all errors to this::logError
      *
      * @param type request type
      * @param payload request payload

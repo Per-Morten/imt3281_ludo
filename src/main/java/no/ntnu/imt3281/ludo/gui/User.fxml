@@ -38,9 +38,9 @@
                   <TextField fx:id="mEmail" maxWidth="-Infinity" prefWidth="200.0" />
                   <Label text="Password" />
                   <PasswordField fx:id="mPassword" maxWidth="-Infinity" prefWidth="200.0" />
-                  <Button fx:id="mBtnUpdate" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onUpdate" prefHeight="26.0" prefWidth="199.0" style="-fx-background-color: #42A5F5; -fx-text-fill: white;" text="Update" />
-                  <Button fx:id="mBtnLogout" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onLogout" prefHeight="26.0" prefWidth="199.0" style="-fx-background-color: #42A5F5; -fx-text-fill: white;" text="Logout" />
-                  <Button fx:id="mBtnDelete" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onDelete" prefHeight="26.0" prefWidth="199.0" style="-fx-background-color: #EF5350; -fx-text-fill: white; -fx-background-radius: 5;" text="Delete" />
+                  <Button fx:id="mBtnUpdate" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onUpdate" prefHeight="26.0" prefWidth="199.0" style="-fx-background-color: #42A5F5;" text="Update" />
+                  <Button fx:id="mBtnLogout" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onLogout" prefHeight="26.0" prefWidth="199.0" style="-fx-background-color: #42A5F5;" text="Logout" />
+                  <Button fx:id="mBtnDelete" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onDelete" prefHeight="26.0" prefWidth="199.0" style="-fx-background-color: #EF5350; -fx-background-radius: 5; -fx-text-fill: white;" text="Delete" />
                </children>
             </VBox>
          </children>
