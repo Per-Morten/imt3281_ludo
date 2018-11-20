@@ -6,7 +6,7 @@ package no.ntnu.imt3281.ludo.api;
 public class GlobalChat {
 
     /**
-     * Global chat should always have id = 0
+     * Global chat should always have ID = 0
      */
-    public static final int id = 0;
+    public static final int ID = 0;
 }
