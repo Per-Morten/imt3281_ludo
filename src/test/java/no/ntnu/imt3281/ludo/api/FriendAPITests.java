@@ -2,14 +2,14 @@ package no.ntnu.imt3281.ludo.api;
 
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.server.Database;
-import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.List;
+
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class FriendAPITests {
 
@@ -74,7 +74,7 @@ public class FriendAPITests {
                 {IVAR_ENEMY_OF_AGNES, AGNES_ENEMY_OF_IVAR},
         };
 
-        TestUtility.setupRelationshipEnvironment(users, existingFriends, existingFriendRequests, existingBreakups, new Database.User[][] {{RALF_IGNORING_LARS, LARS_TRYING_TO_STOP_BEING_IGNORED_BY_RALF}});
+        TestUtility.setupRelationshipEnvironment(users, existingFriends, existingFriendRequests, existingBreakups, new Database.User[][]{{RALF_IGNORING_LARS, LARS_TRYING_TO_STOP_BEING_IGNORED_BY_RALF}});
     }
 
 
@@ -89,7 +89,6 @@ public class FriendAPITests {
     @Test
     public void receiveFriendUpdateEventUponFriendRequest() {
         TestUtility.runTestWithNewUser("USER_TO_TEST_EVENT_RECEPTION", "USER_TO_TEST_EVENT_RECEPTION@mail.com", null, (context, msg) -> {
-            Logger.log(Logger.Level.DEBUG, "Received response: %s", msg.toString());
 
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
@@ -116,10 +115,10 @@ public class FriendAPITests {
 
     @Test
     public void canGetFriendRange() {
-        TestUtility.runTestWithExistingUser(FRED_FRIEND_OF_KARL, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(FRED_FRIEND_OF_KARL), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
             if (ResponseType.fromString(type) == ResponseType.GET_FRIEND_RANGE_RESPONSE) {
                 var success = msg.getJSONArray(FieldNames.SUCCESS);
@@ -129,21 +128,21 @@ public class FriendAPITests {
                 assertEquals(KARL_FRIEND_OF_FRED.id, friend.getInt(FieldNames.USER_ID));
                 assertEquals(KARL_FRIEND_OF_FRED.username, friend.getString(FieldNames.USERNAME));
                 assertEquals(FriendStatus.FRIENDED, FriendStatus.fromInt(friend.getInt(FieldNames.STATUS)));
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
     }
 
     @Test
     public void friendBecomesPendingUponRequest() {
-        TestUtility.runTestWithExistingUser(USER_1, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(USER_1), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, USER_2.id, context.user.token));
             }
 
             if (ResponseType.fromString(type) == ResponseType.FRIEND_RESPONSE) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
 
             if (ResponseType.fromString(type) == ResponseType.GET_FRIEND_RANGE_RESPONSE) {
@@ -151,15 +150,15 @@ public class FriendAPITests {
                 var range = success.getJSONObject(0).getJSONArray(FieldNames.RANGE);
                 assertTrue(range.length() >= 1);
                 assertEquals(FriendStatus.PENDING, FriendStatus.fromInt(range.getJSONObject(0).getInt(FieldNames.STATUS)));
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
     }
 
     @Test
     public void ifFriend1HasIgnoredFriend2RequestIsAlwaysMarkedAsPending() {
         // Kari ignores Linn
-        TestUtility.runTestWithExistingUser(KARI_TO_IGNORE_LINN, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(KARI_TO_IGNORE_LINN), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.IGNORE_REQUEST, context.user.id, LINN_TO_BE_IGNORED_BY_KARI.id, context.user.token));
@@ -167,23 +166,23 @@ public class FriendAPITests {
 
             if (ResponseType.fromString(type) == ResponseType.IGNORE_RESPONSE) {
                 assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
 
             // Ensure Linn shows up as ignored on Kari's list
             if (ResponseType.fromString(type) == ResponseType.GET_FRIEND_RANGE_RESPONSE) {
                 assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
                 assertEquals(FriendStatus.IGNORED.toInt(), msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getJSONArray(FieldNames.RANGE).getJSONObject(0).getInt(FieldNames.STATUS));
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
 
         // Ensure that Kari shows up as pending in Linn's friends list
-        TestUtility.runTestWithExistingUser(LINN_TO_BE_IGNORED_BY_KARI, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(LINN_TO_BE_IGNORED_BY_KARI), List.of((context, msg) -> {
 
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
 
             if (ResponseType.fromString(type) == ResponseType.GET_FRIEND_RANGE_RESPONSE) {
@@ -191,58 +190,58 @@ public class FriendAPITests {
                 assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
                 assertEquals(FriendStatus.PENDING.toInt(), msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getJSONArray(FieldNames.RANGE).getJSONObject(0).getInt(FieldNames.STATUS));
 
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
     }
 
     @Test
     public void ifUnfriendedItShouldNotBeReturnedToClient() {
         // Ensure that Arin does not show up on Lisa's friendlist after she has unfriended him.
-        TestUtility.runTestWithExistingUser(LISA_TO_UNFRIEND_ARIN, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(LISA_TO_UNFRIEND_ARIN), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.UNFRIEND_REQUEST, context.user.id, ARIN_TO_BE_UNFRIENDED_BY_LISA.id, context.user.token));
             }
 
             if (ResponseType.fromString(type) == ResponseType.UNFRIEND_RESPONSE) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
 
             if (ResponseType.fromString(type) == ResponseType.GET_FRIEND_RANGE_RESPONSE) {
                 var success = msg.getJSONArray(FieldNames.SUCCESS);
                 var range = success.getJSONObject(0).getJSONArray(FieldNames.RANGE);
                 assertEquals(0, range.length());
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
 
         // Ensure that Lisa does not show up on Arin's friendlist after having been unfriended by her.
-        TestUtility.runTestWithExistingUser(LISA_TO_UNFRIEND_ARIN, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(LISA_TO_UNFRIEND_ARIN), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
 
             if (ResponseType.fromString(type) == ResponseType.GET_FRIEND_RANGE_RESPONSE) {
                 var success = msg.getJSONArray(FieldNames.SUCCESS);
                 var range = success.getJSONObject(0).getJSONArray(FieldNames.RANGE);
                 assertEquals(0, range.length());
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
     }
 
     @Test
     public void ifUnfriendedNewFriendRequestCanOccur() {
-        TestUtility.runTestWithExistingUser(IVAR_ENEMY_OF_AGNES, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(IVAR_ENEMY_OF_AGNES), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, AGNES_ENEMY_OF_IVAR.id, context.user.token));
             }
 
             if (ResponseType.fromString(type) == ResponseType.FRIEND_RESPONSE) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
 
             if (ResponseType.fromString(type) == ResponseType.GET_FRIEND_RANGE_RESPONSE) {
@@ -250,9 +249,9 @@ public class FriendAPITests {
                 var range = success.getJSONObject(0).getJSONArray(FieldNames.RANGE);
                 assertTrue(range.length() >= 1);
                 assertEquals(FriendStatus.PENDING, FriendStatus.fromInt(range.getJSONObject(0).getInt(FieldNames.STATUS)));
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
     }
 
     ///////////////////////////////////////////////////////
@@ -261,19 +260,19 @@ public class FriendAPITests {
     @Test
     public void cannotHaveRelationshipWithSelf() {
         var requests = new RequestType[]{
-            RequestType.FRIEND_REQUEST, RequestType.IGNORE_REQUEST, RequestType.UNFRIEND_REQUEST,
+                RequestType.FRIEND_REQUEST, RequestType.IGNORE_REQUEST, RequestType.UNFRIEND_REQUEST,
         };
 
         for (var request : requests) {
-            TestUtility.runTestWithExistingUser(USER_3, (context, msg) -> {
+            TestUtility.testWithLoggedInUsers(List.of(USER_3), List.of((context, msg) -> {
                 var type = msg.getString(FieldNames.TYPE);
                 if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                     TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(request, context.user.id, USER_3.id, context.user.token));
                 } else {
                     TestUtility.assertError(Error.USER_AND_OTHER_ID_IS_SAME, msg);
-                    context.running.set(false);
+                    context.finishedThreads.incrementAndGet();
                 }
-            });
+            }));
         }
     }
 
@@ -284,46 +283,48 @@ public class FriendAPITests {
         };
 
         for (var request : requests) {
-            TestUtility.runTestWithExistingUser(USER_3, (context, msg) -> {
+            TestUtility.testWithLoggedInUsers(List.of(USER_3), List.of((context, msg) -> {
                 var type = msg.getString(FieldNames.TYPE);
                 if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                     TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(request, context.user.id, 1000, context.user.token));
                 } else {
                     TestUtility.assertError(Error.OTHER_ID_NOT_FOUND, msg);
-                    context.running.set(false);
+                    context.finishedThreads.incrementAndGet();
                 }
-            });
+            }));
         }
     }
 
     @Test
     public void cannotIgnoreFriend() {
-        TestUtility.runTestWithExistingUser(KARL_FRIEND_OF_FRED, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(KARL_FRIEND_OF_FRED), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
-                TestUtility.sendMessage(context.socket,TestUtility.createFriendRelationshipRequest(RequestType.IGNORE_REQUEST, context.user.id, FRED_FRIEND_OF_KARL.id, context.user.token));
+                TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.IGNORE_REQUEST, context.user.id, FRED_FRIEND_OF_KARL.id, context.user.token));
             }
 
             if (ResponseType.fromString(type) == ResponseType.IGNORE_RESPONSE) {
                 TestUtility.assertError(Error.USER_IS_FRIEND, msg);
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
     }
 
     @Test
     public void cannotFriendAgainToAcceptOnBehalfOfOtherUser() {
-        TestUtility.runTestWithExistingUser(USER_3, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(USER_3), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
+
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, SINK.id, context.user.token));
             }
 
             if (ResponseType.fromString(type) == ResponseType.FRIEND_RESPONSE) {
+
                 if (context.count.getAndIncrement() < 1) {
                     TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, SINK.id, context.user.token));
                 } else {
-                    TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                    TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
                 }
             }
 
@@ -334,9 +335,9 @@ public class FriendAPITests {
                 var friend = range.getJSONObject(0);
 
                 assertEquals(FriendStatus.PENDING.toInt(), friend.getInt(FieldNames.STATUS));
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
     }
 
     @Test
@@ -345,7 +346,7 @@ public class FriendAPITests {
         var ralf = RALF_IGNORING_LARS;
 
         // Lars Unfriends Ralf
-        TestUtility.runTestWithExistingUser(lars, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(lars), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.UNFRIEND_REQUEST, context.user.id, ralf.id, context.user.token));
@@ -359,14 +360,14 @@ public class FriendAPITests {
             // Lars Friends Ralf
             if (ResponseType.fromString(type) == ResponseType.FRIEND_RESPONSE) {
                 assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
 
-        TestUtility.runTestWithExistingUser(RALF_IGNORING_LARS, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(RALF_IGNORING_LARS), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
 
             // Ralf still don't get Lars as pending on his list
@@ -374,14 +375,14 @@ public class FriendAPITests {
                 var range = msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getJSONArray(FieldNames.RANGE);
                 assertEquals(1, range.length());
                 assertEquals(FriendStatus.IGNORED.toInt(), range.getJSONObject(0).getInt(FieldNames.STATUS));
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
     }
 
     @Test
     public void dontShowUpOnListOfPeopleYouIgnoreWithoutKnowingThem() {
-        TestUtility.runTestWithExistingUser(ARN_IGNORING_FRANK_WITHOUT_KNOWHING_HIM, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(ARN_IGNORING_FRANK_WITHOUT_KNOWHING_HIM), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
 
             // Arn ignores Frank
@@ -391,31 +392,31 @@ public class FriendAPITests {
 
             if (ResponseType.fromString(type) == ResponseType.IGNORE_RESPONSE) {
                 assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
 
             // Ensure that Frank shows up as ignored in Arns list
             if (ResponseType.fromString(type) == ResponseType.GET_FRIEND_RANGE_RESPONSE) {
                 assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
                 assertEquals(FriendStatus.IGNORED.toInt(), msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getJSONArray(FieldNames.RANGE).getJSONObject(0).getInt(FieldNames.STATUS));
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
 
         var frank = FRANK;
         // Ensure that Arn does not show up in Franks list
-        TestUtility.runTestWithExistingUser(FRANK, (context, msg) -> {
+        TestUtility.testWithLoggedInUsers(List.of(FRANK), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
 
             // Arn ignores Frank
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetFriendRangeRequest(context.user.id, context.user.token, 0));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_FRIEND_RANGE_REQUEST, context.user.id, context.user.token, 0));
             }
 
             if (ResponseType.fromString(type) == ResponseType.GET_FRIEND_RANGE_RESPONSE) {
                 assertEquals(0, msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getJSONArray(FieldNames.RANGE).length());
-                context.running.set(false);
+                context.finishedThreads.incrementAndGet();
             }
-        });
+        }));
     }
 }
