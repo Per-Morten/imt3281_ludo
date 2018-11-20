@@ -11,7 +11,10 @@ public enum Error {
     USER_ID_NOT_FOUND,
     OTHER_ID_NOT_FOUND,
     USER_AND_OTHER_ID_IS_SAME,
-    USER_IS_FRIEND;
+    USER_IS_FRIEND,
+    CANNOT_LEAVE_GLOBAL_CHAT,
+    CHAT_ID_NOT_FOUND,
+    USER_IS_NOT_FRIEND;
 
     /**
      * Utility function for going to integer, which we considered more readable than ordinal.

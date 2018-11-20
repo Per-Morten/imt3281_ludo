@@ -27,24 +27,37 @@ public class Database implements AutoCloseable {
      * Creating all the fieldnames as static strings to avoid problems with typos,
      * or if I update the names.
      */
-    private static class UserFields {
-        static final String DBName = "user";
-        static final String ID = "user_id";
-        static final String Username = "username";
-        static final String Email = "email";
-        static final String Password = "password";
-        static final String AvatarURI = "avatar_uri";
-        static final String Token = "token";
-        static final String Salt = "salt";
+    public static class UserFields {
+        public static final String DBName = "user";
+        public static final String ID = "user_id";
+        public static final String Username = "username";
+        public static final String Email = "email";
+        public static final String Password = "password";
+        public static final String AvatarURI = "avatar_uri";
+        public static final String Token = "token";
+        public static final String Salt = "salt";
     }
 
-    private static class FriendFields {
-        static final String DBName = "friend";
-        static final String ID = "id";
-        static final String UserID = "user_id";
-        static final String FriendID = "friend_id";
-        static final String Status = "status";
+    public static class FriendFields {
+        public static final String DBName = "friend";
+        public static final String ID = "id";
+        public static final String UserID = "user_id";
+        public static final String FriendID = "friend_id";
+        public static final String Status = "status";
+    }
 
+    public static class ChatFields {
+        public static final String DBName = "chat";
+        public static final String ID = "id";
+        public static final String Name = "name";
+    }
+
+    public static class ChatMessageFields {
+        public static final String DBName = "chat_message";
+        public static final String ID = "id";
+        public static final String ChatID = "chat_id";
+        public static final String UserID = "user_id";
+        public static final String Message = "message";
     }
 
     private static final int UnassignedID = -1;
@@ -210,6 +223,8 @@ public class Database implements AutoCloseable {
      * @param id The ID of the user to be deleted.
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
+
+    // TODO: Rather than deleting the user we should mark them as deleted.
     public void deleteUser(int id) throws SQLException {
         try (var statement = mConnection
                 .prepareStatement(String.format("DELETE FROM %s WHERE %s = ?", UserFields.DBName, UserFields.ID))) {
