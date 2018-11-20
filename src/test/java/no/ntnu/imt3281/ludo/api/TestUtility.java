@@ -92,6 +92,36 @@ class TestUtility {
         return TestUtility.createRequest(type, payload, token);
     }
 
+    static JSONObject createNewChatRequest(int userID, String name, String token) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.NAME, name);
+        payload.put(request);
+        return createRequest(RequestType.CREATE_CHAT_REQUEST, payload, token);
+    }
+
+    static JSONObject createChatJoinRequest(int userID, int chatID, String token) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.CHAT_ID, chatID);
+        payload.put(request);
+        return createRequest(RequestType.JOIN_CHAT_REQUEST, payload);
+    }
+
+    static JSONObject createGetChatRequest(int userID, int chatID, String token) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.CHAT_ID, chatID);
+        payload.put(request);
+        return createRequest(RequestType.GET_CHAT_REQUEST, payload);
+    }
+
     static void assertError(Error desired, JSONObject object) {
         var error = object.getJSONArray(FieldNames.ERROR);
         assertEquals(1, error.length());
