@@ -2,6 +2,7 @@ package no.ntnu.imt3281.ludo.client;
 
 import java.util.ArrayList;
 
+import no.ntnu.imt3281.ludo.api.FieldNames;
 import org.json.JSONObject;
 
 import no.ntnu.imt3281.ludo.api.RequestType;
@@ -20,10 +21,13 @@ public class Request {
     public JSONObject toJSON() {
 
         var json = new JSONObject();
-        json.put("id", id);
-        json.put("token", token);
-        json.put("type", RequestType.toLowerCaseString(type));
-        json.put("payload", payload);
+        json.put(FieldNames.ID, id);
+        json.put(FieldNames.TYPE, type.toLowerCaseString());
+        json.put(FieldNames.PAYLOAD, payload);
+
+        if (!token.isEmpty()) {
+            json.put(FieldNames.AUTH_TOKEN, token);
+        }
 
         return json;
     }

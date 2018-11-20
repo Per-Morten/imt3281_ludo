@@ -1,32 +1,38 @@
 package no.ntnu.imt3281.ludo.gui;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.CheckBox;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
-import no.ntnu.imt3281.ludo.client.Actions;
-import no.ntnu.imt3281.ludo.client.StateManager;
 
-public class ListItemController implements IController {
-    private Actions mActions;
-    private StateManager mCache;
-    /**
-     * IController
-     */
-    public void bind(Actions a, StateManager c) {
+public class ListItemController extends BaseController {
 
-        mActions = a;
-        mCache = c;
-    }
-
-    public Integer index;
-    public ListItemType type;
+    int mId;
+    ListItemType mType;
+    OverviewController mOverview;
 
     @FXML
-    public Text mText;
+    CheckBox mCheckbox;
+
+    @FXML
+    Text mText;
+
+    void init(ListItemType type, int id, OverviewController overview, String text) {
+        mId = id;
+        mType = type;
+        mOverview = overview;
+        mText.setText(text);
+    }
 
     @FXML
     void onClick(MouseEvent event) {
 
+    }
+
+    @FXML
+    void onCheck(ActionEvent event) {
+        mOverview.onItemSelectChange(mType, mId, mCheckbox.isSelected());
     }
 
     @FXML

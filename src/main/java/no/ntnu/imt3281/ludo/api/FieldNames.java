@@ -24,6 +24,7 @@ public class FieldNames {
 
    // Other ID (for invite requests)
    public static final String OTHER_ID = "other_id";
+   public static final String STATUS = "status";
    public static final String RANGE = "range";
 
    // Chat related
@@ -45,6 +46,4 @@ public class FieldNames {
    public static final String PREVIOUS_DICE_THROW = "previous_dice_throw";
    public static final String PIECE_POSITIONS = "piece_positions";
    public static final String PIECE_INDEX = "piece_index";
-
-    public static final String STATUS = "status";
 }
