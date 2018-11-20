@@ -102,13 +102,10 @@ public class Server {
 
             // Hack to deal with being able to map user id's to sockets.
             if (requestType == RequestType.LOGIN_REQUEST && message.socketID < 0) {
-                //Logger.log(Logger.Level.DEBUG, "Updating socket with id: %d", message.socketID);
                 updateSocketIDs(message, successes);
             }
 
             sSocketManager.sendWithSocketID(message.socketID, response.toString());
-
-
         }
     }
 
@@ -118,20 +115,19 @@ public class Server {
         }
 
         var type = RequestType.fromString(message.getString(FieldNames.TYPE));
-
-        // TODO: Add more here.
-        if (type == RequestType.GET_USER_REQUEST || type == RequestType.GET_USER_RANGE_REQUEST) {
-            return;
-        }
-
         var token = message.getString(FieldNames.AUTH_TOKEN);
         var requests = message.getJSONArray(FieldNames.PAYLOAD);
 
-        var indexesToRemove = new ArrayList<Integer>();
-
+        final var indexesToRemove = new ArrayList<Integer>();
         for (int i = 0; i < requests.length(); i++) {
             var request = requests.getJSONObject(i);
-            if (!sUserManager.isUserAuthorized(request, token)) {
+            boolean isAuthorized = true;
+            if (type == RequestType.GET_USER_REQUEST || type == RequestType.GET_USER_RANGE_REQUEST) {
+                isAuthorized = sUserManager.tokenExists(token);
+            } else {
+                isAuthorized = sUserManager.isUserAuthorized(request, token);
+            }
+            if (!isAuthorized) {
                 MessageUtility.appendError(errors, request.getInt(FieldNames.ID), Error.UNAUTHORIZED);
                 indexesToRemove.add(i);
             }
@@ -187,11 +183,25 @@ public class Server {
         });
     }
 
+    private static void setupSocketManager() {
+        sSocketManager.setOnReceiveCallback(Server::pushIncomingMessage);
+        sSocketManager.setOnDisconnectCallback((id) -> {
+            try {
+                Logger.log(Logger.Level.DEBUG, "Logging out user: %d", id);
+                sDB.setUserToken(id.intValue(), null);
+            } catch (Exception e) {
+                Logger.logException(Logger.Level.WARN, e, "Exception encountered when disconnect logging out user");
+            }
+        });
+
+
+    }
+
     // TODO: Find out how we shall terminate the server. Should we just ctrl+c it?
     public static void main(String[] args) throws SQLException {
         Logger.setLogLevel(Logger.Level.DEBUG);
 
-        sSocketManager.setOnReceiveCallback(Server::pushIncomingMessage);
+        setupSocketManager();
         sSocketManager.start();
         Logger.log(Logger.Level.INFO, "SocketManager Started");
 

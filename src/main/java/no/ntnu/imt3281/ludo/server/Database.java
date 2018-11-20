@@ -11,7 +11,16 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Class working as the interface to a database (In this case SQLite).
+ * This class can be accessed concurrently (but should probably not be closed concurrently) as
+ * this class does not hold any other members than the connection to the database.
+ * Concurrent access to the database is guaranteed as the SQLite DB is run in serialized mode.
+ *
+ * See: https://www.sqlite.org/threadsafe.html
+ */
 public class Database implements AutoCloseable {
+
     private Connection mConnection;
 
     /**
