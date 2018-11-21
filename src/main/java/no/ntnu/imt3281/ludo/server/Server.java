@@ -136,7 +136,6 @@ public class Server {
         } catch (Exception e) {
             Logger.logException(Logger.Level.ERROR, e, "Unexpected exception when joining eventThread");
         }
-
     }
 
     private static void removeUnauthorizedRequests(JSONObject message, JSONArray errors) {
@@ -230,9 +229,27 @@ public class Server {
         });
     }
 
+    private static void setupShutdownHooks() {
+        final Thread mainThread = Thread.currentThread();
+        Runtime.getRuntime().addShutdownHook(new Thread()
+        {
+            @Override
+            public void run()
+            {
+                sRunning.set(false);
+                try {
+                    mainThread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
     // TODO: Find out how we shall terminate the server. Should we just ctrl+c it?
     public static void main(String[] args) throws SQLException {
         Logger.setLogLevel(Logger.Level.DEBUG);
+        setupShutdownHooks();
 
         setupSocketManager();
         sSocketManager.start();
@@ -253,11 +270,13 @@ public class Server {
         Logger.log(Logger.Level.INFO, "Initializing JSONValidator");
         JSONValidator.init();
 
-        Logger.log(Logger.Level.INFO, "Server Running");
+        Logger.log(Logger.Level.INFO, "Setting Running to true");
         sRunning.set(true);
 
         Logger.log(Logger.Level.INFO, "Starting Event thread");
+
         startEventThread();
+        Logger.log(Logger.Level.INFO, "Server is up");
 
         try {
             run();
