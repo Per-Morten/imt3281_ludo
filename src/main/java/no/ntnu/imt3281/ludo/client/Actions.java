@@ -320,7 +320,7 @@ public class Actions implements API.Events {
     }
 
     /**
-     * Create game and add as active
+     * Create game and add to active games list
      */
     public void createGame(String gameName) {
         this.logAction("createGame");
@@ -352,7 +352,7 @@ public class Actions implements API.Events {
     }
 
     /**
-     * Create chat and add as active
+     * Create chat and add to active chat list
      */
     public void createChat(String chatName) {
         this.logAction("createChat");
@@ -456,7 +456,6 @@ public class Actions implements API.Events {
 
         send(JOIN_CHAT_REQUEST, payload, success -> {
             this.gotoOverview();
-
         });
     }
 
@@ -475,16 +474,11 @@ public class Actions implements API.Events {
         });
 
         send(LEAVE_CHAT_REQUEST, payload, success -> {
-            // TODO SERVER UNIMPLEMENTED
-        });
-
-        mState.commit(state -> {
-            chatsId.forEach(id -> {
-                state.activeChats.remove(id);
+            mState.commit(state -> {
+                state.activeChats.remove(success.getInt(CHAT_ID));
             });
+            this.gotoOverview();
         });
-
-        this.gotoOverview();
     }
 
     /**
@@ -494,24 +488,11 @@ public class Actions implements API.Events {
         this.logAction("sendChatMessage");
 
         var payload = new JSONObject();
-        payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(CHAT_ID, chatId);
+        payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(FieldNames.MESSAGE, message);
 
-        send(SEND_CHAT_MESSAGE_REQUEST, payload, success -> {
-            // TODO SERVER UNIMPLEMENTED
-
-        });
-
-        var stateCopy = mState.copy();
-        var messageJSON = new JSONObject();
-        messageJSON.put(FieldNames.MESSAGE, message);
-        messageJSON.put(FieldNames.USERNAME, stateCopy.username);
-
-        mState.commit(state -> {
-            state.activeChats.get(chatId).messages.add(messageJSON);
-        });
-        mTransitions.newMessage(chatId, stateCopy.username, message);
+        send(SEND_CHAT_MESSAGE_REQUEST, payload);
     }
 
     /**
