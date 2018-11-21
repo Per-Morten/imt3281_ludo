@@ -367,11 +367,22 @@ public class Transitions {
         });
     }
 
+    public void toastSuccess(String message) {
+        Platform.runLater(() -> {
+            int toastMsgTime = 1500;
+            int fadeInTime = 180;
+            int fadeOutTime = 180;
+            final var red = Color.color((float) 0x54 / 0xff, (float) 0x97 / 0xff, (float) 0xFF / 0xff);
+            Toast.makeText(mStage, message, toastMsgTime, fadeInTime, fadeOutTime, red);
+        });
+    }
+
+
     public void toastError(String message) {
         Platform.runLater(() -> {
             int toastMsgTime = 1500;
-            int fadeInTime = 100;
-            int fadeOutTime = 100;
+            int fadeInTime = 180;
+            int fadeOutTime = 180;
             final var red = Color.color((float) 0xB0 / 0xff, (float) 0x00 / 0xff, (float) 0x20 / 0xff);
             Toast.makeText(mStage, message, toastMsgTime, fadeInTime, fadeOutTime, red);
         });
