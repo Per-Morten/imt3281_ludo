@@ -204,7 +204,6 @@ public class SocketManager {
 
         if (mUserSockets.containsValue(socket)) {
             Logger.log(Logger.Level.WARN, "mUserSocket already contains the value identified by %d", socketID);
-            return;
         }
         mUserSockets.put(userID, socket);
     }

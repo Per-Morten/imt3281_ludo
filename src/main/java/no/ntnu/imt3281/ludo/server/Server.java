@@ -3,7 +3,6 @@ package no.ntnu.imt3281.ludo.server;
 import no.ntnu.imt3281.ludo.api.Error;
 import no.ntnu.imt3281.ludo.api.*;
 import no.ntnu.imt3281.ludo.common.Logger;
-import no.ntnu.imt3281.ludo.common.MessageUtility;
 import no.ntnu.imt3281.ludo.common.NetworkConfig;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -15,11 +14,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-// Think:
-// Have a hashmap with the response type mapped to a function
-// Call those functions giving inn the payload, error and success objects.
-//
-
 /**
  * This is the main class for the server. **Note, change this to extend other
  * classes if desired.**
@@ -29,18 +23,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Server {
     @FunctionalInterface
     interface EventHandler {
-        public void apply(RequestType requestType, JSONArray requests, JSONArray successes, JSONArray errors);
+        public void apply(JSONArray requests, JSONArray successes, JSONArray errors, LinkedBlockingQueue<Message> events);
     }
 
     private static LinkedBlockingQueue<SocketManager.Message> sPendingRequests = new LinkedBlockingQueue<>();
+    private static LinkedBlockingQueue<Message> sPendingEvents = new LinkedBlockingQueue<>();
+
     private static Database sDB;
     private static AtomicBoolean sRunning = new AtomicBoolean();
     private static SocketManager sSocketManager = new SocketManager(NetworkConfig.LISTENING_PORT);
     private static UserManager sUserManager;
+    private static ChatManager sChatManager;
 
-    private static HashMap<RequestType, EventHandler> mEventHandlers = new HashMap<>();
+    private static HashMap<RequestType, EventHandler> mRequestHandlers = new HashMap<>();
 
     private static String sDatabaseURL = "ludo.db";
+
+    private static Thread sEventThread;
 
     /**
      * Goldy locks number.
@@ -93,9 +92,9 @@ public class Server {
             // Doing a filter of all things we aren't authorized to do.
             removeUnauthorizedRequests(json, errors);
 
-            var handler = mEventHandlers.get(requestType);
+            var handler = mRequestHandlers.get(requestType);
             if (handler != null) {
-                handler.apply(requestType, requests, successes, errors);
+                handler.apply(requests, successes, errors, sPendingEvents);
             } else {
                 Logger.log(Logger.Level.WARN, "Unimplemented feature: %s", requestType.toLowerCaseString());
             }
@@ -106,6 +105,36 @@ public class Server {
             }
 
             sSocketManager.sendWithSocketID(message.socketID, response.toString());
+        }
+    }
+
+    private static void startEventThread() {
+        sEventThread = new Thread(() -> {
+            try {
+                while (sRunning.get()) {
+                    var event = sPendingEvents.poll(sPollTimeout, TimeUnit.MILLISECONDS);
+                    if (event == null) {
+                        continue;
+                    }
+
+                    for (var receiver : event.receivers) {
+                        sSocketManager.sendWithUserID(receiver, event.object.toString());
+                    }
+
+                }
+            } catch (Exception e) {
+                Logger.logException(Logger.Level.ERROR, e, "Unexpected exception in eventThread");
+            }
+        });
+
+        sEventThread.start();
+    }
+
+    private static void stopEventThread() {
+        try {
+            sEventThread.join();
+        } catch (Exception e) {
+            Logger.logException(Logger.Level.ERROR, e, "Unexpected exception when joining eventThread");
         }
     }
 
@@ -121,8 +150,12 @@ public class Server {
         final var indexesToRemove = new ArrayList<Integer>();
         for (int i = 0; i < requests.length(); i++) {
             var request = requests.getJSONObject(i);
-            boolean isAuthorized = true;
-            if (type == RequestType.GET_USER_REQUEST || type == RequestType.GET_USER_RANGE_REQUEST) {
+            boolean isAuthorized;
+            if (type == RequestType.GET_USER_REQUEST
+                    || type == RequestType.GET_USER_RANGE_REQUEST
+                    || type == RequestType.GET_CHAT_REQUEST
+                    || type == RequestType.GET_CHAT_RANGE_REQUEST) {
+
                 isAuthorized = sUserManager.tokenExists(token);
             } else {
                 isAuthorized = sUserManager.isUserAuthorized(request, token);
@@ -146,60 +179,77 @@ public class Server {
         }
     }
 
-    private static void setupEventHandlers() {
+    private static void setupRequestHandlers() {
 
         /// User related
-        mEventHandlers.put(RequestType.CREATE_USER_REQUEST, sUserManager::createUser);
-        mEventHandlers.put(RequestType.DELETE_USER_REQUEST, sUserManager::deleteUser);
-        mEventHandlers.put(RequestType.UPDATE_USER_REQUEST, sUserManager::updateUser);
-        mEventHandlers.put(RequestType.GET_USER_REQUEST, sUserManager::getUser);
-        mEventHandlers.put(RequestType.GET_USER_RANGE_REQUEST, sUserManager::getUserRange);
+        mRequestHandlers.put(RequestType.CREATE_USER_REQUEST, sUserManager::createUser);
+        mRequestHandlers.put(RequestType.DELETE_USER_REQUEST, sUserManager::deleteUser);
+        mRequestHandlers.put(RequestType.UPDATE_USER_REQUEST, sUserManager::updateUser);
+        mRequestHandlers.put(RequestType.GET_USER_REQUEST, sUserManager::getUser);
+        mRequestHandlers.put(RequestType.GET_USER_RANGE_REQUEST, sUserManager::getUserRange);
 
         /// Login Related
-        mEventHandlers.put(RequestType.LOGIN_REQUEST, sUserManager::logInUser);
+        mRequestHandlers.put(RequestType.LOGIN_REQUEST, sUserManager::logInUser);
         // More probably needs to happen here, because we need to remove the user from several games as well.
-        mEventHandlers.put(RequestType.LOGOUT_REQUEST, sUserManager::logOutUser);
+        mRequestHandlers.put(RequestType.LOGOUT_REQUEST, (requests, successes, errors, events) -> {
+            sUserManager.logOutUser(requests, successes, errors, events);
+            sChatManager.onLogoutUser(requests, successes, errors, events);
+        });
 
         /// Friends Related
-        mEventHandlers.put(RequestType.GET_FRIEND_RANGE_REQUEST, sUserManager::getFriendRange);
+        mRequestHandlers.put(RequestType.GET_FRIEND_RANGE_REQUEST, sUserManager::getFriendRange);
 
         // This probably needs to fire of events just like friend request?
-        mEventHandlers.put(RequestType.UNFRIEND_REQUEST, sUserManager::unfriend);
-        mEventHandlers.put(RequestType.IGNORE_REQUEST, sUserManager::ignore);
+        mRequestHandlers.put(RequestType.UNFRIEND_REQUEST, sUserManager::unfriend);
+        mRequestHandlers.put(RequestType.IGNORE_REQUEST, sUserManager::ignore);
 
-        mEventHandlers.put(RequestType.FRIEND_REQUEST, (ignored, requests, successes, errors) -> {
-            // Add users that should be notified.
-            var usersToNotify = new ArrayList<Integer>();
-            // For each friend that is not ignored, go through and call
+        mRequestHandlers.put(RequestType.FRIEND_REQUEST, sUserManager::friend);
 
-            sUserManager.friend(ignored, requests, successes, errors, usersToNotify);
+        // Chats
+        mRequestHandlers.put(RequestType.CREATE_CHAT_REQUEST, sChatManager::createChat);
+        mRequestHandlers.put(RequestType.GET_CHAT_REQUEST, sChatManager::getChat);
+        mRequestHandlers.put(RequestType.LEAVE_CHAT_REQUEST, sChatManager::leaveChat);
 
-            for (var user : usersToNotify) {
-                var event = new JSONObject();
-                event.put(FieldNames.TYPE, EventType.FRIEND_UPDATE.toLowerCaseString());
-                event.put(FieldNames.PAYLOAD, new JSONArray());
-                sSocketManager.sendWithUserID((long) user, event.toString());
-            }
-        });
+        mRequestHandlers.put(RequestType.SEND_CHAT_INVITE_REQUEST, sChatManager::inviteToChat);
+
+        mRequestHandlers.put(RequestType.JOIN_CHAT_REQUEST, sChatManager::joinChat);
+        mRequestHandlers.put(RequestType.SEND_CHAT_MESSAGE_REQUEST, sChatManager::sendChatMessage);
+
     }
 
     private static void setupSocketManager() {
         sSocketManager.setOnReceiveCallback(Server::pushIncomingMessage);
         sSocketManager.setOnDisconnectCallback((id) -> {
             try {
-                Logger.log(Logger.Level.DEBUG, "Logging out user: %d", id);
                 sDB.setUserToken(id.intValue(), null);
+                sChatManager.removeFromChats(id.intValue(), sPendingEvents);
             } catch (Exception e) {
                 Logger.logException(Logger.Level.WARN, e, "Exception encountered when disconnect logging out user");
             }
         });
+    }
 
-
+    private static void setupShutdownHooks() {
+        final Thread mainThread = Thread.currentThread();
+        Runtime.getRuntime().addShutdownHook(new Thread()
+        {
+            @Override
+            public void run()
+            {
+                sRunning.set(false);
+                try {
+                    mainThread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     // TODO: Find out how we shall terminate the server. Should we just ctrl+c it?
     public static void main(String[] args) throws SQLException {
         Logger.setLogLevel(Logger.Level.DEBUG);
+        setupShutdownHooks();
 
         setupSocketManager();
         sSocketManager.start();
@@ -211,14 +261,22 @@ public class Server {
         Logger.log(Logger.Level.INFO, "Setting up UserManager");
         sUserManager = new UserManager(sDB);
 
+        Logger.log(Logger.Level.INFO, "Setting up ChatManager");
+        sChatManager = new ChatManager(sDB, sUserManager);
+
         Logger.log(Logger.Level.INFO, "Setting up Event Handlers");
-        setupEventHandlers();
+        setupRequestHandlers();
 
         Logger.log(Logger.Level.INFO, "Initializing JSONValidator");
         JSONValidator.init();
 
-        Logger.log(Logger.Level.INFO, "Server Running");
+        Logger.log(Logger.Level.INFO, "Setting Running to true");
         sRunning.set(true);
+
+        Logger.log(Logger.Level.INFO, "Starting Event thread");
+
+        startEventThread();
+        Logger.log(Logger.Level.INFO, "Server is up");
 
         try {
             run();
@@ -228,11 +286,27 @@ public class Server {
 
         Logger.log(Logger.Level.INFO, "Server Stopping");
 
+        Logger.log(Logger.Level.INFO, "Stopping event thread");
+        stopEventThread();
+
         sSocketManager.stop();
         Logger.log(Logger.Level.INFO, "Stopped SocketManager");
 
-        sDB.close();
+        // Drop by Rune's office and ask about this.
+        // This feels really dirty.
+        // Essentially what is happening is that the database apperantly is busy trying to run all the setUserToken
+        // requests that happen in the onClosedConnection callback (which will be run for everyone when the server shuts down)
+        // That seems to be done asynchroniously(?), and are often in the process of happening when the shutting down the server
+        // Leading to a variety of exceptions, or potentially also a fatal error in the Runtime Environment.
+        // Simply sleeping the thread a bit (not long enough to notice), seems to fix the problem.
+        try {
+            Thread.sleep(250);
+        } catch (Exception e) {
+
+        }
+
         Logger.log(Logger.Level.INFO, "Closing Database");
+        sDB.close();
     }
 
     ///////////////////////////////////////////////////////

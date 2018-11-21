@@ -11,9 +11,11 @@ import java.sql.SQLException;
 class TestServer {
     private static Thread sServerThread;
 
+    static String DATABASE_NAME = "ludo_tests.db";
+
     static void start() throws IOException, InterruptedException {
-        Files.deleteIfExists(Paths.get("ludo_tests.db"));
-        Server.setDatabase("ludo_tests.db");
+        Files.deleteIfExists(Paths.get(DATABASE_NAME));
+        Server.setDatabase(DATABASE_NAME);
         Server.setPollTimeout(2);
         sServerThread = new Thread(() -> {
             try {

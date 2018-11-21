@@ -30,7 +30,10 @@
                                 <Button fx:id="mSendGameInvite" mnemonicParsing="false" onAction="#onSendGameInvite" prefHeight="30.0" prefWidth="1000.0" text="Send Game Invite" />
                                 <Button fx:id="mAcceptGameInvite" mnemonicParsing="false" onAction="#onAcceptGameInvite" prefHeight="30.0" prefWidth="1000.0" text="Join Game" />
                         <Button fx:id="mLeaveGame" mnemonicParsing="false" onAction="#onLeaveGame" prefHeight="30.0" prefWidth="1000.0" text="Leave Game" />
-                        <TextField fx:id="mSearchGames" onKeyPressed="#onSearch" prefHeight="35.0" />
+                        <TextField fx:id="mSearchGames" onKeyPressed="#onSearch" prefHeight="35.0">
+                           <font>
+                              <Font size="14.0" />
+                           </font></TextField>
                         <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="400.0" VBox.vgrow="ALWAYS">
                            <content>
                               <VBox fx:id="mListGames" prefHeight="400.0" prefWidth="400.0" />
@@ -51,7 +54,10 @@
                                 <Button fx:id="mSendChatInvite" mnemonicParsing="false" onAction="#onSendChatInvite" prefHeight="30.0" prefWidth="1000.0" text="Send Chat Invite" />
                                 <Button fx:id="mAcceptChatInvite" mnemonicParsing="false" onAction="#onAcceptChatInvite" prefHeight="30.0" prefWidth="1000.0" text="Join Chat" />
                         <Button fx:id="mLeaveChat" mnemonicParsing="false" onAction="#onLeaveChat" prefHeight="30.0" prefWidth="1000.0" text="Leave Chat" />
-                        <TextField fx:id="mSearchChats" onKeyPressed="#onSearch" prefHeight="35.0" />
+                        <TextField fx:id="mSearchChats" onKeyPressed="#onSearch" prefHeight="35.0">
+                           <font>
+                              <Font size="14.0" />
+                           </font></TextField>
                         <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="400.0" VBox.vgrow="ALWAYS">
                            <content>
                               <VBox fx:id="mListChats" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="400.0" prefWidth="400.0" />
@@ -72,7 +78,10 @@
                                 <Button fx:id="mAcceptFriendRequest" mnemonicParsing="false" onAction="#onAcceptFriendRequest" prefHeight="30.0" prefWidth="1000.0" text="Accept Friend Request" />
                         <Button fx:id="mIgnoreFriend" mnemonicParsing="false" onAction="#onIgnoreFriends" prefHeight="30.0" prefWidth="1000.0" text="Ignore" />
                                 <Button fx:id="mUnfriend" mnemonicParsing="false" onAction="#onUnfriend" prefHeight="30.0" prefWidth="1000.0" text="Unfriend" />
-                        <TextField fx:id="mSearchFriends" onKeyPressed="#onSearch" prefHeight="35.0" />
+                        <TextField fx:id="mSearchFriends" onKeyPressed="#onSearch" prefHeight="35.0">
+                           <font>
+                              <Font size="14.0" />
+                           </font></TextField>
                         <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="400.0" VBox.vgrow="ALWAYS">
                            <content>
                               <VBox fx:id="mListFriends" prefHeight="400.0" prefWidth="400.0" />
@@ -94,7 +103,10 @@
                                 <Button fx:id="mSendFriendRequest" mnemonicParsing="false" onAction="#onSendFriendRequest" prefHeight="30.0" prefWidth="1000.0" text="Send Friend Request" />
                         <Button fx:id="mIgnoreUser" mnemonicParsing="false" onAction="#onIgnoreUsers" prefHeight="30.0" prefWidth="1000.0" text="Ignore" />
                         <Button fx:id="mUnignore" mnemonicParsing="false" onAction="#onUnignore" prefHeight="30.0" prefWidth="1000.0" text="Unignore" />
-                        <TextField fx:id="mSearchUsers" onKeyPressed="#onSearch" prefHeight="35.0" />
+                        <TextField fx:id="mSearchUsers" onKeyPressed="#onSearch" prefHeight="35.0">
+                           <font>
+                              <Font size="14.0" />
+                           </font></TextField>
                         <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="400.0" VBox.vgrow="ALWAYS">
                            <content>
                               <VBox fx:id="mListUsers" prefHeight="400.0" prefWidth="400.0" />

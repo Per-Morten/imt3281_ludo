@@ -1,6 +1,7 @@
-package no.ntnu.imt3281.ludo.common;
+package no.ntnu.imt3281.ludo.server;
 
 import no.ntnu.imt3281.ludo.api.Error;
+import no.ntnu.imt3281.ludo.api.EventType;
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -52,5 +53,13 @@ public class MessageUtility {
             var requestID = request.getInt(FieldNames.ID);
             consumer.accept(requestID, request);
         });
+    }
+
+    public static JSONObject createEvent(EventType type) {
+        var event = new JSONObject();
+        event.put(FieldNames.TYPE, type);
+        var payload = new JSONArray();
+        event.put(FieldNames.PAYLOAD, payload);
+        return event;
     }
 }

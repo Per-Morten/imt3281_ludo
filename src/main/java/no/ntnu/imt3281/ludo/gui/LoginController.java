@@ -12,7 +12,7 @@ import no.ntnu.imt3281.ludo.client.State;
 public class LoginController extends BaseController {
 
     @FXML
-    private TextField mLoginEmail;
+    TextField mLoginEmail;
 
     @FXML
     private PasswordField mLoginPassword;
@@ -57,9 +57,5 @@ public class LoginController extends BaseController {
         assert mCreateUsername != null : "fx:id=\"mCreateUsername\" was not injected: check your FXML file 'Login.fxml'.";
         assert mButtonCreate != null : "fx:id=\"mButtonCreate\" was not injected: check your FXML file 'Login.fxml'.";
 
-        Platform.runLater(() -> {
-            State localState = mStateManager.copy();
-            mLoginEmail.setText(localState.email);
-        });
     }
 }
