@@ -48,7 +48,6 @@ public class Transitions {
         mActions = actions;
     }
 
-
     /**
      * Render login scene
      * Override without optional email parameter
@@ -68,8 +67,7 @@ public class Transitions {
             var loginController = (LoginController)login.controller;
             loginController.mLoginEmail.setText(email);
 
-            var root = new Scene(login.root);
-            mStage.setScene(root);
+            mStage.setScene(new Scene(login.root));
             mStage.show();
         });
     }
@@ -148,10 +146,9 @@ public class Transitions {
                 chatTabController.mId = id;
 
                 chat.messages.forEach(message -> {
-                    var username = message.username;
                     var chatItem = this.loadFXML(Path.CHAT_ITEM);
                     var chatItemController = (ChatItemController) chatItem.controller;
-                    chatItemController.mMessage.setText(username + ": " + message.message);
+                    chatItemController.mMessage.setText(message.username + ": " + message.message);
                     chatTabController.mMessageList.getChildren().add(chatItem.root);
                 });
             });
@@ -159,7 +156,7 @@ public class Transitions {
     }
 
     /**
-     *
+     * Render overview scene with empty lists, but with filled search fields.
      */
     public void renderOverview(String searchGames, String searchChats, String searchFriends, String searchUsers) {
         Platform.runLater(() -> {
@@ -180,9 +177,9 @@ public class Transitions {
     }
 
     /**
-     *
+     * Render the overview scene's games list
      */
-    public void renderGamesList(List<Game> activeGames, List<Game> gameInvites) {
+    public void renderGamesList(List<Game> activeGames, List<GameInvite> gameInvites) {
         Platform.runLater(() -> {
 
             var overview = (OverviewController) this.getController(Path.OVERVIEW);
@@ -191,36 +188,30 @@ public class Transitions {
             overview.mListGames.getChildren().clear();
 
             activeGames.forEach(game -> {
-                var id = game.id;
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
-                var name = game.name;
                 var playerCount = game.playerId.size();
 
                 itemController.mType = ListItemType.GAME;
                 itemController.mOverview = overview;
-                itemController.init(ListItemType.GAME, id, overview, name + " [" + playerCount + "/4]");
+                itemController.init(ListItemType.GAME, game.id, overview, game.name + " [" + playerCount + "/4]");
                 overview.mListGames.getChildren().add(item.root);
             });
 
             gameInvites.forEach(gameInvite -> {
-
-                var id = gameInvite.id;
-
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
-                var name = gameInvite.name;
 
-                itemController.init(ListItemType.GAME_INVITE, id, overview, name + " invite"); // TODO i18n
+                itemController.init(ListItemType.GAME_INVITE, gameInvite.gameId, overview, gameInvite.gameName + " [invite]"); // TODO i18n
                 overview.mListGames.getChildren().add(item.root);
             });
         });
     }
 
     /**
-     *
+     * Render the overview scene's chats list
      */
-    public void renderChatsList(List<Chat> activeChats, List<Chat> chatInvites) {
+    public void renderChatsList(List<Chat> activeChats, List<ChatInvite> chatInvites) {
         Platform.runLater(() -> {
 
             var overview = (OverviewController) this.getController(Path.OVERVIEW);
@@ -242,20 +233,19 @@ public class Transitions {
 
             chatInvites.forEach(chatInvite -> {
 
-                var id = chatInvite.id;
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
-                var name = chatInvite.name;
+                var name = chatInvite.chatName;
 
-                itemController.init(ListItemType.CHAT_INVITE, id, overview, name + " invite");// TODO i18n
+                itemController.init(ListItemType.CHAT_INVITE, chatInvite.chatId, overview, name + " [invite]");// TODO i18n
                 overview.mListChats.getChildren().add(item.root);
             });
         });
     }
 
     /**
-     *
+     * Render the overview scene's friends list
      */
     public void renderFriendList(List<JSONObject> friendsList) {
         Platform.runLater(() -> {
@@ -293,7 +283,7 @@ public class Transitions {
     }
 
     /**
-     * Render a list of users in the overview scene
+     * Render the overview scene's users list
      */
     public void renderUserList(List<JSONObject> usersList, List<JSONObject> ignoredList) {
         Platform.runLater(() -> {

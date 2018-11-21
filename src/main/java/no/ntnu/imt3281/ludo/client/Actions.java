@@ -24,7 +24,7 @@ public class Actions implements API.Events {
     private API mAPI;
     private StateManager mState;
     private final RequestFactory mRequests = new RequestFactory();
-
+    private Scene mCurrentScene;
     /**
      * Bind dependencies of Actions
      *
@@ -47,6 +47,7 @@ public class Actions implements API.Events {
         mState.reset();
 
         mTransitions.renderLogin();
+        mCurrentScene = Scene.LOGIN;
     }
 
     /**
@@ -131,7 +132,10 @@ public class Actions implements API.Events {
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, mState.getUserId());
 
-        send(LOGOUT_REQUEST, payload, success -> this.gotoLogin());
+        send(LOGOUT_REQUEST, payload, success -> this.gotoLogin(), error -> {
+            this.logError(error);
+            this.gotoLogin();
+        });
 
     }
 
@@ -194,6 +198,7 @@ public class Actions implements API.Events {
                 // TODO Email does not exist in get_user_request.
             });
             mTransitions.renderUser(user);
+            mCurrentScene = Scene.USER;
         }, error -> {
             gotoLogin();
         });
@@ -209,6 +214,8 @@ public class Actions implements API.Events {
         mTransitions.renderLive();
         mTransitions.renderGameTabs(state.activeGames);
         mTransitions.renderChatTabs(state.activeChats);
+
+        mCurrentScene = Scene.LIVE;
     }
 
     /**
@@ -221,38 +228,11 @@ public class Actions implements API.Events {
 
         var stateCopy = mState.copy();
 
-        // Filter based on search
-        var filteredGames = stateCopy.activeGames
-                .values()
-                .stream()
-                .filter(game -> game.name.toUpperCase()
-                        .contains(stateCopy.searchGames.toUpperCase()))
-                .collect(Collectors.toList());
-
-        var filteredGameInvites = stateCopy.gameInvites
-                .values()
-                .stream()
-                .filter(gameInv -> gameInv.name.toUpperCase()
-                        .contains(stateCopy.searchGames.toUpperCase()))
-                .collect(Collectors.toList());
-
-        var filteredChats = stateCopy.activeChats
-                .values()
-                .stream()
-                .filter(chat -> chat.name.toUpperCase()
-                        .contains(stateCopy.searchChats.toUpperCase()))
-                .collect(Collectors.toList());
-
-        var filteredChatInvites = stateCopy.chatInvites
-                .values()
-                .stream()
-                .filter(chatInv -> chatInv.name.toUpperCase()
-                        .contains(stateCopy.searchChats.toUpperCase()))
-                .collect(Collectors.toList());
-
         mTransitions.renderOverview(stateCopy.searchGames, stateCopy.searchChats, stateCopy.searchFriends, stateCopy.searchUsers);
-        mTransitions.renderGamesList(filteredGames, filteredGameInvites);
-        mTransitions.renderChatsList(filteredChats, filteredChatInvites);
+        mTransitions.renderGamesList(mState.filteredGames(), mState.filteredGameInvites());
+        mTransitions.renderChatsList(mState.filteredChats(), mState.filteredChatInvites());
+
+        mCurrentScene = Scene.OVERVIEW;
 
         // Get friends range
         final var payload = new JSONObject();
@@ -692,18 +672,65 @@ public class Actions implements API.Events {
      * Something in the friends list has changed
      */
     public void friendUpdate() {
+        // TODO if in overview scene update friendlist
+        // TODO else show toast
     }
 
     /**
      * Notify which chats has changed
      */
-    public void chatUpdate(ArrayList<JSONObject> chats) {
+    public void chatUpdate(JSONObject chats) {
+        send(GET_CHAT_REQUEST, chats, success -> {
+            var chat = new Chat(success);
+
+            mState.commit(state -> {
+                state.activeChats.put(chat.id, chat);
+            });
+
+
+            if (mCurrentScene.equals(Scene.OVERVIEW)) {
+                mTransitions.renderChatsList(mState.filteredChats(), mState.filteredChatInvites());
+            } else if (mCurrentScene.equals(Scene.LIVE)) {
+                // TODO If in live scene update chattabs
+            } else {
+                // TODO else show toast
+            }
+        });
     }
 
     /**
      * Handle incoming chat notifications
      */
-    public void chatInvite(ArrayList<JSONObject> chatInvites) {
+    public void chatInvite(JSONObject chatInviteJSON) {
+
+        var chatInvite = new ChatInvite(chatInviteJSON);
+
+        var payloadUser = new JSONObject();
+        payloadUser.put(USER_ID, chatInvite.userId);
+        send(GET_USER_REQUEST,payloadUser, successUser -> {
+
+            var user = new User(successUser);
+
+            var payloadChat = new JSONObject();
+            payloadChat.put(CHAT_ID, chatInvite.chatId);
+            send(GET_CHAT_REQUEST, payloadChat, successChat -> {
+
+                var chat = new Chat(successChat);
+                chatInvite.userName = user.username;
+                chatInvite.chatName = chat.name;
+
+                mState.commit(state -> {
+                    state.chatInvites.put(chatInvite.chatId, chatInvite);
+                });
+
+
+                if (mCurrentScene.equals(Scene.OVERVIEW)) {
+                    mTransitions.renderChatsList(mState.filteredChats(), mState.filteredChatInvites());
+                } else {
+                    // TODO toast
+                }
+            });
+        });
     }
 
     /**
@@ -723,20 +750,67 @@ public class Actions implements API.Events {
                 state.activeChats.get(message.chatId).messages.add(message);
             });
 
-            mTransitions.newMessage(message);
+
+            if (mCurrentScene.equals(Scene.LIVE)) {
+                mTransitions.newMessage(message);
+            }  else {
+                // TODO else show toast
+            }
         });
     }
 
     /**
      * Notify which games has been changed
      */
-    public void gameUpdate(ArrayList<JSONObject> games) {
+    public void gameUpdate(JSONObject games) {
+        send(GET_GAME_REQUEST, games, success -> {
+            var game = new Game(success);
+
+            mState.commit(state -> {
+                state.activeGames.put(game.id, game);
+            });
+
+            if(mCurrentScene.equals(Scene.LIVE)) {
+                // TODO If in live scene update gametabs
+
+            } else if(mCurrentScene.equals(Scene.OVERVIEW)) {
+                // TODO If in overview scene update gamelist
+            } else {
+                // TODO else show toast
+            }
+        });
     }
 
     /**
      * Handle incoming game invites
      */
-    public void gameInvite(ArrayList<JSONObject> gameInvites) {
+    public void gameInvite(JSONObject gameInvitesJSON) {
+        var gameInvite = new GameInvite(gameInvitesJSON);
+
+        var payloadUser = new JSONObject();
+        payloadUser.put(USER_ID, gameInvite.userId);
+        send(GET_USER_REQUEST,payloadUser, successUser -> {
+
+            var user = new User(successUser);
+
+            var payloadGame = new JSONObject();
+            payloadGame.put(CHAT_ID, gameInvite.gameId);
+            send(GET_GAME_REQUEST, payloadGame, successGame -> {
+
+                var game = new Game(successGame);
+                gameInvite.userName = user.username;
+                gameInvite.gameName = game.name;
+
+                mState.commit(state -> {
+                    state.gameInvites.put(gameInvite.gameId, gameInvite);
+                });
+                if (mCurrentScene.equals(Scene.OVERVIEW)) {
+                    mTransitions.renderGamesList(mState.filteredGames(), mState.filteredGameInvites());
+                } else {
+                    // TODO toast
+                }
+            });
+        });
     }
 
     /**

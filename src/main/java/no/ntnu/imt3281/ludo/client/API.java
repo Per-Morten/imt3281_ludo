@@ -17,15 +17,15 @@ public class API {
     interface Events {
         void friendUpdate();
 
-        void chatUpdate(ArrayList<JSONObject> chats);
+        void chatUpdate(JSONObject chat);
 
-        void chatInvite(ArrayList<JSONObject> chatInvites);
+        void chatInvite(JSONObject chatInvite);
 
         void chatMessage(JSONObject message);
 
-        void gameUpdate(ArrayList<JSONObject> games);
+        void gameUpdate(JSONObject game);
 
-        void gameInvite(ArrayList<JSONObject> gameInvites);
+        void gameInvite(JSONObject gameInvite);
 
         void forceLogout();
     }
@@ -173,22 +173,22 @@ public class API {
             mEvents.friendUpdate();
             break;
         case CHAT_UPDATE:
-            mEvents.chatUpdate(payload);
+            payload.forEach(item -> mEvents.chatUpdate(item));
             break;
         case CHAT_INVITE:
-            mEvents.chatInvite(payload);
+            payload.forEach(item -> mEvents.chatInvite(item));
             break;
         case CHAT_MESSAGE:
             payload.forEach(item -> mEvents.chatMessage(item));
             break;
         case GAME_UPDATE:
-            mEvents.gameUpdate(payload);
+            payload.forEach(item -> mEvents.gameUpdate(item));
             break;
         case GAME_INVITE:
-            mEvents.gameInvite(payload);
+            payload.forEach(item -> mEvents.gameInvite(item));
             break;
         case FORCE_LOGOUT:
-            mEvents.forceLogout();
+            payload.forEach(item -> mEvents.forceLogout());
             break;
         }
     }

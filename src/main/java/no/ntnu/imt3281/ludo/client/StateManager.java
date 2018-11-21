@@ -12,7 +12,9 @@ import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.stream.Collectors;
 
 /**
  * Manage state in a thread safe manner.
@@ -73,6 +75,7 @@ public class StateManager {
         }
         return copy;
     }
+
 
     /**
      * Mutate the state with provided mutation. Block all incoming copies until
@@ -180,6 +183,51 @@ public class StateManager {
         } catch (InterruptedException e) {
             Platform.exit();
         }
+    }
+
+    // Filter based on search
+    public ArrayList<Game> filteredGames() {
+        var copy = this.copy();
+
+        return this.copy().activeGames
+                .values()
+                .stream()
+                .filter(game -> game.name.toUpperCase()
+                        .contains(copy.searchGames.toUpperCase()))
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public ArrayList<GameInvite> filteredGameInvites() {
+        var copy = this.copy();
+
+        return copy.gameInvites
+                .values()
+                .stream()
+                .filter(gameInv -> gameInv.gameName.toUpperCase()
+                        .contains(copy.searchGames.toUpperCase()))
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public ArrayList<Chat> filteredChats() {
+        var copy = this.copy();
+
+        return copy.activeChats
+                .values()
+                .stream()
+                .filter(chat -> chat.name.toUpperCase()
+                        .contains(copy.searchChats.toUpperCase()))
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public ArrayList<ChatInvite> filteredChatInvites() {
+        var copy = this.copy();
+
+        return copy.chatInvites
+                .values()
+                .stream()
+                .filter(chatInv -> chatInv.chatName.toUpperCase()
+                        .contains(copy.searchChats.toUpperCase()))
+                .collect(Collectors.toCollection(ArrayList::new));
 
     }
 }

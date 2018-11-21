@@ -30,8 +30,8 @@ public class State {
     public Map<Integer, Game> activeGames = new HashMap<>();
     public Map<Integer, Chat> activeChats = new HashMap<>();
 
-    public Map<Integer, Game> gameInvites = new HashMap<>();
-    public Map<Integer, Chat> chatInvites = new HashMap<>();
+    public Map<Integer, GameInvite> gameInvites = new HashMap<>();
+    public Map<Integer, ChatInvite> chatInvites = new HashMap<>();
 
 
     static State shallowCopy(State state) {
