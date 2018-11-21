@@ -5,19 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-class Player {
-    public String name;
-    public boolean active;
-
-    public Player(String playerName) {
-        name = playerName;
-        if (name != null) {
-            active = true;
-        } else {
-            active = false;
-        }
-    }
-}
 
 public class Ludo {
 
@@ -35,6 +22,7 @@ public class Ludo {
     private boolean mStarted;
     private int mSixesInARow;
     private int lastDiceResult;
+    private String nextAction;
 
     List<DiceListener> mDiceListeners = new ArrayList<>();
     List<PieceListener> mPieceListeners = new ArrayList<>();
@@ -55,6 +43,7 @@ public class Ludo {
         mStarted = false;
         mSixesInARow = 0;
         lastDiceResult = -1;
+        nextAction = "throwDice";
     }
 
     /**
@@ -84,6 +73,7 @@ public class Ludo {
         mStarted = false;
         mSixesInARow = 0;
         lastDiceResult = -1;
+        nextAction = "throwDice";
     }
 
     /**
@@ -180,6 +170,7 @@ public class Ludo {
             mSixesInARow = 0;
             mRemainingAttempts--;
             if (mRemainingAttempts == 0) {
+                nextAction = "movePiece";
                 boolean noPiecesOut = true;
                 for (int piece = 0; piece < 4; piece++) {
                     if (getPosition(mCurrentPlayer, piece) != 0) {
@@ -204,6 +195,7 @@ public class Ludo {
             }
         } else {
             mSixesInARow++;
+            nextAction = "movePiece";
             if (mSixesInARow == 3) {
                 mSixesInARow = 0;
                 nextPlayersTurn();
@@ -347,6 +339,8 @@ public class Ludo {
         final var newPlayer = mCurrentPlayer;
         mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, prevPlayer, PlayerEvent.WAITING)));
         mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, newPlayer, PlayerEvent.PLAYING)));
+
+        nextAction = "throwDice";
     }
 
     /**
@@ -466,7 +460,7 @@ public class Ludo {
     /**
      * Adds a PieceListener to the list of PieceListeners to be notified whenever a
      * piece is moved.
-     * 
+     *
      * @param pieceListener
      */
     public void addPieceListener(PieceListener pieceListener) {
@@ -476,7 +470,7 @@ public class Ludo {
     /**
      * Adds a PlayerListener to the list of PlayerListeners to be notified whenever
      * someone finishes their turn.
-     * 
+     *
      * @param playerListener
      */
     public void addPlayerListener(PlayerListener playerListener) {
@@ -490,10 +484,7 @@ public class Ludo {
      * @return
      */
     public String getNextAction() {
-
-        // TODO predict what the next action will be, based on some variables
-
-        return "";
+        return nextAction;
     }
 
     /**

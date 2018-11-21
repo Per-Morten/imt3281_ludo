@@ -1041,4 +1041,14 @@ public class LudoTest {
         result = ludo.throwDice(5);
         assertEquals(result, ludo.previousRoll());
     }
+
+    @Test
+    public void checkNextAction() {
+        Ludo ludo = new Ludo(1, 2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
+
+        ludo.throwDice(6);
+        assertEquals(ludo.getNextAction(), "movePiece");
+        ludo.movePiece(0, 0, 1);
+        assertEquals(ludo.getNextAction(), "throwDice");
+    }
 }
