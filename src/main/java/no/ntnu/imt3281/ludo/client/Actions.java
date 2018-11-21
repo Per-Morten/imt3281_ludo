@@ -419,7 +419,7 @@ public class Actions implements API.Events {
     }
 
     /**
-     *
+     * Join chat you have been invited to or is visible to you
      */
     public void joinChat(HashSet<Integer> chatsId) {
         this.logAction("joinChat");
@@ -438,7 +438,7 @@ public class Actions implements API.Events {
     }
 
     /**
-     *
+     * Join chat you have been invited to or active chat
      */
     public void leaveChat(HashSet<Integer> chatsId) {
         this.logAction("leaveChat");

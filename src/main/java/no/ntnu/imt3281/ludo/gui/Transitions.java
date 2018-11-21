@@ -17,9 +17,6 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.*;
 
-import static no.ntnu.imt3281.ludo.api.FieldNames.CHAT_ID;
-import static no.ntnu.imt3281.ludo.api.FieldNames.PARTICIPANT_ID;
-
 /**
  * Controls FXML Controllers and how they transition
  */
