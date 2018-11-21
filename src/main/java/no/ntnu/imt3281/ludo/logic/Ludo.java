@@ -1,6 +1,7 @@
 package no.ntnu.imt3281.ludo.logic;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -20,12 +21,14 @@ class Player {
 
 public class Ludo {
 
+    public static final int UNASSIGNED = -1;
+
     static final int RED = 0;
     static final int BLUE = 1;
     static final int YELLOW = 2;
     static final int GREEN = 3;
 
-    Player[] mPlayer;
+    int[] mPlayer;
     int[][] mPiecePositions;
     private int mCurrentPlayer;
     private int mRemainingAttempts;
@@ -40,11 +43,11 @@ public class Ludo {
      * Empty constructor initiates a game with no players
      */
     public Ludo() {
-        mPlayer = new Player[4];
-        mPlayer[0] = new Player(null);
-        mPlayer[1] = new Player(null);
-        mPlayer[2] = new Player(null);
-        mPlayer[3] = new Player(null);
+        mPlayer = new int[4];
+        for (int i = 0; i < mPlayer.length; i++) {
+            mPlayer[i] = UNASSIGNED;
+        }
+
         mPiecePositions = new int[4][4];
         mCurrentPlayer = 0;
         mRemainingAttempts = 3;
@@ -56,22 +59,23 @@ public class Ludo {
      * Constructor with parameters requires at least two players, or else throw an
      * exception.
      *
-     * @param player1name
-     * @param player2name
-     * @param player3name
-     * @param player4name
+     * @param player1ID
+     * @param player2ID
+     * @param player3ID
+     * @param player4ID
      * @throws NotEnoughPlayersException
      */
-    public Ludo(String player1name, String player2name, String player3name, String player4name)
+    public Ludo(int player1ID, int player2ID, int player3ID, int player4ID)
             throws NotEnoughPlayersException {
-        if (player1name == null || player2name == null) {
+        if (player1ID == UNASSIGNED || player2ID == UNASSIGNED) {
             throw new NotEnoughPlayersException();
         }
-        mPlayer = new Player[4];
-        mPlayer[0] = new Player(player1name);
-        mPlayer[1] = new Player(player2name);
-        mPlayer[2] = new Player(player3name);
-        mPlayer[3] = new Player(player4name);
+        mPlayer = new int[4];
+        mPlayer[0] = player1ID;
+        mPlayer[1] = player2ID;
+        mPlayer[2] = player3ID;
+        mPlayer[3] = player4ID;
+
         mPiecePositions = new int[4][4];
         mCurrentPlayer = 0;
         mRemainingAttempts = 3;
@@ -86,55 +90,48 @@ public class Ludo {
      * @return
      */
     public int nrOfPlayers() {
-        int count = 0;
-        for (int i = 0; i < 4; i++) {
-            if (mPlayer[i].name != null) {
-                count++;
-            }
-        }
-
-        return count;
+        return (int)Arrays.stream(mPlayer).filter(item -> item != UNASSIGNED).count();
     }
 
     // Method getPlayerName should return the name of the given player. Prepended
     // with "inactive: " for players marked as inactive.
-    public String getPlayerName(int color) {
-        String message = mPlayer[color].name;
-        if (message != null && !mPlayer[color].active) {
-            message = "Inactive: " + message;
-        }
-        return message;
+    public int getPlayerID(int color) {
+        return mPlayer[color];
     }
 
     /**
      * Method addPlayer, up to four players. Throws an exception if 4 players
      * already.
      *
-     * @param playerName
+     * @param playerID
      * @throws NoRoomForMorePlayersException
      */
-    public void addPlayer(String playerName) throws NoRoomForMorePlayersException {
+    public void addPlayer(int playerID) throws NoRoomForMorePlayersException {
         int currentPlayers = nrOfPlayers();
 
-        if (currentPlayers == 4) {
+        if (currentPlayers >= 4) {
             throw new NoRoomForMorePlayersException();
         }
-        mPlayer[currentPlayers] = new Player(playerName);
+
+        mPlayer[currentPlayers] = playerID;
     }
 
     /**
      * Method removePlayer, does not actually remove player, but marks them as
      * inactive. They still count for nrOfPlayers.
      *
-     * @param playerName
+     * @param playerID
      */
-    public void removePlayer(String playerName) {
+    public void removePlayer(int playerID) {
         for (int i = 0; i < 4; i++) {
-            if (mPlayer[i].name == playerName) {
-                mPlayer[i].active = false;
+            if (mPlayer[i] == playerID) {
+                mPlayer[i] = UNASSIGNED;
                 final var finI = i;
                 mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, finI, PlayerEvent.LEFTGAME)));
-                nextPlayersTurn();
+
+                if (mCurrentPlayer == i) {
+                    nextPlayersTurn();
+                }
             }
         }
     }
@@ -145,18 +142,9 @@ public class Ludo {
      * @return
      */
     public int activePlayers() {
-        int count = 0;
-        for (int i = 0; i < 4; i++) {
-            if (mPlayer[i].active) {
-                count++;
-            }
-        }
-
-        return count;
+        return (int)Arrays.stream(mPlayer).filter(item -> item != UNASSIGNED).count();
     }
 
-    // Method getStatus, returns status of the game (Created, initiated, started
-    // etc)
 
     public int activePlayer() {
         return mCurrentPlayer;
@@ -180,7 +168,6 @@ public class Ludo {
             if (mRemainingAttempts == 0) {
                 boolean noPiecesOut = true;
                 for (int piece = 0; piece < 4; piece++) {
-                    // int positionOfPiece = getPosition(mCurrentPlayer, i);
                     if (getPosition(mCurrentPlayer, piece) != 0) {
                         noPiecesOut = false;
                     }
@@ -223,7 +210,6 @@ public class Ludo {
             if (mRemainingAttempts == 0) {
                 boolean noPiecesOut = true;
                 for (int piece = 0; piece < 4; piece++) {
-                    // int positionOfPiece = getPosition(mCurrentPlayer, i);
                     if (getPosition(mCurrentPlayer, piece) != 0) {
                         noPiecesOut = false;
                     }
@@ -307,7 +293,7 @@ public class Ludo {
         mSixesInARow = 0;
         mCurrentPlayer = (mCurrentPlayer + 1) % 4;
         // Skip inactive mPlayer
-        while (!mPlayer[mCurrentPlayer].active) {
+        while (mPlayer[mCurrentPlayer] == UNASSIGNED) {
             mCurrentPlayer = (mCurrentPlayer + 1) % 4;
         }
 
@@ -354,7 +340,7 @@ public class Ludo {
     }
 
     public int getWinner() {
-        if (getStatus() == "Finished") {
+        if (getStatus().equals("Finished")) {
             for (int player = 0; player < 4; player++) {
                 boolean finished = true;
                 for (int piece = 0; piece < 4; piece++) {
