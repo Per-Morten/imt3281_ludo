@@ -106,6 +106,7 @@ public class Actions implements API.Events {
 
             send(JOIN_CHAT_REQUEST, payloadGlobalChat, successJoin -> {
                 send(GET_CHAT_REQUEST, payloadGlobalChat, successGetChat -> {
+
                     var globalChat = new Chat(successGetChat);
                     mState.commit(state -> {
                         state.activeChats.put(GlobalChat.ID, globalChat);
@@ -171,7 +172,6 @@ public class Actions implements API.Events {
 
         send(DELETE_USER_REQUEST, payload, success -> {
             this.logout();
-
         });
     }
 
@@ -226,14 +226,14 @@ public class Actions implements API.Events {
         var filteredGames = stateCopy.activeGames
                 .values()
                 .stream()
-                .filter(game -> game.getString(FieldNames.NAME).toUpperCase()
+                .filter(game -> game.name.toUpperCase()
                         .contains(stateCopy.searchGames.toUpperCase()))
                 .collect(Collectors.toList());
 
         var filteredGameInvites = stateCopy.gameInvites
                 .values()
                 .stream()
-                .filter(gameInv -> gameInv.getString(FieldNames.NAME).toUpperCase()
+                .filter(gameInv -> gameInv.name.toUpperCase()
                         .contains(stateCopy.searchGames.toUpperCase()))
                 .collect(Collectors.toList());
 
@@ -247,7 +247,7 @@ public class Actions implements API.Events {
         var filteredChatInvites = stateCopy.chatInvites
                 .values()
                 .stream()
-                .filter(chatInv -> chatInv.getString(FieldNames.NAME).toUpperCase()
+                .filter(chatInv -> chatInv.name.toUpperCase()
                         .contains(stateCopy.searchChats.toUpperCase()))
                 .collect(Collectors.toList());
 
@@ -325,22 +325,20 @@ public class Actions implements API.Events {
     public void createGame(String gameName) {
         this.logAction("createGame");
 
-        var game = makeGame();
-        var clientGameId = game.getInt(FieldNames.GAME_ID);
-
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(FieldNames.NAME, gameName);
 
-        send(CREATE_GAME_REQUEST, payload, success -> {
-            // TODO SERVER UNIMPLEMENTED
-        });
+        send(CREATE_GAME_REQUEST, payload, successCreateGame -> {
+            send(GET_GAME_REQUEST, successCreateGame, successGetGame -> {
 
-        game.put(FieldNames.NAME, gameName);
-        mState.commit(state -> {
-            state.activeGames.put(clientGameId, game);
+                var game = new Game(successGetGame);
+                mState.commit(state -> {
+                    state.activeGames.put(game.id, game);
+                });
+                mTransitions.newGame(game.id, game);
+            });
         });
-        mTransitions.newGame(clientGameId, game);
     }
 
     // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE GAME

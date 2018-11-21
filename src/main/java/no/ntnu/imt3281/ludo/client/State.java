@@ -27,10 +27,10 @@ public class State {
     public String searchFriends = "";
     public String searchUsers = "";
 
-    public Map<Integer, JSONObject> activeGames = new HashMap<>();
+    public Map<Integer, Game> activeGames = new HashMap<>();
     public Map<Integer, Chat> activeChats = new HashMap<>();
-    public Map<Integer, JSONObject> gameInvites = new HashMap<>();
-    public Map<Integer, JSONObject> chatInvites = new HashMap<>();
+    public Map<Integer, Game> gameInvites = new HashMap<>();
+    public Map<Integer, Chat> chatInvites = new HashMap<>();
 
 
     static State shallowCopy(State state) {

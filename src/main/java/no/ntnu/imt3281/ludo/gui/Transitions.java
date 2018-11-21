@@ -109,9 +109,9 @@ public class Transitions {
     }
 
     /**
-     *
+     * Clear all game tabs and render them again
      */
-    public void renderGameTabs(Map<Integer, JSONObject> activeGames) {
+    public void renderGameTabs(Map<Integer, Game> activeGames) {
         Platform.runLater(() -> {
 
             var live = this.mDocuments.get(Path.LIVE);
@@ -121,7 +121,7 @@ public class Transitions {
 
             activeGames.forEach((id, game) -> {
                 var gameTab = this.loadFXML(Path.GAME_TAB, id);
-                Tab tab = new Tab(game.getString(FieldNames.NAME));
+                Tab tab = new Tab(game.name);
                 tab.setContent(gameTab.root);
                 liveController.mTabGames.getTabs().add(tab);
             });
@@ -129,7 +129,7 @@ public class Transitions {
     }
 
     /**
-     *
+     * Clear all chat tabs, and render them again
      */
     public void renderChatTabs(Map<Integer, Chat> activeChats) {
         Platform.runLater(() -> {
@@ -183,7 +183,7 @@ public class Transitions {
     /**
      *
      */
-    public void renderGamesList(List<JSONObject> activeGames, List<JSONObject> gameInvites) {
+    public void renderGamesList(List<Game> activeGames, List<Game> gameInvites) {
         Platform.runLater(() -> {
 
             var overview = (OverviewController) this.getController(Path.OVERVIEW);
@@ -192,11 +192,11 @@ public class Transitions {
             overview.mListGames.getChildren().clear();
 
             activeGames.forEach(game -> {
-                var id = game.getInt(FieldNames.GAME_ID);
+                var id = game.id;
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
-                var name = game.getString(FieldNames.NAME);
-                var playerCount = game.getJSONArray(FieldNames.PLAYER_ID).length();
+                var name = game.name;
+                var playerCount = game.playerId.size();
 
                 itemController.mType = ListItemType.GAME;
                 itemController.mOverview = overview;
@@ -206,11 +206,11 @@ public class Transitions {
 
             gameInvites.forEach(gameInvite -> {
 
-                var id = gameInvite.getInt(FieldNames.GAME_ID);
+                var id = gameInvite.id;
 
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
-                var name = gameInvite.getString(FieldNames.NAME);
+                var name = gameInvite.name;
 
                 itemController.init(ListItemType.GAME_INVITE, id, overview, name + " invite"); // TODO i18n
                 overview.mListGames.getChildren().add(item.root);
@@ -221,7 +221,7 @@ public class Transitions {
     /**
      *
      */
-    public void renderChatsList(List<Chat> activeChats, List<JSONObject> chatInvites) {
+    public void renderChatsList(List<Chat> activeChats, List<Chat> chatInvites) {
         Platform.runLater(() -> {
 
             var overview = (OverviewController) this.getController(Path.OVERVIEW);
@@ -243,11 +243,11 @@ public class Transitions {
 
             chatInvites.forEach(chatInvite -> {
 
-                var id = chatInvite.getInt(CHAT_ID);
+                var id = chatInvite.id;
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
-                var name = chatInvite.getString(FieldNames.NAME);
+                var name = chatInvite.name;
 
                 itemController.init(ListItemType.CHAT_INVITE, id, overview, name + " invite");// TODO i18n
                 overview.mListChats.getChildren().add(item.root);
@@ -335,12 +335,12 @@ public class Transitions {
     /**
      * New game tab, append to existing tabs
      */
-    public void newGame(int id, JSONObject game) {
+    public void newGame(int id, Game game) {
         Platform.runLater(() -> {
             var live = (LiveController) this.getController(Path.LIVE);
 
             var gameTab = this.loadFXML(Path.GAME_TAB, id);
-            Tab tab = new Tab(game.getString(FieldNames.NAME));
+            Tab tab = new Tab(game.name);
 
             tab.setContent(gameTab.root);
             live.mTabGames.getTabs().add(tab);
