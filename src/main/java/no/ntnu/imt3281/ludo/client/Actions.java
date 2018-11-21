@@ -2,6 +2,7 @@ package no.ntnu.imt3281.ludo.client;
 
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
+import no.ntnu.imt3281.ludo.api.GlobalChat;
 import no.ntnu.imt3281.ludo.api.RequestType;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
@@ -9,11 +10,12 @@ import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-import static no.ntnu.imt3281.ludo.api.FieldNames.CHAT_ID;
+import static no.ntnu.imt3281.ludo.api.FieldNames.*;
 import static no.ntnu.imt3281.ludo.api.RequestType.*;
 
 public class Actions implements API.Events {
@@ -42,24 +44,7 @@ public class Actions implements API.Events {
     void gotoLogin() {
         this.logAction("gotoLogin");
 
-        mState.commit(gState -> {
-            gState.userId = -1;
-            gState.email = "";
-            gState.authToken = "";
-            gState.username = "";
-            gState.password = "";
-            gState.avatarURI = "";
-
-            gState.searchUsers = "";
-            gState.searchChats = "";
-            gState.searchFriends = "";
-            gState.searchGames = "";
-
-            gState.activeChats.clear();
-            gState.activeGames.clear();
-            gState.chatInvites.clear();
-            gState.gameInvites.clear();
-        });
+        mState.reset();
 
         mTransitions.renderLogin();
     }
@@ -113,7 +98,27 @@ public class Actions implements API.Events {
                 state.authToken = success.getString(FieldNames.AUTH_TOKEN);
                 state.password = password;
             });
+
+            var payloadGlobalChat = new JSONObject();
+            payloadGlobalChat.put(CHAT_ID, GlobalChat.ID);
+            payloadGlobalChat.put(USER_ID, mState.getUserId());
+
+            send(JOIN_CHAT_REQUEST, payloadGlobalChat, successGlobalChat -> {
+                var globalChat = new Chat();
+                globalChat.json.put(CHAT_ID, GlobalChat.ID);
+                globalChat.json.put(NAME, GlobalChat.NAME);
+                globalChat.json.put(PARTICIPANT_ID, new int[]{});
+                mState.commit(state -> {
+                    state.activeChats.put(GlobalChat.ID, globalChat);
+                });
+            });
+
+
             this.gotoUser();
+
+        }, error ->  {
+            this.logError(error);
+            this.gotoLogin();
         });
     }
 
@@ -507,7 +512,6 @@ public class Actions implements API.Events {
         messageJSON.put(FieldNames.USERNAME, stateCopy.username);
 
         mState.commit(state -> {
-            Logger.log(Level.DEBUG, "!!!chatId: " + String.valueOf(chatId));
             state.activeChats.get(chatId).messages.add(messageJSON);
         });
         mTransitions.newMessage(chatId, stateCopy.username, message);

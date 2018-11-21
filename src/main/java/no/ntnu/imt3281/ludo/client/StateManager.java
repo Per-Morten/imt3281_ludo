@@ -2,7 +2,9 @@ package no.ntnu.imt3281.ludo.client;
 
 import javafx.application.Platform;
 import no.ntnu.imt3281.ludo.api.FieldNames;
+import no.ntnu.imt3281.ludo.api.GlobalChat;
 import no.ntnu.imt3281.ludo.common.Logger;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -145,5 +147,38 @@ public class StateManager {
         } catch (Exception e) {
             Logger.logException(Logger.Level.WARN, e, "Failed to write to " + StateManager.filepath);
         }
+    }
+
+    /**
+     * Reset state to initial state. Should always result in the same state
+     */
+    void reset() {
+        try {
+            State state = mState.take();
+
+            // Zero everything
+            state.userId = -1;
+            state.email = "";
+            state.authToken = "";
+            state.username = "";
+            state.password = "";
+            state.avatarURI = "";
+
+            state.searchUsers = "";
+            state.searchChats = "";
+            state.searchFriends = "";
+            state.searchGames = "";
+
+            state.activeChats.clear();
+            state.activeGames.clear();
+            state.chatInvites.clear();
+            state.gameInvites.clear();
+
+            // Put back into queue
+            mState.put(state);
+        } catch (InterruptedException e) {
+            Platform.exit();
+        }
+
     }
 }

@@ -26,21 +26,35 @@ public class Transitions {
     private Actions mActions;
     private Map<String, FXMLDocument> mDocuments = new HashMap<>();
 
+    /**
+     * Constructor
+     */
     private class FXMLDocument {
         Parent root;
         BaseController controller;
     }
 
     /**
+     * Bind dependencies
      *
+     * @param stage fxml stage
+     * @param actions used to dispatch input from user
      */
     public void bind(Stage stage, Actions actions) {
         mStage = stage;
         mActions = actions;
     }
 
+
     /**
-     * Render login view
+     * Render login scene
+     * Override without optional email parameter
+     */
+    public void renderLogin() {this.renderLogin("");}
+
+
+    /**
+     * Render login scene
      *
      * @param email for autocompletion
      */
@@ -56,10 +70,6 @@ public class Transitions {
             mStage.show();
         });
     }
-    /**
-     * Override without optional email parameter
-     */
-    public void renderLogin() {this.renderLogin("");}
 
     /**
      * Loads and renders the user scene
@@ -108,7 +118,7 @@ public class Transitions {
 
             activeGames.forEach((id, game) -> {
                 var gameTab = this.loadFXML(Path.GAME_TAB, id);
-                Tab tab = new Tab("Game" + id);
+                Tab tab = new Tab(game.getString(FieldNames.NAME));
                 tab.setContent(gameTab.root);
                 liveController.mTabGames.getTabs().add(tab);
             });
@@ -128,7 +138,7 @@ public class Transitions {
             activeChats.forEach((id, chat) -> {
                 var chatTab = this.loadFXML(Path.CHAT_TAB, id);
                 var chatTabController = (ChatTabController) chatTab.controller;
-                Tab tab = new Tab("Chat" + id);
+                Tab tab = new Tab(chat.json.getString(FieldNames.NAME));
                 tab.setContent(chatTab.root);
                 liveController.mTabChats.getTabs().add(tab);
 
@@ -282,7 +292,7 @@ public class Transitions {
     }
 
     /**
-     *
+     * Render a list of users in the overview scene
      */
     public void renderUserList(List<JSONObject> usersList, List<JSONObject> ignoredList) {
         Platform.runLater(() -> {
@@ -353,7 +363,11 @@ public class Transitions {
     }
 
     /**
+     * Add new chat message to existing chat
      *
+     * @param chatId id of eixisting chat
+     * @param username username of the person who sent the chat message
+     * @param message message
      */
     public void newMessage(int chatId, String username, String message) {
         Platform.runLater(() -> {

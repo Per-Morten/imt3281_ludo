@@ -10,7 +10,7 @@ import javafx.scene.layout.VBox;
 
 public class ChatTabController extends BaseController {
 
-    int mId;
+    int mId = -1;
 
     @FXML
     public VBox mMessageList;

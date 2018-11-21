@@ -1,7 +1,9 @@
 package no.ntnu.imt3281.ludo.client;
 
 import no.ntnu.imt3281.ludo.api.FieldNames;
+import no.ntnu.imt3281.ludo.api.GlobalChat;
 import no.ntnu.imt3281.ludo.common.Logger;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -26,18 +28,20 @@ public class State {
     public int userId = -1;
     public String avatarURI = "@../../../../../images/basic-avatar.png";
 
+
+    //
+    // In-memory state- cleared on every startup
+    //
     public String searchGames = "";
     public String searchChats = "";
     public String searchFriends = "";
     public String searchUsers = "";
 
-    //
-    // In-memory state- cleared on every startup
-    //
     public Map<Integer, JSONObject> activeGames = new HashMap<>();
     public Map<Integer, Chat> activeChats = new HashMap<>();
     public Map<Integer, JSONObject> gameInvites = new HashMap<>();
     public Map<Integer, JSONObject> chatInvites = new HashMap<>();
+
 
     static State shallowCopy(State state) {
         var copy = new State();
