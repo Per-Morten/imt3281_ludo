@@ -152,7 +152,11 @@ public class Server {
         for (int i = 0; i < requests.length(); i++) {
             var request = requests.getJSONObject(i);
             boolean isAuthorized;
-            if (type == RequestType.GET_USER_REQUEST || type == RequestType.GET_USER_RANGE_REQUEST) {
+            if (type == RequestType.GET_USER_REQUEST
+                    || type == RequestType.GET_USER_RANGE_REQUEST
+                    || type == RequestType.GET_CHAT_REQUEST
+                    || type == RequestType.GET_CHAT_RANGE_REQUEST) {
+                
                 isAuthorized = sUserManager.tokenExists(token);
             } else {
                 isAuthorized = sUserManager.isUserAuthorized(request, token);

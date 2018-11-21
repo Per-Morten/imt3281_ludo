@@ -347,34 +347,21 @@ public class Actions implements API.Events {
     public void createChat(String chatName) {
         this.logAction("createChat");
 
-        var chatJSON = makeChat();
-        var clientChatId = chatJSON.getInt(CHAT_ID);
-
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(FieldNames.NAME, chatName);
 
-        send(CREATE_CHAT_REQUEST, payload, success -> {
-            // TODO SERVER UNIMPLEMENTED
-        });
+        send(CREATE_CHAT_REQUEST, payload, successCreateChat -> {
+            send(GET_CHAT_REQUEST, successCreateChat, successGetChat -> {
 
-        var chat = new Chat();
-        chat.json = chatJSON;
-        chat.json.put(FieldNames.NAME, chatName);
-        mState.commit(state -> {
-            state.activeChats.put(clientChatId, chat);
+                var chat = new Chat();
+                chat.json = successGetChat;
+                mState.commit(state -> {
+                    state.activeChats.put(successGetChat.getInt(CHAT_ID), chat);
+                });
+                mTransitions.newChat(chat);
+            });
         });
-        mTransitions.newChat(clientChatId, chat.json);
-    }
-
-    // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE CHAT
-    private static JSONObject makeChat() {
-        var chatId = randomInt();
-        var chat = new JSONObject();
-        chat.put(CHAT_ID, chatId);
-        chat.put(FieldNames.NAME, "Chat " + chatId);
-        chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[] {}));
-        return chat;
     }
 
     /**
@@ -535,8 +522,8 @@ public class Actions implements API.Events {
         });
 
         send(SEND_CHAT_INVITE_REQUEST, payload, success -> {
-            this.gotoOverview();
 
+            this.gotoOverview();
         });
     }
 

@@ -17,6 +17,8 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.*;
 
+import static no.ntnu.imt3281.ludo.api.FieldNames.CHAT_ID;
+
 /**
  * Controls FXML Controllers and how they transition
  */
@@ -227,7 +229,7 @@ public class Transitions {
             overview.mListChats.getChildren().clear();
 
             activeChats.forEach(chat -> {
-                var id = chat.json.getInt(FieldNames.CHAT_ID);
+                var id = chat.json.getInt(CHAT_ID);
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
@@ -241,7 +243,7 @@ public class Transitions {
 
             chatInvites.forEach(chatInvite -> {
 
-                var id = chatInvite.getInt(FieldNames.CHAT_ID);
+                var id = chatInvite.getInt(CHAT_ID);
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
@@ -348,13 +350,15 @@ public class Transitions {
     /**
      * New chat tab, append to existing tabs
      */
-    public void newChat(int id, JSONObject chat) {
+    public void newChat(Chat chat) {
         Platform.runLater(() -> {
+
+            var id = chat.json.getInt(CHAT_ID);
             var live = (LiveController) this.getController(Path.LIVE);
 
             var chatTab = this.loadFXML(Path.CHAT_TAB, id);
             var chatTabController = (ChatTabController) chatTab.controller;
-            Tab tab = new Tab(chat.getString(FieldNames.NAME));
+            Tab tab = new Tab(chat.json.getString(FieldNames.NAME));
             chatTabController.mId = id;
 
             tab.setContent(chatTab.root);
