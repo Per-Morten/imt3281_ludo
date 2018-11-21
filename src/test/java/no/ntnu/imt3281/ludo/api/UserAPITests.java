@@ -179,7 +179,7 @@ public class UserAPITests {
                 request.put(FieldNames.USERNAME, context.user.username);
                 request.put(FieldNames.PASSWORD, context.user.password);
                 request.put(FieldNames.EMAIL, context.user.email);
-                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                        request.put(FieldNames.AVATAR_URI, "http://www.someavataruri.com");
                 payload.put(0, request);
                 TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
             }
@@ -195,7 +195,7 @@ public class UserAPITests {
                 var success = msg.getJSONArray(FieldNames.SUCCESS);
                 assertEquals(1, success.length());
                 var firstUser = success.getJSONObject(0);
-                assertEquals("Some Cool Avatar", firstUser.getString(FieldNames.AVATAR_URI));
+                        assertEquals("http://www.someavataruri.com", firstUser.getString(FieldNames.AVATAR_URI));
                 context.running.set(false);
             }
         });
@@ -331,7 +331,7 @@ public class UserAPITests {
                 request.put(FieldNames.USERNAME, USER_1.username);
                 request.put(FieldNames.PASSWORD, context.user.password);
                 request.put(FieldNames.EMAIL, context.user.email);
-                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                        request.put(FieldNames.AVATAR_URI, "http://www.someavataruri.com");
                 payload.put(0, request);
                 TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
             }
@@ -380,7 +380,7 @@ public class UserAPITests {
                 request.put(FieldNames.USERNAME, context.user.username);
                 request.put(FieldNames.PASSWORD, context.user.password);
                 request.put(FieldNames.EMAIL, USER_1.email);
-                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                        request.put(FieldNames.AVATAR_URI, "http://www.someavataruri.com");
                 payload.put(0, request);
                 TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
             }
@@ -413,6 +413,32 @@ public class UserAPITests {
 
                     if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
                         TestUtility.assertError(Error.MALFORMED_EMAIL, msg);
+                        context.running.set(false);
+                    }
+                });
+    }
+
+    @Test
+    public void errorOnUpdateMalformedAvatarURI() {
+        TestUtility.runTestWithNewUser("USER_TO_TEST_MALFORMED_AVATAR_URI_UPDATE",
+                "USER_TO_TEST_MALFORMED_AVATAR_URI_UPDATE@mail.com", "password", (context, msg) -> {
+                    var type = msg.getString(FieldNames.TYPE);
+                    if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                        var payload = new JSONArray();
+                        var request = new JSONObject();
+                        request.put(FieldNames.ID, 0);
+                        request.put(FieldNames.USER_ID, context.user.id);
+                        request.put(FieldNames.USERNAME, context.user.username);
+                        request.put(FieldNames.PASSWORD, context.user.password);
+                        request.put(FieldNames.EMAIL, context.user.email);
+                        request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                        payload.put(0, request);
+                        TestUtility.sendMessage(context.socket, TestUtility
+                                .createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
+                    }
+
+                    if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
+                        TestUtility.assertError(Error.MALFORMED_AVATAR_URI, msg);
                         context.running.set(false);
                     }
                 });

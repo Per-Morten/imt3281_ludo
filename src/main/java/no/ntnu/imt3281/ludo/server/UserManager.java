@@ -66,6 +66,7 @@ public class UserManager {
                 MessageUtility.appendError(errors, requestID, Error.MALFORMED_EMAIL);
                 return;
             }
+
             var password = request.getString(FieldNames.PASSWORD);
 
             try {
@@ -129,6 +130,15 @@ public class UserManager {
                     request.getString(FieldNames.EMAIL))) {
                 Logger.log(Logger.Level.DEBUG, "email failed: %s", request);
                 MessageUtility.appendError(errors, requestID, Error.MALFORMED_EMAIL);
+                return;
+            }
+            // Check avatar uri
+            String uri = request.getString(FieldNames.AVATAR_URI);
+            if (uri != "" && !Pattern.matches(
+                    "(?i)^(?:(?:https?|ftp)://)(?:\\S+(?::\\S*)?@)?(?:(?!(?:10|127)(?:\\.\\d{1,3}){3})(?!(?:169\\.254|192\\.168)(?:\\.\\d{1,3}){2})(?!172\\.(?:1[6-9]|2\\d|3[0-1])(?:\\.\\d{1,3}){2})(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,}))\\.?)(?::\\d{2,5})?(?:[/?#]\\S*)?$",
+                    uri)) {
+                Logger.log(Logger.Level.DEBUG, "avatar uri failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_AVATAR_URI);
                 return;
             }
             try {
