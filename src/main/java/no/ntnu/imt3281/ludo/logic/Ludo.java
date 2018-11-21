@@ -34,6 +34,7 @@ public class Ludo {
     private int mRemainingAttempts;
     private boolean mStarted;
     private int mSixesInARow;
+    private int lastDiceResult;
 
     List<DiceListener> mDiceListeners = new ArrayList<>();
     List<PieceListener> mPieceListeners = new ArrayList<>();
@@ -53,6 +54,7 @@ public class Ludo {
         mRemainingAttempts = 3;
         mStarted = false;
         mSixesInARow = 0;
+        lastDiceResult = -1;
     }
 
     /**
@@ -81,6 +83,7 @@ public class Ludo {
         mRemainingAttempts = 3;
         mStarted = false;
         mSixesInARow = 0;
+        lastDiceResult = -1;
     }
 
     /**
@@ -118,13 +121,17 @@ public class Ludo {
 
     /**
      * Method removePlayer, does not actually remove player, but marks them as
-     * inactive. They still count for nrOfPlayers.
+     * inactive and moves all their pieces back to 0. They still count for
+     * nrOfPlayers.
      *
      * @param playerID
      */
     public void removePlayer(int playerID) {
         for (int i = 0; i < 4; i++) {
             if (mPlayer[i] == playerID) {
+                for (int piece = 0; piece < 4; piece++) {
+                    mPiecePositions[i][piece] = 0;
+                }
                 mPlayer[i] = UNASSIGNED;
                 final var finI = i;
                 mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, finI, PlayerEvent.LEFTGAME)));
@@ -158,6 +165,13 @@ public class Ludo {
         mPiecePositions[player][piece] = position;
     }
 
+    /**
+     * Records the predetermined result of a dice roll, and FOR SOME REASON has to
+     * return the result that was literally sent in as a parameter
+     *
+     * @param result - the predetermined result
+     * @return
+     */
     public int throwDice(int result) {
         mStarted = true;
         mDiceListeners.forEach(value -> value.diceThrown(new DiceEvent(this, mCurrentPlayer, result)));
@@ -195,9 +209,15 @@ public class Ludo {
                 nextPlayersTurn();
             }
         }
+        lastDiceResult = result;
         return result;
     }
 
+    /**
+     * Rolls a pseudo-random dice, records the result, and returns it
+     *
+     * @return
+     */
     public int throwDice() {
         mStarted = true;
         Random random = new Random();
@@ -237,10 +257,19 @@ public class Ludo {
             }
         }
 
-
+        lastDiceResult = result;
         return result;
     }
 
+    /**
+     * Moves a piece belonging to player "color" from localspace position "from" to
+     * localspace position "to" if it can, and returns whether that is a valid move.
+     *
+     * @param color
+     * @param from
+     * @param to
+     * @return
+     */
     public boolean movePiece(int color, int from, int to) {
         int conflictingPlayer = -1;
         int conflictingPiece = -1;
@@ -288,6 +317,9 @@ public class Ludo {
         return false;
     }
 
+    /**
+     * Passes the turn onto the next player.
+     */
     private void nextPlayersTurn() {
         final var prevPlayer = mCurrentPlayer;
         mSixesInARow = 0;
@@ -317,6 +349,11 @@ public class Ludo {
         mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, newPlayer, PlayerEvent.PLAYING)));
     }
 
+    /**
+     * Returns whether the game is created, initiated, started or finished.
+     *
+     * @return
+     */
     public String getStatus() {
         if (activePlayers() == 0) {
             return "Created";
@@ -339,6 +376,11 @@ public class Ludo {
         }
     }
 
+    /**
+     * Returns the color of the player that won, if someone has won. Otherwise -1.
+     *
+     * @return
+     */
     public int getWinner() {
         if (getStatus().equals("Finished")) {
             for (int player = 0; player < 4; player++) {
@@ -356,6 +398,14 @@ public class Ludo {
         return -1;
     }
 
+    /**
+     * Checks whether a given move is possible, and returns the result. Accounts for
+     * towers in the way.
+     *
+     * @param from - Where you want to move from
+     * @param to   - Where you want to move to
+     * @return
+     */
     private boolean canMoveTo(int from, int to) {
         if (to > 59 || (from == 0 && to != 1)) {
             return false; // Can't move outside user grid 59, and can't move to anywhere else than user
@@ -381,6 +431,14 @@ public class Ludo {
         return true;
     }
 
+    /**
+     * Converts a position in a given users localspace to the worldspace, and
+     * returns it.
+     *
+     * @param playerColor
+     * @param localGrid
+     * @return
+     */
     public int userGridToLudoBoardGrid(int playerColor, int localGrid) {
         if (localGrid == 0) {
             return playerColor * 4;
@@ -395,15 +453,55 @@ public class Ludo {
         return localGrid + 14 + (6 * playerColor);
     }
 
+    /**
+     * Adds a DiceListener to the list of DiceListeners to be notified whenever a
+     * dice is rolled.
+     *
+     * @param diceListener
+     */
     public void addDiceListener(DiceListener diceListener) {
         mDiceListeners.add(diceListener);
     }
 
+    /**
+     * Adds a PieceListener to the list of PieceListeners to be notified whenever a
+     * piece is moved.
+     * 
+     * @param pieceListener
+     */
     public void addPieceListener(PieceListener pieceListener) {
         mPieceListeners.add(pieceListener);
     }
 
+    /**
+     * Adds a PlayerListener to the list of PlayerListeners to be notified whenever
+     * someone finishes their turn.
+     * 
+     * @param playerListener
+     */
     public void addPlayerListener(PlayerListener playerListener) {
         mPlayerListeners.add(playerListener);
+    }
+
+    /**
+     * Predicts what the next action will be, and returns it as a String. Result
+     * will be either "throwDice" or "movePiece".
+     *
+     * @return
+     */
+    public String getNextAction() {
+
+        // TODO predict what the next action will be, based on some variables
+
+        return "";
+    }
+
+    /**
+     * Returns the result of the previous dice rolled.
+     *
+     * @return
+     */
+    public int previousRoll() {
+        return lastDiceResult;
     }
 }

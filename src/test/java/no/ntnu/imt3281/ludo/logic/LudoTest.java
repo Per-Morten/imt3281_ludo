@@ -1030,4 +1030,15 @@ public class LudoTest {
 		ple = new PlayerEvent(ludo, Ludo.RED, PlayerEvent.WON);
 		order.verify(playerListener).playerStateChanged(ple); // HURRAY, we have a winner
 	}
+
+    @Test
+    public void checkLastResult() {
+        Ludo ludo = new Ludo();
+
+        int result = ludo.throwDice();
+        assertEquals(result, ludo.previousRoll());
+
+        result = ludo.throwDice(5);
+        assertEquals(result, ludo.previousRoll());
+    }
 }
