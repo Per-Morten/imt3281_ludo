@@ -13,7 +13,11 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.regex.Pattern;
+
+import no.ntnu.imt3281.ludo.api.FieldNames;
+import no.ntnu.imt3281.ludo.api.FriendStatus;
+import no.ntnu.imt3281.ludo.api.JSONValidator;
 
 /**
  * Responsible for parsing and executing the incoming requests related to users & friends.
@@ -39,15 +43,28 @@ public class UserManager {
      * Successes are appended to the success array.
      * Errors are appended to the error array.
      *
-     * @param ignored
      * @param requests  JSONArray containing all the create user requests to execute.
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
     public void createUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
+
             var username = request.getString(FieldNames.USERNAME);
             var email = request.getString(FieldNames.EMAIL);
+
+            // Check username
+            if (!Pattern.matches("^(\\w|-|_){5,50}$", username)) {
+                Logger.log(Logger.Level.DEBUG, "User name failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_USERNAME);
+                return;
+            }
+            // Check email
+            if (!Pattern.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$", email)) {
+                Logger.log(Logger.Level.DEBUG, "email failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_EMAIL);
+                return;
+            }
 
             var password = request.getString(FieldNames.PASSWORD);
 
@@ -72,7 +89,6 @@ public class UserManager {
      * Successes are appended to the success array.
      * Errors are appended to the error array.
      *
-     * @param ignored
      * @param requests  JSONArray containing all the delete user requests to execute.
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
@@ -94,13 +110,34 @@ public class UserManager {
      * Successes are appended to the success array.
      * Errors are appended to the error array.
      *
-     * @param ignored
      * @param requests  JSONArray containing all the update user requests to execute.
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
     public void updateUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
+
+            if (!Pattern.matches("^(\\w|-|_){5,50}$", request.getString(FieldNames.USERNAME))) {
+                Logger.log(Logger.Level.DEBUG, "User name failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_USERNAME);
+                return;
+            }
+            // Check email
+            if (!Pattern.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$",
+                    request.getString(FieldNames.EMAIL))) {
+                Logger.log(Logger.Level.DEBUG, "email failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_EMAIL);
+                return;
+            }
+            // Check avatar uri
+            String uri = request.getString(FieldNames.AVATAR_URI);
+            if (uri != "" && !Pattern.matches(
+                    "(?i)^(?:(?:https?|ftp)://)(?:\\S+(?::\\S*)?@)?(?:(?!(?:10|127)(?:\\.\\d{1,3}){3})(?!(?:169\\.254|192\\.168)(?:\\.\\d{1,3}){2})(?!172\\.(?:1[6-9]|2\\d|3[0-1])(?:\\.\\d{1,3}){2})(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,}))\\.?)(?::\\d{2,5})?(?:[/?#]\\S*)?$",
+                    uri)) {
+                Logger.log(Logger.Level.DEBUG, "avatar uri failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_AVATAR_URI);
+                return;
+            }
             try {
                 var salt = randomGenerateSalt();
                 mDB.updateUser(request.getInt(FieldNames.USER_ID),
@@ -124,7 +161,6 @@ public class UserManager {
      * Successes are appended to the success array.
      * Errors are appended to the error array.
      *
-     * @param ignored
      * @param requests  JSONArray containing all the get user requests to execute.
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
@@ -151,7 +187,6 @@ public class UserManager {
      * Successes are appended to the success array.
      * Errors are appended to the error array.
      *
-     * @param ignored
      * @param requests  JSONArray containing all the get user range requests to execute.
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
@@ -184,7 +219,6 @@ public class UserManager {
      * Note: Due to how we need the socketIDs for the SocketManager to be mapped to userIDs,
      * we do not accept multiple logins, we will simply take the first in the request.
      *
-     * @param ignored
      * @param requests  JSONArray containing all the log in request to execute.
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
@@ -237,7 +271,6 @@ public class UserManager {
      * Successes are appended to the success array.
      * Errors are appended to the error array.
      *
-     * @param ignored
      * @param requests  JSONArray containing all the get user range requests to execute.
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
@@ -260,11 +293,9 @@ public class UserManager {
      * When a pending friend request is accepted (by the other person) the relationship is given the value of friended.
      * Both when a friend request is initiated, and when it is accepted both the users will be notified that they should update their friend lists.
      *
-     * @param ignored
      * @param requests      JSONArray containing the friend requests
      * @param successes     JSONArray where the successes should be appended.
      * @param errors        JSONArray where the errors should be appended.
-     * @param usersToNotify List of the users to notify when a friend request is initiated or accepted.
      */
     public void friend(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
@@ -323,7 +354,6 @@ public class UserManager {
      * However, in the case where a user unfriends someone they have ignored, their "view" of the relationship will
      * change to unfriended, allowing the newly unfriended user to make a friend request should they so desired.
      *
-     * @param ignored
      * @param requests JSONArray containing the unfriend requests
      * @param successes JSONArray where the successes should be appended.
      * @param errors JSONArray where the errors should be appended.
@@ -374,7 +404,6 @@ public class UserManager {
      * Unless two users are friends (then one party must unfriend first) ignore request always succeeds (given valid user and friend id's are supplied),
      * even in the case where two users have never had a relationship with each other a user can ignore another one.
      *
-     * @param ignored
      * @param requests JSONArray containing the ignore requests
      * @param successes JSONArray where the successes should be appended.
      * @param errors JSONArray where the errors should be appended.
@@ -424,7 +453,6 @@ public class UserManager {
      * Successes are appended to the success array.
      * Errors are appended to the error array.
      *
-     * @param ignored
      * @param requests  JSONArray containing all the get friend range requests to execute.
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
