@@ -9,3 +9,5 @@ bin
 client-state.json
 ludo.db
 /target/
+out/
+src/main/java/META-INF/
