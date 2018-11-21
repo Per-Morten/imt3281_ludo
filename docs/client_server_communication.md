@@ -23,14 +23,6 @@
 * [ ] TODO: sjekk @requires authentication
 * [ ] TODO: Oppdater alle til å sende inn user_id.
 
->Kan vi ha det slik at all spillogikk ligger på serveren?
-Det eneste klienten gjør er å vise spillets tilstand. Den tar ingen avgjørelser (annet enn å spørre om å kaste terning og flytte en brikke). Hver gang spillets tilstand endrer seg, så sender serveren oppdatert data på nytt til klienten.
-Serveren tar avgjørelser om hva som er lov og ikke. Serveren er den eneste som endrer på spillets tilstand.
-Dette medfører at vi ikke tar i bruk Ludo-klassen på klient, men bare på server.
-
-
-
-
 # Message protocol
 
 The aim of the protocol is to be as consistent as possible. Therefore all messages follow a standard pattern of 'type' and 'payload'. Where the type describes the type of the message and is always interpreted the same, and the payload is an array of objects that are interpreted differently based on the 'type' value.
@@ -54,7 +46,7 @@ Any variables that is not the 'type', 'token' or inside the 'payload' are not co
 `payload[].id` indentifies a unique item within the payload
 `auth_token` an optional parameter. Used if the request requires authentication.
 
-```
+```json
 {
     "id": <id>,
     "type": <type>_request,
@@ -66,6 +58,7 @@ Any variables that is not the 'type', 'token' or inside the 'payload' are not co
     "auth_token": <token>
 }
 ```
+
 **Example**
 ```json
 {
@@ -163,18 +156,24 @@ Events are one-way communication from the server to clients. You can think of it
 
 # Ludo API
 
-## Note on general errors
+## General errors
 
 * `@error` does not generally include validation errors. For overview of validation errors see @see [ValidationRules](#Validation-rules) or [Error Constants](#Error-Constants)
 * All API requests which `@requires authentication` may lead to these two errors `not_authenticated` and `not_authorized`.
 * When something is not found via an `id` a `<something>_not_found` error is returned.
+
+## Payload limits and Response Length
+* A request payload can contain up to 100 items
+* Range requests can only contain 10 page requests.
+* A page has a maximum limit of 100 items
+* In the case where a payload has more than the maximum number of items, those items will not be processed but be reported as errors upon response.
 
 ## User API
 
 ### create_user
 
 `@brief` Creates a user with the given username, email and password hash.
-`@error` email_already_exists
+`@error` not_unique_username, not_unique_email
 
 create_user_request
 ```json
@@ -207,8 +206,7 @@ create_user_response
         { "id": 0, "user_id": 2 }
     ],
     "error": [
-        { "id": 1, "code": ["invalid_username", "email_already_exists", 
-                            "invalid_password"]}
+        { "id": 1, "code": ["not_unique_email"]}
     ]
 }
 ```
@@ -217,7 +215,7 @@ create_user_response
 ### login
 
 `@brief` Login a user using email and password. If already logged in, refresh `auth_token`, practically logging out all currently logged in clients. Already logged in is not an error.
-`@error` email_or_password_incorrect
+`@error` invalid_username_or_password
 
 login_request
 ```json
@@ -248,7 +246,7 @@ login_response
         {"id": 0, "user_id": 2, "auth_token": "f136803..." }
     ],
     "error": [
-        {"id": 1, "code": ["email_or_password_incorrect"]}
+        {"id": 1, "code": ["invalid_username_or_password"]}
     ]
 }
 ```
@@ -281,7 +279,7 @@ logout_response
         {"id": 0}
     ],
     "errors": [
-        {"id": 1, "code":["not_authorized"]}
+        {"id": 1, "code":["unauthorized"]}
     ]
 }
 ```
@@ -290,7 +288,8 @@ logout_response
 ### get_user
 
 `@requires` authentication
-`@brief` The information you get on each user will vary depending on you authorization level. The fields you are not allowed to see are still present but empty. All users are allowed to see `username` and `avatar_uri`.
+`@brief` Returns information about the requested users containing: `user_id`, `username` and `avatar_uri`.
+Note: All fields are guaranteed to be present, but `avatar_uri` might be an empty string.
 
 get_user_request (The token belongs to user_id: 3)
 ```json
@@ -315,14 +314,64 @@ get_user_response
             "user_id": 3, 
             "username": "John Doe", 
             "avatar_uri": "http://imgur.com/myavatar", 
-            "email": "john.doe@gmail.com"
         },
         {
             "user_id": 4, 
             "username": "Jenna", 
             "avatar_uri": "http://imgur.com/myavatar", 
-            "email": ""
         },
+    ],
+    "error": [
+    ]
+}
+```
+
+### get_user_range
+
+`@requires` authentication
+`@brief` - Get a range of users.
+In the case where a page is "out of bounds", no error is given,
+the range array just does not contain any items.
+
+get_user_range
+```json 
+{
+    "id": 19,
+    "type": "get_user_range_request",
+    "payload": [
+        {"id": 0, "page_index": 0}
+        {"id": 1, "page_index": 99}
+    ],
+    "auth_token": "f4029..",
+}
+```
+
+get_user_range_response
+```json 
+{
+    "id": 19,
+    "type": "get_user_range_response",
+    "success": [
+        {
+            "id": 0,
+            "range":
+            [
+                {
+                    "user_id": 3, 
+                    "username": "John Doe", 
+                    "avatar_uri": "http://imgur.com/myavatar"
+                },
+                {
+                    "user_id": 4, 
+                    "username": "Jenna", 
+                    "avatar_uri": "http://imgur.com/myavatar"
+                },
+            ]
+        },
+        {
+            "id": 1,
+            "range": []
+        }
     ],
     "error": [
     ]
@@ -334,7 +383,7 @@ get_user_response
  
 `@requires` authentication
 `@brief` Update user ainformation.
-`@error` user_not_found
+`@error` not_unique_username, not_unique_email
 
 update_user_request
 ```json
@@ -347,14 +396,16 @@ update_user_request
              "user_id": 2,
              "username": "JohnDoe" ,
              "email": "john.doe@ubermail.com",
-             "password": "New Secret Password"
+             "password": "New Secret Password",
+             "avatar_uri": "http://imgur.com/myavatar"
         },
         { 
              "id": 1,
              "user_id": 3,
              "username": "Jenna Doe" ,
              "email": "john.doe@ u bermail.com",
-             "password": "New Sec ret Password"
+             "password": "New Sec ret Password",
+             "avatar_uri": "http://imgur.com/myavatar"
         }
     ],
     "auth_token": "f13680.."
@@ -370,7 +421,7 @@ update_user_response
         {"id": 0}
     ],
     "error": [
-        {"id": 1, "code": ["invalid_email"]}
+        {"id": 1, "code": ["not_unique_email"]}
     ]
 }
 ```
@@ -404,7 +455,7 @@ delete_user_response
         { "id": 0 }
     ], 
     "error": [
-        {"id": 1, "code":["not_authorized"]}
+        {"id": 1, "code":["unauthorized"]}
     ]
 }
 ```
@@ -412,51 +463,40 @@ delete_user_response
 
 ## Friends API
 
-### get_friend
+### get_friend_range
 
-`@requires` authentcation
-`@brief` Get 1 or more friends from friendslist.
-`@error` friend_not_found
+`@requires` authentication
+`@brief` - Get a range of friends.
 
-get_friend_request
-```json
+get_friend_range
+```json 
 {
-    "id": 6,
-    "type": "get_friend_request",
+    "id": 19,
+    "type": "get_friend_range_request",
     "payload": [
-        {"id": 0, "user_id": 3},
-        {"id": 1, "user_id": 4},
-        {"id": 2, "user_id": 5}
+        {"id": 0, "page_index": 0}
+        {"id": 1, "page_index": 99}
     ],
-    "auth_token": "f1368.." 
+    "auth_token": "f4029..",
 }
 ```
 
-get_friend_response
-```json
+get_friend_range_response
+```json 
 {
-    "id": 6,
-    "type": "get_friend_response",
+    "id": 19,
+    "type": "get_friend_range_response",
     "success": [
         {
-            "id": 1,
-            "user_id": 4, 
-            "username": "Jenna", 
-            "avatar_uri": "http://imgur.com/myavatar", 
-            "email": "",
-            "status": "friend"
-        },
-        {
-            "id": 2,
-            "user_id": 5, 
-            "username": "Garry", 
-            "avatar_uri": "http://imgur.com/myavatar", 
-            "email": "",
-            "status": "pending"
+            "id": 0,
+            "friend":
+            [
+                { "user_id": 2, "username": "karl", "status": "accepted" },
+                { "user_id": 3, "username": "jonas", "status": "pending" },
+            ]
         }
     ],
     "error": [
-        {"id": 0, "code": ["friend_not_found"]}
     ]
 }
 ```
@@ -637,7 +677,7 @@ leave_chat_response
 ### get_chat
 
 `@requires` authentication
-`@brief` - Gets all the non-game chats. If no chat_id is supplied, all chats are returned.
+`@brief` - Gets all the non-game chats.
 
 get_chat_request
 ```json
@@ -663,6 +703,49 @@ get_chat_response
         {"id": 1, "chat_id": 3, "name": "my cool chat2", "participant_id": [1, 3, 4] }
     ],
     "error": []
+}
+```
+
+### get_chat_range
+
+`@requires` authentication
+`@brief` - Gets all the non-game chats from the specified range.
+
+get_chat_range
+```json 
+{
+    "id": 19,
+    "type": "get_chat_range_request",
+    "payload": [
+        {"id": 0, "page_index": 0}
+        {"id": 1, "page_index": 99}
+    ],
+    "auth_token": "f4029..",
+}
+```
+
+get_chat_range_response
+```json 
+{
+    "id": 19,
+    "type": "get_chat_range_response",
+    "success": [
+        {
+            "id": 0,
+            "chat":
+            [
+                {
+                    "chat_id": 2, "name": "my cool chat", "participant_id": [1, 2, 3] 
+                },
+                {
+                    "chat_id": 3, "name": "my cool chat2", "participant_id": [1, 3, 4] 
+                }
+            ]
+        }
+    ],
+    "error": [
+        {"id": 1, "code": ["page_out_of_bounds"]}
+    ]
 }
 ```
 
@@ -709,8 +792,8 @@ send_chat_invite_request
     "id": 13,
     "type": "send_chat_invite_request",
     "payload": [
-        {"id": 0, "user_id": 2, "invitee_id": 1, "chat_id": 4},
-        {"id": 1, "user_id": 2, "invitee_id": 2, "chat_id": 3}
+        {"id": 0, "user_id": 2, "other_id": 1, "chat_id": 4},
+        {"id": 1, "user_id": 2, "other_id": 2, "chat_id": 3}
     ],
     "auth_token": "f4029.."
 }
@@ -779,8 +862,8 @@ send_game_invite_request
     "id": 15,
     "type": "send_game_invite_request",
     "payload": [
-        {"id": 0, "user_id": 3, "invitee_id": 1, "game_id": 5},
-        {"id": 1, "user_id": 2, "invitee_id": 1, "game_id": 4}
+        {"id": 0, "user_id": 3, "other_id": 1, "game_id": 5},
+        {"id": 1, "user_id": 2, "other_id": 1, "game_id": 4}
     ],
     "auth_token": "f4029.."
 }
@@ -935,29 +1018,29 @@ start_game_response
 }
 ```
 
-### get_game_header
+### get_game
 
 `@requires` authentication
 `@brief` - Get metainformation from games with id. `owner_id`, `player_id` and `pending_id` are all the respective users `user_id`'s.
 
-get_game_header_request
+get_game_request
 ```json 
 {
     "id": 19,
-    "type": "get_game_header_request",
+    "type": "get_game_request",
     "payload": [
-        {"id": 0, "game_id": 0},
+        {"id": 0, "game_id": 0}
         {"id": 1, "game_id": 1}
     ],
     "auth_token": "f4029..",
 }
 ```
 
-get_game_header_response
+get_game_response
 ```json 
 {
     "id": 19,
-    "type": "get_game_header_response",
+    "type": "get_game_response",
     "success": [
         {
             "id": 0,
@@ -972,6 +1055,56 @@ get_game_header_response
     ]
 }
 ```
+
+### get_game_range
+
+`@requires` authentication
+`@brief` - Get metainformation from games based on page. `owner_id`, `player_id` and `pending_id` are all the respective users `user_id`'s.
+
+get_game_range_request
+```json 
+{
+    "id": 19,
+    "type": "get_game_range_request",
+    "payload": [
+        {"id": 0, "page_index": 0}
+        {"id": 1, "page_index": 99}
+    ],
+    "auth_token": "f4029..",
+}
+```
+
+get_game_range_response
+```json 
+{
+    "id": 19,
+    "type": "get_game_range_response",
+    "success": [
+        {
+            "id": 0,
+            "game":
+            [
+                {
+                    "game_id": 0, 
+                    "owner_id": 2,
+                    "player_id": [58, 3, 4, 7],
+                    "pending_id": [1]
+                },
+                {
+                    "game_id": 1, 
+                    "owner_id": 3,
+                    "player_id": [58, 3, 4, 7],
+                    "pending_id": [1]
+                }
+            ]
+        }
+    ],
+    "error": [
+        {"id": 1, "code": ["page_out_of_bounds"]}
+    ]
+}
+```
+
 
 ### get_game_state
 

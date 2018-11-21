@@ -1,1 +1,11 @@
+.idea/
+target
+.classpath
+.project
+.settings
+target
+.DS_Store
+bin
+client-state.json
+ludo.db
 /target/
