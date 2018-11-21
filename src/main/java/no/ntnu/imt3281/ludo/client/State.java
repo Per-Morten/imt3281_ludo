@@ -1,17 +1,7 @@
 package no.ntnu.imt3281.ludo.client;
 
-import no.ntnu.imt3281.ludo.api.FieldNames;
-import no.ntnu.imt3281.ludo.api.GlobalChat;
-import no.ntnu.imt3281.ludo.common.Logger;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 /**

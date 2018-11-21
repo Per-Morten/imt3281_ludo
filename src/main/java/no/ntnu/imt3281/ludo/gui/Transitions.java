@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static no.ntnu.imt3281.ludo.api.FieldNames.CHAT_ID;
+import static no.ntnu.imt3281.ludo.api.FieldNames.PARTICIPANT_ID;
 
 /**
  * Controls FXML Controllers and how they transition
@@ -140,7 +141,7 @@ public class Transitions {
             activeChats.forEach((id, chat) -> {
                 var chatTab = this.loadFXML(Path.CHAT_TAB, id);
                 var chatTabController = (ChatTabController) chatTab.controller;
-                Tab tab = new Tab(chat.json.getString(FieldNames.NAME));
+                Tab tab = new Tab(chat.name);
                 tab.setContent(chatTab.root);
                 liveController.mTabChats.getTabs().add(tab);
 
@@ -225,16 +226,15 @@ public class Transitions {
 
             var overview = (OverviewController) this.getController(Path.OVERVIEW);
 
-
             overview.mListChats.getChildren().clear();
 
             activeChats.forEach(chat -> {
-                var id = chat.json.getInt(CHAT_ID);
+                var id = chat.id;
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
-                var name = chat.json.getString(FieldNames.NAME);
-                var participantCount = chat.json.getJSONArray(FieldNames.PARTICIPANT_ID).length();
+                var name = chat.name;
+                var participantCount = chat.participants.size();
 
                 itemController.init(ListItemType.CHAT, id, overview, name + " [" + participantCount + " people]"); // TODO
                                                                                                                    // i18n
@@ -353,12 +353,12 @@ public class Transitions {
     public void newChat(Chat chat) {
         Platform.runLater(() -> {
 
-            var id = chat.json.getInt(CHAT_ID);
+            var id = chat.id;
             var live = (LiveController) this.getController(Path.LIVE);
 
             var chatTab = this.loadFXML(Path.CHAT_TAB, id);
             var chatTabController = (ChatTabController) chatTab.controller;
-            Tab tab = new Tab(chat.json.getString(FieldNames.NAME));
+            Tab tab = new Tab(chat.name);
             chatTabController.mId = id;
 
             tab.setContent(chatTab.root);

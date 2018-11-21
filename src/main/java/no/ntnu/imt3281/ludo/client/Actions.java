@@ -99,20 +99,19 @@ public class Actions implements API.Events {
                 state.password = password;
             });
 
+            // Join global chat
             var payloadGlobalChat = new JSONObject();
             payloadGlobalChat.put(CHAT_ID, GlobalChat.ID);
             payloadGlobalChat.put(USER_ID, mState.getUserId());
 
-            send(JOIN_CHAT_REQUEST, payloadGlobalChat, successGlobalChat -> {
-                var globalChat = new Chat();
-                globalChat.json.put(CHAT_ID, GlobalChat.ID);
-                globalChat.json.put(NAME, GlobalChat.NAME);
-                globalChat.json.put(PARTICIPANT_ID, new int[]{});
-                mState.commit(state -> {
-                    state.activeChats.put(GlobalChat.ID, globalChat);
+            send(JOIN_CHAT_REQUEST, payloadGlobalChat, successJoin -> {
+                send(GET_CHAT_REQUEST, payloadGlobalChat, successGetChat -> {
+                    var globalChat = new Chat(successGetChat);
+                    mState.commit(state -> {
+                        state.activeChats.put(GlobalChat.ID, globalChat);
+                    });
                 });
             });
-
 
             this.gotoUser();
 
@@ -224,19 +223,32 @@ public class Actions implements API.Events {
         var stateCopy = mState.copy();
 
         // Filter based on search
-        var filteredGames = stateCopy.activeGames.values().stream().filter(
-                game -> game.getString(FieldNames.NAME).toUpperCase().contains(stateCopy.searchGames.toUpperCase()))
+        var filteredGames = stateCopy.activeGames
+                .values()
+                .stream()
+                .filter(game -> game.getString(FieldNames.NAME).toUpperCase()
+                        .contains(stateCopy.searchGames.toUpperCase()))
                 .collect(Collectors.toList());
 
-        var filteredGameInvites = stateCopy.gameInvites.values().stream().filter(gameInv -> gameInv
-                .getString(FieldNames.NAME).toUpperCase().contains(stateCopy.searchGames.toUpperCase()))
+        var filteredGameInvites = stateCopy.gameInvites
+                .values()
+                .stream()
+                .filter(gameInv -> gameInv.getString(FieldNames.NAME).toUpperCase()
+                        .contains(stateCopy.searchGames.toUpperCase()))
                 .collect(Collectors.toList());
 
-        var filteredChats = stateCopy.activeChats.values().stream().filter(chat -> chat.json.getString(FieldNames.NAME)
-                .toUpperCase().contains(stateCopy.searchChats.toUpperCase())).collect(Collectors.toList());
+        var filteredChats = stateCopy.activeChats
+                .values()
+                .stream()
+                .filter(chat -> chat.name.toUpperCase()
+                        .contains(stateCopy.searchChats.toUpperCase()))
+                .collect(Collectors.toList());
 
-        var filteredChatInvites = stateCopy.chatInvites.values().stream().filter(chatInv -> chatInv
-                .getString(FieldNames.NAME).toUpperCase().contains(stateCopy.searchChats.toUpperCase()))
+        var filteredChatInvites = stateCopy.chatInvites
+                .values()
+                .stream()
+                .filter(chatInv -> chatInv.getString(FieldNames.NAME).toUpperCase()
+                        .contains(stateCopy.searchChats.toUpperCase()))
                 .collect(Collectors.toList());
 
         mTransitions.renderOverview(stateCopy.searchGames, stateCopy.searchChats, stateCopy.searchFriends, stateCopy.searchUsers);
@@ -354,10 +366,10 @@ public class Actions implements API.Events {
         send(CREATE_CHAT_REQUEST, payload, successCreateChat -> {
             send(GET_CHAT_REQUEST, successCreateChat, successGetChat -> {
 
-                var chat = new Chat();
-                chat.json = successGetChat;
+                var chat = new Chat(successGetChat);
+
                 mState.commit(state -> {
-                    state.activeChats.put(successGetChat.getInt(CHAT_ID), chat);
+                    state.activeChats.put(chat.id, chat);
                 });
                 mTransitions.newChat(chat);
             });
@@ -807,4 +819,17 @@ public class Actions implements API.Events {
     private void send(RequestType type, ArrayList<JSONObject> payload, RequestCallback success) {
         mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success, this::logError));
     }
+
+
+    /**
+     * Wrapper for the mAPI.send() and RequestFactory.make(). Sends all errors to
+     * this::logError. Empty success
+     *
+     * @param type    request type
+     * @param payload request payload
+     */
+    private void send(RequestType type, JSONObject payload) {
+        mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success -> {}, this::logError));
+    }
+
 }

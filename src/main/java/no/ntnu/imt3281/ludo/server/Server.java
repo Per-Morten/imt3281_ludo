@@ -156,7 +156,7 @@ public class Server {
                     || type == RequestType.GET_USER_RANGE_REQUEST
                     || type == RequestType.GET_CHAT_REQUEST
                     || type == RequestType.GET_CHAT_RANGE_REQUEST) {
-                
+
                 isAuthorized = sUserManager.tokenExists(token);
             } else {
                 isAuthorized = sUserManager.isUserAuthorized(request, token);
