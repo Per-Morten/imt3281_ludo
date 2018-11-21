@@ -1,18 +1,23 @@
 package no.ntnu.imt3281.ludo.server;
 
-import no.ntnu.imt3281.ludo.api.Error;
-import no.ntnu.imt3281.ludo.api.*;
-import no.ntnu.imt3281.ludo.common.Logger;
-import no.ntnu.imt3281.ludo.common.MessageUtility;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import no.ntnu.imt3281.ludo.api.Error;
+import no.ntnu.imt3281.ludo.api.FieldNames;
+import no.ntnu.imt3281.ludo.api.FriendStatus;
+import no.ntnu.imt3281.ludo.api.JSONValidator;
+import no.ntnu.imt3281.ludo.api.RequestType;
+import no.ntnu.imt3281.ludo.common.Logger;
+import no.ntnu.imt3281.ludo.common.MessageUtility;
 
 /**
  * Responsible for parsing and executing the incoming requests related to users & friends.
@@ -45,9 +50,22 @@ public class UserManager {
      */
     public void createUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
         MessageUtility.each(requests, (requestID, request) -> {
+
             var username = request.getString(FieldNames.USERNAME);
             var email = request.getString(FieldNames.EMAIL);
 
+            // Check username
+            if (!Pattern.matches("^(\\w|-|_){5,50}$", username)) {
+                Logger.log(Logger.Level.DEBUG, "User name failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_USERNAME);
+                return;
+            }
+            // Check email
+            if (!Pattern.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$", email)) {
+                Logger.log(Logger.Level.DEBUG, "email failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_EMAIL);
+                return;
+            }
             var password = request.getString(FieldNames.PASSWORD);
 
             try {
@@ -100,6 +118,19 @@ public class UserManager {
      */
     public void updateUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
         MessageUtility.each(requests, (requestID, request) -> {
+
+            if (!Pattern.matches("^(\\w|-|_){5,50}$", request.getString(FieldNames.USERNAME))) {
+                Logger.log(Logger.Level.DEBUG, "User name failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_USERNAME);
+                return;
+            }
+            // Check email
+            if (!Pattern.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$",
+                    request.getString(FieldNames.EMAIL))) {
+                Logger.log(Logger.Level.DEBUG, "email failed: %s", request);
+                MessageUtility.appendError(errors, requestID, Error.MALFORMED_EMAIL);
+                return;
+            }
             try {
                 var salt = randomGenerateSalt();
                 mDB.updateUser(request.getInt(FieldNames.USER_ID),
