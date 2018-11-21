@@ -15,7 +15,7 @@
          <children>
             <AnchorPane maxHeight="100.0" minHeight="100.0" prefHeight="100.0">
                <children>
-                  <Label layoutY="31.0" maxWidth="1.7976931348623157E308" prefHeight="78.0" prefWidth="152.0" text="Ludo" textFill="#4970a7">
+                  <Label layoutY="31.0" maxWidth="1.7976931348623157E308" prefHeight="78.0" prefWidth="152.0" text="%ludo" textFill="#4970a7">
                      <font>
                         <Font size="52.0" />
                      </font>
@@ -24,7 +24,7 @@
             </AnchorPane>
             <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="12.0">
                <children>
-                  <Label text="Login">
+                  <Label text="%login">
                      <font>
                         <Font size="24.0" />
                      </font>
@@ -32,16 +32,16 @@
                         <Insets bottom="10.0" />
                      </VBox.margin>
                   </Label>
-                  <Label text="Email" />
+                  <Label text="%email" />
                   <TextField fx:id="mLoginEmail" maxWidth="-Infinity" prefWidth="200.0" />
-                  <Label text="Password" />
+                  <Label text="%password" />
                   <PasswordField fx:id="mLoginPassword" maxWidth="-Infinity" prefWidth="200.0" />
-                  <Button fx:id="mButtonLogin" mnemonicParsing="false" onAction="#onClickLogin" prefWidth="200.0" text="Login" />
+                  <Button fx:id="mButtonLogin" mnemonicParsing="false" onAction="#onClickLogin" prefWidth="200.0" text="%login" />
                </children>
             </VBox>
             <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="300.0" spacing="12.0">
                <children>
-                  <Label text="Create User">
+                  <Label text="%login.createuser">
                      <VBox.margin>
                         <Insets bottom="10.0" />
                      </VBox.margin>
@@ -55,7 +55,7 @@
                   <TextField fx:id="mCreateEmail" maxWidth="-Infinity" prefWidth="200.0" />
                   <Label text="Password" />
                   <PasswordField fx:id="mCreatePassword" maxWidth="-Infinity" prefWidth="200.0" />
-                  <Button fx:id="mButtonCreate" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onClickCreate" prefHeight="26.0" prefWidth="199.0" text="Create" />
+                  <Button fx:id="mButtonCreate" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onClickCreate" prefHeight="26.0" prefWidth="199.0" text="%login.create" />
                </children>
             </VBox>
          </children>

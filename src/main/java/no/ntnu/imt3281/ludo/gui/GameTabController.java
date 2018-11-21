@@ -6,8 +6,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
-import no.ntnu.imt3281.ludo.client.Actions;
-import no.ntnu.imt3281.ludo.client.StateManager;
 
 public class GameTabController extends BaseController {
 
