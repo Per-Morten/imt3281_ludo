@@ -1,9 +1,7 @@
 package no.ntnu.imt3281.ludo.server;
 
+import no.ntnu.imt3281.ludo.api.*;
 import no.ntnu.imt3281.ludo.api.Error;
-import no.ntnu.imt3281.ludo.api.EventType;
-import no.ntnu.imt3281.ludo.api.FieldNames;
-import no.ntnu.imt3281.ludo.api.GlobalChat;
 import no.ntnu.imt3281.ludo.common.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -74,10 +72,6 @@ public class ChatManager {
             var chatID = request.getInt(FieldNames.CHAT_ID);
 
             var chat = mChats.get(chatID);
-            if (chat == null) {
-                MessageUtility.appendError(errors, requestID, Error.CHAT_ID_NOT_FOUND);
-                return;
-            }
 
             var success = new JSONObject();
             success.put(FieldNames.CHAT_ID, chatID);
@@ -90,19 +84,11 @@ public class ChatManager {
         });
     }
 
-    public void getChatRange(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-
-    }
-
     public void leaveChat(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             var chatID = request.getInt(FieldNames.CHAT_ID);
 
             var chat = mChats.get(chatID);
-            if (chat == null) {
-                MessageUtility.appendError(errors, requestID, Error.CHAT_ID_NOT_FOUND);
-                return;
-            }
 
             if (chat.id == GlobalChat.ID) {
                 MessageUtility.appendError(errors, requestID, Error.CANNOT_LEAVE_GLOBAL_CHAT);
@@ -127,10 +113,6 @@ public class ChatManager {
             var chatID = request.getInt(FieldNames.CHAT_ID);
 
             var chat = mChats.get(chatID);
-            if (chat == null) {
-                MessageUtility.appendError(errors, requestID, Error.CHAT_ID_NOT_FOUND);
-                return;
-            }
 
             var userID = request.getInt(FieldNames.USER_ID);
             var otherID = request.getInt(FieldNames.OTHER_ID);
@@ -164,10 +146,6 @@ public class ChatManager {
             var chatID = request.getInt(FieldNames.CHAT_ID);
 
             var chat = mChats.get(chatID);
-            if (chat == null) {
-                MessageUtility.appendError(errors, requestID, Error.CHAT_ID_NOT_FOUND);
-                return;
-            }
 
             var userID = request.getInt(FieldNames.USER_ID);
             if (!canJoinChat(userID, chat)) {
@@ -199,11 +177,6 @@ public class ChatManager {
 
             var chat = mChats.get(request.getInt(FieldNames.CHAT_ID));
 
-            if (chat == null) {
-                MessageUtility.appendError(errors, requestID, Error.CHAT_ID_NOT_FOUND);
-                return;
-            }
-
             var userID = request.getInt(FieldNames.USER_ID);
             if (!chat.participants.contains(userID)) {
                 MessageUtility.appendError(errors, requestID, Error.UNAUTHORIZED);
@@ -234,6 +207,27 @@ public class ChatManager {
     public void onLogoutUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
            removeFromChats(request.getInt(FieldNames.USER_ID), events);
+        });
+    }
+
+    /**
+     * Applied the first order filter in the requests within requests, removes the erroneous ones and
+     * appends the errors to the errors array.
+     * This filter is just a basic filter to get rid of the following common errors:
+     * * Trying to access a chat that does not exist.
+     *
+     * @param type The type of request that are stored in requests.
+     * @param requests The actual requests themselves
+     * @param errors The JSONArray to put the errors in.
+     */
+    public void applyFirstOrderFilter(RequestType type, JSONArray requests, JSONArray errors) {
+        MessageUtility.applyFilter(requests, (id, request) -> {
+            if (JSONValidator.hasInt(FieldNames.CHAT_ID, request) && mChats.get(request.getInt(FieldNames.CHAT_ID)) == null) {
+                MessageUtility.appendError(errors, id, Error.CHAT_ID_NOT_FOUND);
+                return false;
+            }
+
+            return true;
         });
     }
 

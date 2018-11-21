@@ -134,12 +134,8 @@ public class UserManager {
             var userID = request.getInt(FieldNames.USER_ID);
             try {
                 var user = mDB.getUserByID(userID);
-                if (user != null) {
-                    var json = userToJSON(user);
-                    MessageUtility.appendSuccess(successes, requestID, json);
-                } else {
-                    MessageUtility.appendError(errors, requestID, Error.USER_ID_NOT_FOUND);
-                }
+                var json = userToJSON(user);
+                MessageUtility.appendSuccess(successes, requestID, json);
             } catch (SQLException e) {
                 Logger.logException(Logger.Level.WARN, e, "Unexpected SQL Exception when trying to get user");
             }
@@ -272,17 +268,7 @@ public class UserManager {
             var userID = request.getInt(FieldNames.USER_ID);
             var friendID = request.getInt(FieldNames.OTHER_ID);
 
-            if (userID == friendID) {
-                MessageUtility.appendError(errors, requestID, Error.USER_AND_OTHER_ID_IS_SAME);
-                return;
-            }
-
             try {
-                if (mDB.getUserByID(friendID) == null) {
-                    MessageUtility.appendError(errors, requestID, Error.OTHER_ID_NOT_FOUND);
-                    return;
-                }
-
                 var currentRelationship = mDB.getRelationship(userID, friendID);
 
                 // Either we didn't know each other from before, or we have removed each other as friends (or unignored, which is same as unfriend)
@@ -333,17 +319,7 @@ public class UserManager {
             var userID = request.getInt(FieldNames.USER_ID);
             var friendID = request.getInt(FieldNames.OTHER_ID);
 
-            if (userID == friendID) {
-                MessageUtility.appendError(errors, requestID, Error.USER_AND_OTHER_ID_IS_SAME);
-                return;
-            }
-
             try {
-                if (mDB.getUserByID(friendID) == null) {
-                    MessageUtility.appendError(errors, requestID, Error.OTHER_ID_NOT_FOUND);
-                    return;
-                }
-
                 var currentRelationship = mDB.getRelationship(userID, friendID);
 
                 // if ignored by the other, mark you as unfriended, the other should still be ignored
@@ -384,17 +360,7 @@ public class UserManager {
             var userID = request.getInt(FieldNames.USER_ID);
             var friendID = request.getInt(FieldNames.OTHER_ID);
 
-            if (userID == friendID) {
-                MessageUtility.appendError(errors, requestID, Error.USER_AND_OTHER_ID_IS_SAME);
-                return;
-            }
-
             try {
-                if (mDB.getUserByID(friendID) == null) {
-                    MessageUtility.appendError(errors, requestID, Error.OTHER_ID_NOT_FOUND);
-                    return;
-                }
-
                 var currentRelationship = mDB.getRelationship(userID, friendID);
                 if (currentRelationship != null) {
                     if (Arrays.stream(currentRelationship).anyMatch(value -> value.status == FriendStatus.FRIENDED)) {
@@ -411,7 +377,6 @@ public class UserManager {
                 }
 
                 MessageUtility.appendSuccess(successes, requestID, new JSONObject());
-
 
             } catch (SQLException e) {
                 Logger.logException(Logger.Level.WARN, e, "Unexpected SQL Exception when trying to ignore user");
@@ -474,6 +439,41 @@ public class UserManager {
         return false;
     }
 
+    /**
+     * Applied the first order filter in the requests within requests, removes the erroneous ones and
+     * appends the errors to the errors array.
+     * This filter is just a basic filter to get rid of the following common errors:
+     * * Trying to access a user (user_id or other_id) that does not exist.
+     * * Trying to have a relationship with yourself
+     *
+     * @param type The type of request that are stored in requests.
+     * @param requests The actual requests themselves
+     * @param errors The JSONArray to put the errors in.
+     */
+    public void applyFirstOrderFilter(RequestType type, JSONArray requests, JSONArray errors) {
+        MessageUtility.applyFilter(requests, (id, request) -> {
+
+            if (JSONValidator.hasInt(FieldNames.USER_ID, request) && !userExists(request.getInt(FieldNames.USER_ID))) {
+                MessageUtility.appendError(errors, id, Error.USER_ID_NOT_FOUND);
+                return false;
+            }
+
+            if (JSONValidator.hasInt(FieldNames.OTHER_ID, request) && !userExists(request.getInt(FieldNames.OTHER_ID))) {
+                MessageUtility.appendError(errors, id, Error.OTHER_ID_NOT_FOUND);
+                return false;
+            }
+
+            if (type == RequestType.UNFRIEND_REQUEST || type == RequestType.IGNORE_REQUEST || type == RequestType.FRIEND_REQUEST) {
+                if (request.getInt(FieldNames.USER_ID) == request.getInt(FieldNames.OTHER_ID)) {
+                    MessageUtility.appendError(errors, id, Error.USER_AND_OTHER_ID_IS_SAME);
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }
+
     public boolean tokenExists(String token) {
         try {
             var user = mDB.getUserByToken(token);
@@ -485,12 +485,20 @@ public class UserManager {
     }
 
     public boolean areUsersFriends(int userID, int otherID) {
-
         try {
             var relationship = mDB.getRelationship(userID, otherID);
             return relationship != null && Arrays.stream(relationship).allMatch(item -> item.status == FriendStatus.FRIENDED);
         } catch (SQLException e) {
             Logger.logException(Logger.Level.WARN, e, "Exception encountered when checking if users are friends");
+        }
+        return false;
+    }
+
+    public boolean userExists(int userID) {
+        try {
+            return mDB.getUserByID(userID) != null;
+        } catch (SQLException e) {
+            Logger.logException(Logger.Level.WARN, e, "Exception encountered when checking if user exists");
         }
         return false;
     }
