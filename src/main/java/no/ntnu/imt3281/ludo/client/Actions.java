@@ -186,12 +186,11 @@ public class Actions implements API.Events {
 
         send(GET_USER_REQUEST, payload, success -> {
 
-            var user = new User();
-            user.json = success;
+            var user = new User(success);
 
             mState.commit(state -> {
-                state.username = success.getString(FieldNames.USERNAME);
-                state.avatarURI = success.getString(FieldNames.AVATAR_URI);
+                state.username = user.username;
+                state.avatarURI = user.avatarURL;
                 // TODO Email does not exist in get_user_request.
             });
             mTransitions.renderUser(user);
@@ -314,7 +313,6 @@ public class Actions implements API.Events {
                         .collect(Collectors.toList());
 
                 mTransitions.renderUserList(filteredUserList, filteredIgnoredList);
-
             });
         });
     }
@@ -709,9 +707,24 @@ public class Actions implements API.Events {
     }
 
     /**
-     * Handle incoming chat messages
+     * Handle incoming chat messages. Make sure there is a user matching the user_id in state.
      */
-    public void chatMessage(ArrayList<JSONObject> messages) {
+    public void chatMessage(JSONObject messagejson) {
+
+        var payload = new JSONObject();
+        payload.put(USER_ID, messagejson.getInt(USER_ID));
+
+        send(GET_USER_REQUEST, payload, success -> {
+            var user = new User(success);
+            var message = new ChatMessage(messagejson);
+            message.username = user.username;
+
+            mState.commit(state -> {
+                state.activeChats.get(message.chatId).messages.add(message);
+            });
+
+            mTransitions.newMessage(message);
+        });
     }
 
     /**

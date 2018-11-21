@@ -171,6 +171,7 @@ public class StateManager {
 
             state.activeChats.clear();
             state.activeGames.clear();
+
             state.chatInvites.clear();
             state.gameInvites.clear();
 

@@ -8,10 +8,11 @@ import java.util.ArrayList;
 import static no.ntnu.imt3281.ludo.api.FieldNames.*;
 
 public class Chat {
+
     public int id = -1;
     public String name = "";
     public ArrayList<Integer> participants = new ArrayList<>();
-    public ArrayList<JSONObject> messages = new ArrayList<>();
+    public ArrayList<ChatMessage> messages = new ArrayList<>();
 
     Chat(){}
     Chat(JSONObject json) {

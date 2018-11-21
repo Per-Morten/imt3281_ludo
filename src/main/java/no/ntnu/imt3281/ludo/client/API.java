@@ -21,7 +21,7 @@ public class API {
 
         void chatInvite(ArrayList<JSONObject> chatInvites);
 
-        void chatMessage(ArrayList<JSONObject> messages);
+        void chatMessage(JSONObject message);
 
         void gameUpdate(ArrayList<JSONObject> games);
 
@@ -179,7 +179,7 @@ public class API {
             mEvents.chatInvite(payload);
             break;
         case CHAT_MESSAGE:
-            mEvents.chatMessage(payload);
+            payload.forEach(item -> mEvents.chatMessage(item));
             break;
         case GAME_UPDATE:
             mEvents.gameUpdate(payload);

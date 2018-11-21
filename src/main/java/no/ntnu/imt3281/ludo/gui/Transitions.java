@@ -85,8 +85,8 @@ public class Transitions {
             var userDoc = this.loadFXML(Path.USER);
             var userController = (UserController) userDoc.controller;
 
-            userController.mAvatarURL.setText(user.json.getString(FieldNames.AVATAR_URI));
-            userController.mUsername.setText(user.json.getString(FieldNames.USERNAME));
+            userController.mAvatarURL.setText(user.avatarURL);
+            userController.mUsername.setText(user.username);
 
             // TODO Email does not exist in get_user_request.
             // userController.mEmail.setText(user.json.getString(FieldNames.EMAIL));
@@ -147,12 +147,11 @@ public class Transitions {
 
                 chatTabController.mId = id;
 
-                chat.messages.forEach(messageJSON -> {
-                    var message = messageJSON.getString(FieldNames.MESSAGE);
-                    var username = messageJSON.getString(FieldNames.USERNAME);
+                chat.messages.forEach(message -> {
+                    var username = message.username;
                     var chatItem = this.loadFXML(Path.CHAT_ITEM);
                     var chatItemController = (ChatItemController) chatItem.controller;
-                    chatItemController.mMessage.setText(username + ": " + message);
+                    chatItemController.mMessage.setText(username + ": " + message.message);
                     chatTabController.mMessageList.getChildren().add(chatItem.root);
                 });
             });
@@ -369,16 +368,14 @@ public class Transitions {
     /**
      * Add new chat message to existing chat
      *
-     * @param chatId id of eixisting chat
-     * @param username username of the person who sent the chat message
-     * @param message message
+     * @param message contains message,username and chatId
      */
-    public void newMessage(int chatId, String username, String message) {
+    public void newMessage(ChatMessage message) {
         Platform.runLater(() -> {
-            var chat = (ChatTabController) this.getController(Path.CHAT_TAB, chatId);
+            var chat = (ChatTabController) this.getController(Path.CHAT_TAB, message.chatId);
             var chatItem = this.loadFXML(Path.CHAT_ITEM);
             var chatItemController = (ChatItemController) chatItem.controller;
-            chatItemController.mMessage.setText(username + ": " + message);
+            chatItemController.mMessage.setText(message.username + ": " + message.message);
             chat.mMessageList.getChildren().add(chatItem.root);
         });
     }

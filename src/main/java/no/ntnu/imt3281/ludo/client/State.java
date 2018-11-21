@@ -29,6 +29,7 @@ public class State {
 
     public Map<Integer, Game> activeGames = new HashMap<>();
     public Map<Integer, Chat> activeChats = new HashMap<>();
+
     public Map<Integer, Game> gameInvites = new HashMap<>();
     public Map<Integer, Chat> chatInvites = new HashMap<>();
 
@@ -49,6 +50,7 @@ public class State {
 
         copy.activeGames.putAll(state.activeGames);
         copy.activeChats.putAll(state.activeChats);
+
         copy.gameInvites.putAll(state.gameInvites);
         copy.chatInvites.putAll(state.chatInvites);
 
