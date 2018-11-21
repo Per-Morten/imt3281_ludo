@@ -8,3 +8,4 @@ target
 bin
 client-state.json
 ludo.db
+/target/
