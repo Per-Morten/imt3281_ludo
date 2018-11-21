@@ -23,7 +23,7 @@ import static org.junit.Assert.fail;
  */
 class TestUtility {
 
-    static final long TIMEOUT_TIME_MS = 1000;
+    static final long TIMEOUT_TIME_MS = 2000;
 
     ///////////////////////////////////////////////////////
     /// Utility Function to Simplify testing
@@ -130,10 +130,14 @@ class TestUtility {
         var request = new JSONObject();
         request.put(FieldNames.ID, 0);
         request.put(FieldNames.USER_ID, userID);
-        request.put(FieldNames.OTHER_ID, chatID);
+        request.put(FieldNames.OTHER_ID, otherID);
         request.put(FieldNames.CHAT_ID, chatID);
         payload.put(request);
         return createRequest(RequestType.SEND_CHAT_INVITE_REQUEST, payload, token);
+    }
+
+    static int getChatID(JSONObject msg) {
+        return msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.CHAT_ID);
     }
 
     private static JSONObject createUserIDandChatIDChatRequest(RequestType type, int userID, int chatID, String token) {
@@ -145,7 +149,6 @@ class TestUtility {
         payload.put(request);
         return createRequest(type, payload, token);
     }
-
 
 
     static void assertError(Error desired, JSONObject object) {
@@ -190,7 +193,9 @@ class TestUtility {
         return callback;
     }
 
-    static BiConsumer<TestContext, JSONObject> createJSONCallback(BiConsumer<TestContext, JSONObject> callback) { return callback; }
+    static BiConsumer<TestContext, JSONObject> createJSONCallback(BiConsumer<TestContext, JSONObject> callback) {
+        return callback;
+    }
 
     ///////////////////////////////////////////////////////
     /// Running tests Utility
@@ -330,7 +335,6 @@ class TestUtility {
             final var idx = i;
             contexts[i].socket.setOnReceiveCallback((string) -> {
                 var msg = new JSONObject(string);
-                Logger.log(Logger.Level.DEBUG, "Received message: %s", string);
 
                 if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg) && contexts[idx].internalCount.get() < 1) {
 
@@ -345,7 +349,6 @@ class TestUtility {
                     // Basically doing a barrier TODO: Check if we can change this with a barrier
                     loggedInUsers.incrementAndGet();
                     while (loggedInUsers.get() < users.size()) {
-
                     }
                 }
                 callbacks.get(idx).accept(contexts[idx], msg);
@@ -419,8 +422,12 @@ class TestUtility {
             for (int i = 0; i < 2; i++) {
                 final int idx = i;
                 TestUtility.testWithLoggedInUsers(List.of(friendPair[i]), List.of((context, msg) -> {
-                    TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, friendPair[(idx + 1) % 2].id, context.user.token));
-                    context.finishedThreads.incrementAndGet();
+                    if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
+                        TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, friendPair[(idx + 1) % 2].id, context.user.token));
+                    }
+                    if (TestUtility.isOfType(ResponseType.FRIEND_RESPONSE, msg)) {
+                        context.finishedThreads.incrementAndGet();
+                    }
                 }));
             }
         }
@@ -429,8 +436,12 @@ class TestUtility {
         for (var request : pendingRequests) {
             final int i = 0;
             TestUtility.testWithLoggedInUsers(List.of(request[i]), List.of((context, msg) -> {
-                TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, request[(i + 1)].id, context.user.token));
-                context.finishedThreads.incrementAndGet();
+                if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
+                    TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.FRIEND_REQUEST, context.user.id, request[(i + 1)].id, context.user.token));
+                }
+                if (TestUtility.isOfType(ResponseType.FRIEND_RESPONSE, msg)) {
+                    context.finishedThreads.incrementAndGet();
+                }
             }));
         }
 
@@ -439,8 +450,12 @@ class TestUtility {
             for (int i = 0; i < 2; i++) {
                 final var idx = i;
                 TestUtility.testWithLoggedInUsers(List.of(breakup[i]), List.of((context, msg) -> {
-                    TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.UNFRIEND_REQUEST, context.user.id, breakup[(idx + 1) % 2].id, context.user.token));
-                    context.finishedThreads.incrementAndGet();
+                    if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
+                        TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.UNFRIEND_REQUEST, context.user.id, breakup[(idx + 1) % 2].id, context.user.token));
+                    }
+                    if (TestUtility.isOfType(ResponseType.UNFRIEND_RESPONSE, msg)) {
+                        context.finishedThreads.incrementAndGet();
+                    }
                 }));
             }
         }
@@ -449,8 +464,12 @@ class TestUtility {
         for (var ignoredPair : ignored) {
             final int i = 0;
             TestUtility.testWithLoggedInUsers(List.of(ignoredPair[i]), List.of((context, msg) -> {
-                TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.IGNORE_REQUEST, context.user.id, ignoredPair[(i + 1)].id, context.user.token));
-                context.finishedThreads.incrementAndGet();
+                if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
+                    TestUtility.sendMessage(context.socket, TestUtility.createFriendRelationshipRequest(RequestType.IGNORE_REQUEST, context.user.id, ignoredPair[(i + 1)].id, context.user.token));
+                }
+                if (TestUtility.isOfType(ResponseType.IGNORE_RESPONSE, msg)) {
+                    context.finishedThreads.incrementAndGet();
+                }
             }));
         }
     }

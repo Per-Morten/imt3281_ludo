@@ -68,9 +68,6 @@ public class ChatAPITests {
         };
 
         TestUtility.setupRelationshipEnvironment(users, existingFriends, existingFriendRequests, existingBreakups, existingIgnores);
-
-        // Setup existing chats
-        // Setup a global chat
     }
 
 
@@ -118,25 +115,6 @@ public class ChatAPITests {
     }
 
     @Test
-    public void canGetChatRange() {
-        TestUtility.testWithLoggedInUsers(List.of(FRIDA), List.of((context, msg) -> {
-            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetRangeRequest(RequestType.GET_CHAT_RANGE_REQUEST, context.user.id, context.user.token, 0));
-            }
-
-            if (TestUtility.isOfType(ResponseType.GET_CHAT_RANGE_RESPONSE, msg)) {
-                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
-                assertTrue(msg.getJSONArray(FieldNames.SUCCESS).length() >= 1);
-                var globalChat = msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getJSONArray(FieldNames.RANGE).getJSONObject(0);
-                assertEquals(GlobalChat.ID, globalChat.getInt(FieldNames.CHAT_ID));
-                assertEquals(GlobalChat.NAME, globalChat.getString(FieldNames.NAME));
-                assertEquals(0, globalChat.getJSONArray(FieldNames.PARTICIPANT_ID).length());
-                context.finishedThreads.incrementAndGet();
-            }
-        }));
-    }
-
-    @Test
     public void canJoinChat() {
         TestUtility.testWithLoggedInUsers(List.of(FRIDA), List.of((context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
@@ -172,17 +150,18 @@ public class ChatAPITests {
                 assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
                 chatID.set(msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.CHAT_ID));
                 assertEquals(0, msg.getJSONArray(FieldNames.ERROR).length());
+                TestUtility.sendMessage(context.socket, TestUtility.createChatInviteRequest(context.user.id, FRIDA.id, chatID.get(), context.user.token));
+            }
+
+            // Frida joined
+            if (TestUtility.isOfType(EventType.CHAT_UPDATE, msg)) {
                 context.finishedThreads.incrementAndGet();
             }
         });
 
         var fridaCallback = TestUtility.createJSONCallback((context, msg) -> {
-            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
-                while (chatID.get() == 0) {
-
-                }
-
-                TestUtility.sendMessage(context.socket, TestUtility.createChatJoinRequest(context.user.id, chatID.get(), context.user.token));
+            if (TestUtility.isOfType(EventType.CHAT_INVITE, msg)) {
+                TestUtility.sendMessage(context.socket, TestUtility.createChatJoinRequest(context.user.id, msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.CHAT_ID), context.user.token));
             }
 
             if (TestUtility.isOfType(ResponseType.JOIN_CHAT_RESPONSE, msg)) {
@@ -197,7 +176,9 @@ public class ChatAPITests {
 
             if (TestUtility.isOfType(ResponseType.GET_CHAT_RESPONSE, msg)) {
                 assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
-                assertEquals(0, msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getJSONArray(FieldNames.PARTICIPANT_ID).length());
+
+                // Karl is still present
+                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getJSONArray(FieldNames.PARTICIPANT_ID).length());
                 context.finishedThreads.incrementAndGet();
             }
         });
@@ -219,16 +200,11 @@ public class ChatAPITests {
             }
 
             if (TestUtility.isOfType(ResponseType.LEAVE_CHAT_RESPONSE, msg)) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetChatRequest(context.user.id, GlobalChat.ID, context.user.token));
-            }
-
-            if (TestUtility.isOfType(ResponseType.GET_CHAT_RESPONSE, msg)) {
                 TestUtility.assertError(Error.CANNOT_LEAVE_GLOBAL_CHAT, msg);
                 context.finishedThreads.incrementAndGet();
             }
         }));
     }
-
 
     @Test
     public void canSendChatMessage() {
@@ -325,44 +301,32 @@ public class ChatAPITests {
             }
 
             if (TestUtility.isOfType(ResponseType.CREATE_CHAT_RESPONSE, msg)) {
-                chatID.set(msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.CHAT_ID));
+                TestUtility.sendMessage(context.socket, TestUtility.createChatInviteRequest(context.user.id, FRIDA.id, msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.CHAT_ID), context.user.token));
+            }
 
-                numberInChat.getAndIncrement();
-                while (numberInChat.get() < 2) {
-
-                }
-
+            // Frida has joined
+            if (TestUtility.isOfType(EventType.CHAT_UPDATE, msg)) {
                 // Just disconnect.
                 context.running.set(false);
                 context.finishedThreads.incrementAndGet();
+
             }
         });
 
         var fridaCallback = TestUtility.createJSONCallback((context, msg) -> {
-            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
-                // Wait until chat has been created.
-                while (chatID.get() == 0) {
-
-                }
-
-                // Join newly created chat
-                TestUtility.sendMessage(context.socket, TestUtility.createChatJoinRequest(context.user.id, chatID.get(), context.user.token));
+            // Join newly created chat
+            if (TestUtility.isOfType(EventType.CHAT_INVITE, msg)) {
+                // Need to check that it is the correct chat.
+                TestUtility.sendMessage(context.socket, TestUtility.createChatJoinRequest(context.user.id, msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.CHAT_ID), context.user.token));
             }
 
             if (TestUtility.isOfType(ResponseType.JOIN_CHAT_RESPONSE, msg)) {
                 numberInChat.getAndIncrement();
                 context.count.incrementAndGet();
-
-                // Wait until Karl has disconnected
-                while (context.finishedThreads.get() == 0) {
-
-                }
             }
 
             if (TestUtility.isOfType(EventType.CHAT_UPDATE, msg)) {
                 assertEquals(1, msg.getJSONArray(FieldNames.PAYLOAD).length());
-                assertEquals(chatID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.CHAT_ID));
-
                 context.count.incrementAndGet();
             }
 
@@ -391,7 +355,8 @@ public class ChatAPITests {
             }
 
             if (TestUtility.isOfType(ResponseType.LEAVE_CHAT_RESPONSE, msg)) {
-                TestUtility.createGetChatRequest(context.user.id, chatID.get(), context.user.token);
+                Logger.log(Logger.Level.DEBUG, "Sending get chat request");
+                TestUtility.sendMessage(context.socket, TestUtility.createGetChatRequest(context.user.id, chatID.get(), context.user.token));
             }
 
             if (TestUtility.isOfType(ResponseType.GET_CHAT_RESPONSE, msg)) {
@@ -412,7 +377,7 @@ public class ChatAPITests {
 
         var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
             if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
-                TestUtility.createGetChatRequest(context.user.id, chatID.get(), context.user.token);
+                TestUtility.sendMessage(context.socket, TestUtility.createGetChatRequest(context.user.id, chatID.get(), context.user.token));
             }
 
             if (TestUtility.isOfType(ResponseType.GET_CHAT_RESPONSE, msg)) {
@@ -467,9 +432,9 @@ public class ChatAPITests {
         TestUtility.testWithLoggedInUsers(List.of(FRIDA, KARL), List.of(fridaCallback, karlCallback));
     }
 
-    // TODO: Figure out if you should be able to join all chats, or can you mark chats as private? If they are marked private, they STAY private
+    // We are going for all chats being private
 //    @Test
-//    public static void joiningAChatYouAreNotInvitedToReturnsError() {
+//    public void joiningAChatYouAreNotInvitedToReturnsError() {
 //        fail();
 //    }
 
@@ -522,6 +487,7 @@ public class ChatAPITests {
 
             if (TestUtility.isOfType(ResponseType.CREATE_CHAT_RESPONSE, msg)) {
                 chatID.set(msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.CHAT_ID));
+                Logger.log(Logger.Level.DEBUG, "Created chat, inviting FRIDA: %d, to chat: %d", FRIDA.id, chatID.get());
                 TestUtility.sendMessage(context.socket, TestUtility.createChatInviteRequest(context.user.id, FRIDA.id, chatID.get(), context.user.token));
             }
 
@@ -610,6 +576,7 @@ public class ChatAPITests {
 
             if (TestUtility.isOfType(ResponseType.CREATE_CHAT_RESPONSE, msg)) {
                 chatID.set(msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.CHAT_ID));
+                TestUtility.sendMessage(context.socket, TestUtility.createChatInviteRequest(context.user.id, FRIDA.id, chatID.get(), context.user.token));
                 TestUtility.sendMessage(context.socket, TestUtility.createLeaveChatRequest(context.user.id, chatID.get(), context.user.token));
             }
 
@@ -638,45 +605,79 @@ public class ChatAPITests {
         TestUtility.testWithLoggedInUsers(List.of(FRIDA, KARL), List.of(fridaCallback, karlCallback));
     }
 
+    @Test
+    public void cannotJoinInvitedChatAfterLogout() {
+        final var fridaIsFinished = new AtomicBoolean(false);
+
+        var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
+                // Create new chat
+                TestUtility.sendMessage(context.socket, TestUtility.createNewChatRequest(context.user.id, "ChatToInviteFridaTo", context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.CREATE_CHAT_RESPONSE, msg)) {
+                TestUtility.sendMessage(context.socket, TestUtility.createChatInviteRequest(context.user.id, FRIDA.id, TestUtility.getChatID(msg), context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.SEND_CHAT_INVITE_RESPONSE, msg)) {
+                context.count.incrementAndGet();
+                while (!fridaIsFinished.get()) {
+
+                }
+                Logger.log(Logger.Level.DEBUG, "******** ***** KARL IS FINISHED");
+                context.finishedThreads.incrementAndGet();
+            }
+        });
+
+        var chatID = new AtomicInteger();
+        var fridaCallback1 = TestUtility.createJSONCallback((context, msg) -> {
+            Logger.log(Logger.Level.DEBUG, "FRIDA RECEIVED: %s", msg);
+
+            if (TestUtility.isOfType(EventType.CHAT_INVITE, msg)) {
+                chatID.set(msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.CHAT_ID));
+
+                //chatID.set(TestUtility.getChatID(msg));
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.USER_ID, context.user.id);
+                payload.put(0, request);
+                TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.LOGOUT_REQUEST, payload, context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.LOGOUT_RESPONSE, msg)) {
+                TestUtility.sendMessage(context.socket, TestUtility.createLoginRequest(context.user.email, context.user.password));
+            }
+
+            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg) && context.count.getAndIncrement() >= 1) {
+                context.user.token = msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getString(FieldNames.AUTH_TOKEN);
+                TestUtility.sendMessage(context.socket, TestUtility.createChatJoinRequest(context.user.id, chatID.get(), context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.JOIN_CHAT_RESPONSE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "FRIDA: Join Chat Response Received: %s", msg);
+                TestUtility.assertError(Error.UNAUTHORIZED, msg);
+                fridaIsFinished.set(true);
+                context.finishedThreads.getAndIncrement();
+            }
+
+            if (TestUtility.isOfType(EventType.CHAT_UPDATE, msg)) {
+                assertEquals(chatID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.CHAT_ID));
+                context.count.incrementAndGet();
+            }
+
+//            if (context.count.get() >= 2) {
+//                context.finishedThreads.incrementAndGet();
+//            }
+        });
+
+
+        TestUtility.testWithLoggedInUsers(List.of(FRIDA, KARL), List.of(fridaCallback1, karlCallback));
+    }
+
     ///////////////////////////////////////////////////////
     /// Chat and Logging
     ///////////////////////////////////////////////////////
-    @Test
-    public void chatMessagesAreLogged() throws SQLException {
-        final var message = "Message to be logged";
-
-        // Log someone in an write a message.
-        TestUtility.testWithLoggedInUsers(List.of(HENRIK), List.of((context, msg) -> {
-            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
-                TestUtility.sendMessage(context.socket, TestUtility.createChatJoinRequest(context.user.id, GlobalChat.ID, context.user.token));
-            }
-            if (TestUtility.isOfType(ResponseType.JOIN_CHAT_RESPONSE, msg)) {
-                TestUtility.sendMessage(context.socket, TestUtility.createSendChatMessageRequest(context.user.id, GlobalChat.ID, context.user.token, message));
-                context.finishedThreads.incrementAndGet();
-            }
-        }));
-
-        String url = "jdbc:sqlite:" + TestServer.DATABASE_NAME;
-        try (var connection = DriverManager.getConnection(url)) {
-            try (var query = connection.createStatement()) {
-                var res = query.executeQuery(String.format("SELECT %s, %s, %s FROM %s WHERE %s = %d AND %s = %d",
-                        Database.ChatMessageFields.ChatID,
-                        Database.ChatMessageFields.UserID,
-                        Database.ChatMessageFields.Message,
-                        Database.ChatMessageFields.DBName,
-                        Database.ChatMessageFields.UserID,
-                        HENRIK.id,
-                        Database.ChatMessageFields.ChatID,
-                        GlobalChat.ID));
-
-                res.next();
-                assertEquals(GlobalChat.ID, res.getInt(Database.ChatMessageFields.ChatID));
-                assertEquals(HENRIK.id, res.getInt(Database.ChatMessageFields.UserID));
-                assertEquals(message, res.getString(Database.ChatMessageFields.Message));
-            }
-        }
-    }
-
     @Test
     public void chatMessagesAreNotRemovedOnDeleteUser() throws SQLException {
         final var message = "Message to remain";
