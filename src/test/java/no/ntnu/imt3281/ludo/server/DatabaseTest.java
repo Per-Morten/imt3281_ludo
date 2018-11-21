@@ -1,19 +1,16 @@
 package no.ntnu.imt3281.ludo.server;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import no.ntnu.imt3281.ludo.api.Error;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import no.ntnu.imt3281.ludo.api.Error;
+import static org.junit.Assert.*;
 
 public class DatabaseTest {
     private static Database sDB;
@@ -82,15 +79,15 @@ public class DatabaseTest {
     public void canGetPage() throws SQLException {
         {
             var users = sDB.getUserRange(0, 3);
-            assertEquals("User1",users.get(0).username);
-            assertEquals("User2",users.get(1).username);
-            assertEquals("User3",users.get(2).username);
+            assertEquals("User1", users.get(0).username);
+            assertEquals("User2", users.get(1).username);
+            assertEquals("User3", users.get(2).username);
         }
 
         {
             var users = sDB.getUserRange(1, 3);
-            assertEquals("User4",users.get(0).username);
-            assertEquals("User5",users.get(1).username);
+            assertEquals("User4", users.get(0).username);
+            assertEquals("User5", users.get(1).username);
 
         }
     }
@@ -119,8 +116,8 @@ public class DatabaseTest {
     @Test(expected = NotUniqueTokenException.class)
     public void throwsOnNonUniqueToken() throws SQLException {
 
-            sDB.setUserToken(1, "Token");
-            sDB.setUserToken(2, "Token");
+        sDB.setUserToken(1, "Token");
+        sDB.setUserToken(2, "Token");
 
     }
 }

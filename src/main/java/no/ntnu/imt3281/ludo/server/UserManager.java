@@ -3,7 +3,6 @@ package no.ntnu.imt3281.ludo.server;
 import no.ntnu.imt3281.ludo.api.Error;
 import no.ntnu.imt3281.ludo.api.*;
 import no.ntnu.imt3281.ludo.common.Logger;
-import no.ntnu.imt3281.ludo.common.MessageUtility;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -13,6 +12,8 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Responsible for parsing and executing the incoming requests related to users & friends.
@@ -43,7 +44,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
-    public void createUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void createUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             var username = request.getString(FieldNames.USERNAME);
             var email = request.getString(FieldNames.EMAIL);
@@ -76,7 +77,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
-    public void deleteUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void deleteUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             var userID = request.getInt(FieldNames.USER_ID);
             try {
@@ -98,7 +99,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
-    public void updateUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void updateUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             try {
                 var salt = randomGenerateSalt();
@@ -128,7 +129,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
-    public void getUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void getUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             var userID = request.getInt(FieldNames.USER_ID);
             try {
@@ -155,7 +156,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
-    public void getUserRange(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void getUserRange(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             var pageIdx = request.getInt(FieldNames.PAGE_INDEX);
             try {
@@ -188,7 +189,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
-    public void logInUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void logInUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         var request = requests.getJSONObject(0);
         var email = request.getString(FieldNames.EMAIL);
         var requestID = request.getInt(FieldNames.ID);
@@ -241,7 +242,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
-    public void logOutUser(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void logOutUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             var userID = request.getInt(FieldNames.USER_ID);
             try {
@@ -265,7 +266,7 @@ public class UserManager {
      * @param errors        JSONArray where the errors should be appended.
      * @param usersToNotify List of the users to notify when a friend request is initiated or accepted.
      */
-    public void friend(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors, List<Integer> usersToNotify) {
+    public void friend(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
 
             var userID = request.getInt(FieldNames.USER_ID);
@@ -289,8 +290,7 @@ public class UserManager {
                     mDB.createRelationship(userID, friendID, FriendStatus.PENDING);
                     mDB.createRelationship(friendID, userID, FriendStatus.PENDING);
 
-                    usersToNotify.add(userID);
-                    usersToNotify.add(friendID);
+                    events.add(new Message(MessageUtility.createEvent(EventType.FRIEND_UPDATE), List.of(userID, friendID)));
 
                     // We have removed each other as friends (or unignored, which is same as unfriend)
                 } else if (Arrays.stream(currentRelationship).allMatch(value -> value.status == FriendStatus.UNFRIENDED)) {
@@ -303,9 +303,8 @@ public class UserManager {
 
                     mDB.setRelationshipStatus(userID, friendID, FriendStatus.FRIENDED);
                     mDB.setRelationshipStatus(friendID, userID, FriendStatus.FRIENDED);
-                    usersToNotify.add(userID);
-                    usersToNotify.add(friendID);
 
+                    events.add(new Message(MessageUtility.createEvent(EventType.FRIEND_UPDATE), List.of(userID, friendID)));
                 }  // The last case: One of us is ignoring the other!
 
                 MessageUtility.appendSuccess(successes, requestID, new JSONObject());
@@ -329,7 +328,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended.
      * @param errors JSONArray where the errors should be appended.
      */
-    public void unfriend(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void unfriend(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             var userID = request.getInt(FieldNames.USER_ID);
             var friendID = request.getInt(FieldNames.OTHER_ID);
@@ -380,7 +379,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended.
      * @param errors JSONArray where the errors should be appended.
      */
-    public void ignore(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void ignore(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             var userID = request.getInt(FieldNames.USER_ID);
             var friendID = request.getInt(FieldNames.OTHER_ID);
@@ -430,7 +429,7 @@ public class UserManager {
      * @param successes JSONArray where the successes should be appended to.
      * @param errors    JSONArray where the errors should be appended to.
      */
-    public void getFriendRange(RequestType ignored, JSONArray requests, JSONArray successes, JSONArray errors) {
+    public void getFriendRange(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
             var userID = request.getInt(FieldNames.USER_ID);
             var pageIdx = request.getInt(FieldNames.PAGE_INDEX);
@@ -483,6 +482,17 @@ public class UserManager {
             Logger.logException(Logger.Level.WARN, e, "Unexpected SQL Exception when trying to getUserByToken");
             return false;
         }
+    }
+
+    public boolean areUsersFriends(int userID, int otherID) {
+
+        try {
+            var relationship = mDB.getRelationship(userID, otherID);
+            return relationship != null && Arrays.stream(relationship).allMatch(item -> item.status == FriendStatus.FRIENDED);
+        } catch (SQLException e) {
+            Logger.logException(Logger.Level.WARN, e, "Exception encountered when checking if users are friends");
+        }
+        return false;
     }
 
     private String randomGenerateSalt() {

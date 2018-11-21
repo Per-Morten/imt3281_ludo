@@ -1,13 +1,9 @@
 package no.ntnu.imt3281.ludo.common;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
 /**
@@ -27,9 +23,10 @@ public class Connection {
     private Runnable mOnSocketClosed;
     private Socket mSocket;
     private BufferedWriter mSocketWriter;
-    private AtomicBoolean mRunning = new AtomicBoolean(false);
 
-    private Thread mThread;
+    private Semaphore mSemaphore = new Semaphore(1);
+
+    private Thread mReceiveThread;
 
     /**
      * Creates a new connection with the specified socket.
@@ -41,10 +38,10 @@ public class Connection {
     }
 
     /**
-     * Set the callback that should be run when this connection receives data from
+     * Set the callback that should be receive when this connection receives data from
      * the other endpoint.
      *
-     * @param onReceiveCallback The callback to run, important the callback must
+     * @param onReceiveCallback The callback to receive, important the callback must
      *                          support being called concurrently.
      */
     public void setOnReceiveCallback(Consumer<String> onReceiveCallback) {
@@ -64,9 +61,8 @@ public class Connection {
     public void start() throws IOException {
         mSocketWriter = new BufferedWriter(new OutputStreamWriter(mSocket.getOutputStream()));
 
-        mRunning.set(true);
-        mThread = new Thread(this::run);
-        mThread.start();
+        mReceiveThread = new Thread(this::receive);
+        mReceiveThread.start();
     }
 
     /**
@@ -76,7 +72,7 @@ public class Connection {
      *                              thread does it on join (should not happen).
      */
     public void stop() throws InterruptedException {
-        mRunning.set(false);
+        mReceiveThread.interrupt();
 
         try {
             mSocketWriter.close();
@@ -85,20 +81,19 @@ public class Connection {
             Logger.logException(Logger.Level.WARN, e, "Could not close connection socket");
         }
 
-        mThread.join();
+        mReceiveThread.join();
     }
 
     /**
      * Sends the specified message to the counterpart of this socket. Throws
      * IOException on failure.
-     *
+     * <p>
      * Note: This signature might change to just return a bool indicating success or
      * failure, as there isn't really anything that can be done further up in the
      * system other than suppressing this thing.
      *
      * @param message The message to sendWithSocketID. (Must not end with "%n" as this is added
      *                before the message is sent.
-     *
      * @throws IOException Throws IOException from the SocketWriter if it throws.
      */
     public void send(String message) throws IOException {
@@ -106,31 +101,35 @@ public class Connection {
 //                mSocket.getInetAddress().toString(), mSocket.getPort(), message));
 
         try {
+            mSemaphore.acquire();
             // Don't remove + "%n", it is needed for readLine on the other side.
             // Tok me 5 hours to figure out.
             mSocketWriter.write(String.format("%s%n", message));
 
             // If we get nullptr exception here that is considered  a disconnect, need to handle that, add more callbacks.
             mSocketWriter.flush();
-        } catch(Exception e) {
+        } catch (SocketException e) {
             onException(e);
-            if (mOnSocketClosed != null) {
-                mOnSocketClosed.run();
-            }
+        } catch (InterruptedException e) {
+            Logger.logException(Logger.Level.WARN, e, "Interrupt exception encountered");
+        } finally {
+            mSemaphore.release();
         }
     }
 
-    private void run() {
+    private void receive() {
         try (var input = new BufferedReader(new InputStreamReader(mSocket.getInputStream()))) {
             String line;
-            while (mRunning.get() && (line = input.readLine()) != null) {
+            while (!Thread.currentThread().isInterrupted() && (line = input.readLine()) != null) {
                 mOnReceiveMessage.accept(line);
             }
-        } catch (Exception e) {
-            onException(e);
+        } catch (SocketException e) {
+            if (e.getMessage() != null && !e.getMessage().equals("Socket closed")) {
+                Logger.logException(Logger.Level.WARN, e, "Connection closed unexpectedly");
+            }
+        } catch (IOException e) {
+            Logger.logException(Logger.Level.WARN, e, "Exception encountered in receive");
         } finally {
-            mRunning.set(false);
-
             // Need this also in the case where we are actually closing the connection.
             if (mOnSocketClosed != null) {
                 mOnSocketClosed.run();
@@ -139,10 +138,9 @@ public class Connection {
     }
 
     private void onException(Exception e) {
-        if (e.getMessage() != null && !e.getMessage().equals("Socket closed") && !mRunning.get()) {
+        if (e.getMessage() != null && !e.getMessage().equals("Socket closed")) {
             Logger.logException(Logger.Level.WARN, e, "Connection closed unexpectedly");
         }
-        mRunning.set(false);
     }
 
 }
