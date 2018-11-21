@@ -2,12 +2,10 @@ package no.ntnu.imt3281.ludo.server;
 
 import no.ntnu.imt3281.ludo.api.Error;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
+import no.ntnu.imt3281.ludo.api.GlobalChat;
 import no.ntnu.imt3281.ludo.common.Logger;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +14,7 @@ import java.util.List;
  * This class can be accessed concurrently (but should probably not be closed concurrently) as
  * this class does not hold any other members than the connection to the database.
  * Concurrent access to the database is guaranteed as the SQLite DB is run in serialized mode.
- *
+ * <p>
  * See: https://www.sqlite.org/threadsafe.html
  */
 public class Database implements AutoCloseable {
@@ -58,9 +56,12 @@ public class Database implements AutoCloseable {
         public static final String ChatID = "chat_id";
         public static final String UserID = "user_id";
         public static final String Message = "message";
+        public static final String Timestamp = "time_stamp";
     }
 
     private static final int UnassignedID = -1;
+
+    private String mDBURL;
 
     /**
      * Creates or connects to the database specified by the filename passed as
@@ -72,11 +73,23 @@ public class Database implements AutoCloseable {
      *                      malformed syntax etc, shouldn't happen.
      */
     public Database(String dbFilename) throws SQLException {
-        String url = "jdbc:sqlite:" + dbFilename;
-        mConnection = DriverManager.getConnection(url);
+        mDBURL = "jdbc:sqlite:" + dbFilename;
+        mConnection = DriverManager.getConnection(mDBURL);
         createUserTable();
         createFriendsTable();
+        createChatTable();
+        createChatMessagesTable();
     }
+
+
+    private Connection getOneOffConnection() throws SQLException {
+        return mConnection;
+    }
+
+    private Connection getMultiStatementConnection() throws SQLException {
+        return DriverManager.getConnection(mDBURL);
+    }
+
 
     /**
      * Closes the connection to the database if it has been opened.
@@ -116,7 +129,7 @@ public class Database implements AutoCloseable {
         if (valueAlreadyExists(UnassignedID, UserFields.DBName, UserFields.ID, UserFields.Username, username))
             throw new APIErrorException(Error.NOT_UNIQUE_USERNAME);
 
-        try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s, %s) VALUES (?, ?, ?, ?)",
+        try (var statement = getOneOffConnection().prepareStatement(String.format("INSERT INTO %s(%s, %s, %s, %s) VALUES (?, ?, ?, ?)",
                 UserFields.DBName, UserFields.Username, UserFields.Email, UserFields.Password, UserFields.Salt))) {
             statement.setString(1, username);
             statement.setString(2, email);
@@ -127,7 +140,7 @@ public class Database implements AutoCloseable {
         }
 
         // Need to get the id so it can be sent back
-        try (var query = mConnection.prepareStatement(
+        try (var query = getOneOffConnection().prepareStatement(
                 String.format("SELECT %s FROM %s WHERE %s=?", UserFields.ID, UserFields.DBName, UserFields.Email))) {
             query.setString(1, email);
             var res = query.executeQuery();
@@ -158,7 +171,7 @@ public class Database implements AutoCloseable {
         if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Username, username))
             throw new APIErrorException(Error.NOT_UNIQUE_USERNAME);
 
-        try (var statement = mConnection.prepareStatement(String.format(
+        try (var statement = getOneOffConnection().prepareStatement(String.format(
                 "UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE %s=?", UserFields.DBName, UserFields.Username,
                 UserFields.Email, UserFields.Password, UserFields.AvatarURI, UserFields.Salt, UserFields.ID))) {
 
@@ -182,7 +195,7 @@ public class Database implements AutoCloseable {
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
     public User getUserByID(int id) throws SQLException {
-        try (var query = mConnection.prepareStatement(
+        try (var query = getOneOffConnection().prepareStatement(
                 String.format("SELECT %s, %s, %s FROM %s WHERE %s=?", UserFields.ID, UserFields.Username,
                         UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
 
@@ -204,7 +217,7 @@ public class Database implements AutoCloseable {
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
     public User getUserByToken(String token) throws SQLException {
-        try (var query = mConnection.prepareStatement(
+        try (var query = getOneOffConnection().prepareStatement(
                 String.format("SELECT %s, %s, %s FROM %s WHERE %s = ?", UserFields.ID, UserFields.Username,
                         UserFields.AvatarURI, UserFields.DBName, UserFields.Token))) {
 
@@ -226,7 +239,7 @@ public class Database implements AutoCloseable {
 
     // TODO: Rather than deleting the user we should mark them as deleted.
     public void deleteUser(int id) throws SQLException {
-        try (var statement = mConnection
+        try (var statement = getOneOffConnection()
                 .prepareStatement(String.format("DELETE FROM %s WHERE %s = ?", UserFields.DBName, UserFields.ID))) {
             statement.setInt(1, id);
             statement.execute();
@@ -249,7 +262,7 @@ public class Database implements AutoCloseable {
         if (valueAlreadyExists(id, UserFields.DBName, UserFields.ID, UserFields.Token, token))
             throw new NotUniqueTokenException();
 
-        try (var statement = mConnection.prepareStatement(String.format("UPDATE %s SET %s = ? WHERE %s = ?",
+        try (var statement = getOneOffConnection().prepareStatement(String.format("UPDATE %s SET %s = ? WHERE %s = ?",
                 UserFields.DBName, UserFields.Token, UserFields.ID))) {
             statement.setString(1, token);
             statement.setInt(2, id);
@@ -272,17 +285,12 @@ public class Database implements AutoCloseable {
     // Note: This should not be used outside of tests, just keeping it here because
     // I don't want to create 100+ users for test cases.
     List<User> getUserRange(int pageIdx, int pageSize) throws SQLException {
-        var command = String.format(
-                "SELECT %s, %s, %s FROM %s ORDER BY %s LIMIT ? OFFSET ?",
-                UserFields.ID, UserFields.Username,
-                UserFields.AvatarURI, UserFields.DBName, UserFields.ID);
-        try (var query = mConnection.prepareStatement(String.format(
+        try (var query = getOneOffConnection().prepareStatement(String.format(
                 "SELECT %s, %s, %s FROM %s ORDER BY %s LIMIT ? OFFSET ?",
                 UserFields.ID, UserFields.Username,
                 UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
             query.setInt(1, pageSize);
             query.setInt(2, pageIdx * pageSize);
-            Logger.log(Logger.Level.DEBUG, String.format("%s pageSize: %d, Offset: %d", command, pageSize, pageIdx * pageSize));
 
             var res = query.executeQuery();
 
@@ -304,7 +312,7 @@ public class Database implements AutoCloseable {
      * @throws SQLException Throws SQLException on SQL errors (should not happen)
      */
     public User getExtendedInformationByEmail(String email) throws SQLException {
-        try (var query = mConnection.prepareStatement(String.format("SELECT * FROM %s WHERE %s = ?",
+        try (var query = getOneOffConnection().prepareStatement(String.format("SELECT * FROM %s WHERE %s = ?",
                 UserFields.DBName, UserFields.Email))) {
 
             query.setString(1, email);
@@ -337,7 +345,7 @@ public class Database implements AutoCloseable {
     /// FRIENDS RELATED
     ///////////////////////////////////////////////////////
     public void createRelationship(int userID, int friendID, FriendStatus status) throws SQLException {
-        try (var statement = mConnection.prepareStatement(String.format("INSERT INTO %s(%s, %s, %s) VALUES (?, ?, ?)",
+        try (var statement = getOneOffConnection().prepareStatement(String.format("INSERT INTO %s(%s, %s, %s) VALUES (?, ?, ?)",
                 FriendFields.DBName, FriendFields.UserID, FriendFields.FriendID, FriendFields.Status))) {
             statement.setInt(1, userID);
             statement.setInt(2, friendID);
@@ -348,7 +356,7 @@ public class Database implements AutoCloseable {
     }
 
     public void setRelationshipStatus(int userID, int friendID, FriendStatus status) throws SQLException {
-        try (var statement = mConnection.prepareStatement(String.format("UPDATE %s SET %s = ? WHERE %s = ? AND %s = ?",
+        try (var statement = getOneOffConnection().prepareStatement(String.format("UPDATE %s SET %s = ? WHERE %s = ? AND %s = ?",
                 FriendFields.DBName,
                 FriendFields.Status,
                 FriendFields.UserID,
@@ -374,7 +382,7 @@ public class Database implements AutoCloseable {
         Relationship[] retVal = new Relationship[2];
         var usersToCheck = new int[]{userID, friendID};
         for (int i = 0; i < usersToCheck.length; i++) {
-            try (var query = mConnection.prepareStatement(String.format("SELECT %s, %s, %s, %s FROM %s WHERE (%s = ? AND %s = ?)",
+            try (var query = getOneOffConnection().prepareStatement(String.format("SELECT %s, %s, %s, %s FROM %s WHERE (%s = ? AND %s = ?)",
                     FriendFields.ID,
                     FriendFields.UserID, FriendFields.FriendID, FriendFields.Status, FriendFields.DBName,
                     FriendFields.UserID, FriendFields.FriendID))) {
@@ -413,7 +421,7 @@ public class Database implements AutoCloseable {
                 FriendFields.DBName, FriendFields.Status,
                 FriendFields.DBName, FriendFields.UserID);
 
-        try (var query = mConnection.prepareStatement(queryCommand)) {
+        try (var query = getOneOffConnection().prepareStatement(queryCommand)) {
 
             query.setInt(1, userID);
             query.setInt(2, FriendStatus.UNFRIENDED.toInt());
@@ -432,6 +440,32 @@ public class Database implements AutoCloseable {
     }
 
     ///////////////////////////////////////////////////////
+    /// CHAT RELATED
+    ///////////////////////////////////////////////////////
+    public int createChat(String name) throws SQLException {
+        try (var connection = getMultiStatementConnection()) {
+            try (var stmt = connection.prepareStatement(String.format("INSERT INTO %s(%s) VALUES(?)", ChatFields.DBName, ChatFields.Name), Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setString(1, name);
+                stmt.execute();
+                var res = stmt.getGeneratedKeys();
+                res.next();
+                return res.getInt(1);
+            }
+        }
+    }
+
+    public void logChatMessage(int userID, int chatID, String message) throws SQLException {
+        try (var statement = getOneOffConnection().prepareStatement(String.format("INSERT INTO %s(%s, %s, %s) VALUES(?, ?, ?)",
+                ChatMessageFields.DBName, ChatMessageFields.ChatID, ChatMessageFields.UserID, ChatMessageFields.Message))) {
+            statement.setInt(1, chatID);
+            statement.setInt(2, userID);
+            statement.setString(3, message);
+            statement.execute();
+        }
+    }
+
+
+    ///////////////////////////////////////////////////////
     /// TABLE CREATION RELATED
     ///////////////////////////////////////////////////////
     private void createUserTable() throws SQLException {
@@ -441,22 +475,58 @@ public class Database implements AutoCloseable {
                 + UserFields.Salt + " text NOT NULL, "
                 + UserFields.AvatarURI + " text DEFAULT(NULL), " + UserFields.Token + " text DEFAULT(NULL)" + ");";
 
-        var statement = mConnection.createStatement();
+        var statement = getOneOffConnection().createStatement();
         statement.execute(command);
     }
 
     private void createFriendsTable() throws SQLException {
         String command = "CREATE TABLE IF NOT EXISTS " + FriendFields.DBName + "("
-                + FriendFields.ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
-                + FriendFields.UserID + " INTEGER NOT NULL,"
+                + FriendFields.ID + " INTEGER NOT NULL PRIMARY KEY, "
+                + FriendFields.UserID + " INTEGER NOT NULL, "
                 + FriendFields.FriendID + " INTEGER NOT NULL, "
                 + FriendFields.Status + " INTEGER NOT NULL, "
                 + "FOREIGN KEY (" + FriendFields.UserID + ") REFERENCES " + UserFields.DBName + "(" + UserFields.ID + ") ON DELETE CASCADE,"
                 + "FOREIGN KEY (" + FriendFields.FriendID + ") REFERENCES " + UserFields.DBName + "(" + UserFields.ID + ") ON DELETE CASCADE"
                 + ");";
 
-        var statement = mConnection.createStatement();
+        var statement = getOneOffConnection().createStatement();
         statement.execute(command);
+    }
+
+    private void createChatMessagesTable() throws SQLException {
+        String command = "CREATE TABLE IF NOT EXISTS " + ChatMessageFields.DBName + "("
+                + ChatMessageFields.ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                + ChatMessageFields.ChatID + " INTEGER NOT NULL, "
+                + ChatMessageFields.UserID + " INTEGER NOT NULL, "
+                + ChatMessageFields.Message + " TEXT NOT NULL, "
+                + ChatMessageFields.Timestamp + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+                + "FOREIGN KEY (" + ChatMessageFields.ChatID + ") REFERENCES " + ChatFields.DBName + "(" + ChatFields.ID + ") ON DELETE CASCADE,"
+                + "FOREIGN KEY (" + ChatMessageFields.UserID + ") REFERENCES " + UserFields.DBName + "(" + UserFields.ID + ") ON DELETE CASCADE"
+                + ");";
+
+        var statement = getOneOffConnection().createStatement();
+        statement.execute(command);
+    }
+
+    private void createChatTable() throws SQLException {
+        // Specifically checking for this first, as we want the global chat to always have the value 0.
+        var query = getOneOffConnection().createStatement();
+        var res = query.executeQuery(String.format("SELECT name FROM sqlite_master WHERE type = 'table' AND name = '%s'",
+                ChatFields.DBName));
+
+        // We already have this table.
+        if (res.next()) {
+            return;
+        }
+
+        String command = "CREATE TABLE IF NOT EXISTS " + ChatFields.DBName + "("
+                + ChatFields.ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                + ChatFields.Name + " TEXT NOT NULL);";
+
+        var statement = getOneOffConnection().createStatement();
+        statement.execute(command);
+
+        createChat(GlobalChat.NAME);
     }
 
     ///////////////////////////////////////////////////////
@@ -464,7 +534,7 @@ public class Database implements AutoCloseable {
     ///////////////////////////////////////////////////////
     private boolean valueAlreadyExists(int id, String table, String idField, String field, String value)
             throws SQLException {
-        try (var query = mConnection
+        try (var query = getOneOffConnection()
                 .prepareStatement(String.format("SELECT %s FROM %s WHERE %s=?", idField, table, field))) {
             query.setString(1, value);
             var res = query.executeQuery();

@@ -10,7 +10,7 @@ import java.util.function.Consumer;
  * Class represents a connection between two sockets, and handles reading and
  * writing to communicate with that socket. However, the creation of the socket
  * is not the responsibility of the connection.
- * 
+ *
  * Reading is done via callbacks, while sending is done through a straight
  * function call. A connection runs in its own thread, and therefore needs to be
  * started and stopped manually.
