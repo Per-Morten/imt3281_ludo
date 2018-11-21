@@ -89,7 +89,7 @@ public class Actions implements API.Events {
                 state.username = username;
             });
 
-            mTransitions.renderLogin();
+            mTransitions.renderLogin(email);
         });
     }
 
@@ -234,7 +234,7 @@ public class Actions implements API.Events {
                 .getString(FieldNames.NAME).toUpperCase().contains(stateCopy.searchChats.toUpperCase()))
                 .collect(Collectors.toList());
 
-        mTransitions.renderOverview();
+        mTransitions.renderOverview(stateCopy.searchGames, stateCopy.searchChats, stateCopy.searchFriends, stateCopy.searchUsers);
         mTransitions.renderGamesList(filteredGames, filteredGameInvites);
         mTransitions.renderChatsList(filteredChats, filteredChatInvites);
 
@@ -622,6 +622,24 @@ public class Actions implements API.Events {
         send(DECLINE_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
 
+        });
+    }
+
+
+    /**
+     * Updates the different search filteres
+     *
+     * @param searchGames search text games
+     * @param searchChats search text chats
+     * @param searchFriends search text friends
+     * @param searchUsers search text users
+     */
+    public void search(String searchGames, String searchChats, String searchFriends, String searchUsers) {
+        mState.commit(state -> {
+            state.searchGames = searchGames;
+            state.searchChats = searchChats;
+            state.searchFriends = searchFriends;
+            state.searchUsers = searchUsers;
         });
     }
 

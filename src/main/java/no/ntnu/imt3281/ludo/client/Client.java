@@ -59,7 +59,7 @@ public class Client extends Application {
         mStateManager.load();
         mApi.bind(mSocketManager, mActions);
         mActions.bind(mTransitions, mApi, mStateManager);
-        mTransitions.bind(primaryStage, mActions, mStateManager);
+        mTransitions.bind(primaryStage, mActions);
 
         // Start socket
         try {

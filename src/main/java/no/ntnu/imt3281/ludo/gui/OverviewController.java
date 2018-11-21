@@ -309,12 +309,7 @@ public class OverviewController extends BaseController {
         if (!event.getCode().equals(KeyCode.ENTER))
             return;
 
-        mStateManager.commit(state -> {
-            state.searchGames = mSearchGames.getText();
-            state.searchChats = mSearchChats.getText();
-            state.searchFriends = mSearchFriends.getText();
-            state.searchUsers = mSearchUsers.getText();
-        });
+        mActions.search(mSearchGames.getText(), mSearchChats.getText(),mSearchFriends.getText(),mSearchUsers.getText());
         mActions.gotoOverview();
     }
 
