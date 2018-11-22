@@ -92,45 +92,61 @@ public class OverviewController extends BaseController {
 
     void onItemSelectChange(ListItemType type, int id, boolean selected) {
         switch (type) {
-            case GAME:
-                if(selected) mSelectedGames.add(id);
-                else         mSelectedGames.remove(id);
-                break;
+        case GAME:
+            if (selected)
+                mSelectedGames.add(id);
+            else
+                mSelectedGames.remove(id);
+            break;
 
-            case GAME_INVITE:
-                if(selected) mSelectedGameInvites.add(id);
-                else         mSelectedGameInvites.remove(id);
-                break;
+        case GAME_INVITE:
+            if (selected)
+                mSelectedGameInvites.add(id);
+            else
+                mSelectedGameInvites.remove(id);
+            break;
 
-            case CHAT:
-                if(selected) mSelectedChats.add(id);
-                else         mSelectedChats.remove(id);
-                break;
+        case CHAT:
+            if (selected)
+                mSelectedChats.add(id);
+            else
+                mSelectedChats.remove(id);
+            break;
 
-            case CHAT_INVITE:
-                if(selected) mSelectedChatInvites.add(id);
-                else         mSelectedChatInvites.remove(id);
-                break;
+        case CHAT_INVITE:
+            if (selected)
+                mSelectedChatInvites.add(id);
+            else
+                mSelectedChatInvites.remove(id);
+            break;
 
-            case FRIEND:
-                if(selected) mSelectedFriends.add(id);
-                else         mSelectedFriends.remove(id);
-                break;
+        case FRIEND:
+            if (selected)
+                mSelectedFriends.add(id);
+            else
+                mSelectedFriends.remove(id);
+            break;
 
-            case FRIEND_REQUEST:
-                if(selected) mSelectedFriendsPending.add(id);
-                else         mSelectedFriendsPending.remove(id);
-                break;
+        case FRIEND_REQUEST:
+            if (selected)
+                mSelectedFriendsPending.add(id);
+            else
+                mSelectedFriendsPending.remove(id);
+            break;
 
-            case USER:
-                if(selected) mSelectedUsers.add(id);
-                else         mSelectedUsers.remove(id);
-                break;
+        case USER:
+            if (selected)
+                mSelectedUsers.add(id);
+            else
+                mSelectedUsers.remove(id);
+            break;
 
-            case USER_IGNORED:
-                if(selected) mSelectedIgnored.add(id);
-                else         mSelectedIgnored.remove(id);
-                break;
+        case USER_IGNORED:
+            if (selected)
+                mSelectedIgnored.add(id);
+            else
+                mSelectedIgnored.remove(id);
+            break;
 
         }
         this.renderButtonTexts();
@@ -147,7 +163,6 @@ public class OverviewController extends BaseController {
         // Accept game invites
         mAcceptGameInvite.setText(textAcceptGameInvite + " " + mSelectedGameInvites.size());
 
-
         // ------------ Chat list -------------
         // Invite friends to active chats
         mSendChatInvite.setText(textSendChatInvite + " " + mSelectedChats.size() + " ->  " + mSelectedFriends.size());
@@ -158,7 +173,6 @@ public class OverviewController extends BaseController {
         // Accept chat invites
         mAcceptChatInvite.setText(textAcceptChatInvite + " " + mSelectedChatInvites.size());
 
-
         // ----------- Friend list ----------
         // Accept pending friends
         mAcceptFriendRequest.setText(textAcceptRequest + " " + mSelectedFriendsPending.size());
@@ -168,7 +182,6 @@ public class OverviewController extends BaseController {
 
         // Remove friends, pending freinds
         mUnfriend.setText(textUnfriend + " " + (mSelectedFriends.size() + mSelectedFriendsPending.size()));
-
 
         // ----------- User list ------------
         // Send friend request to normal users and ignored users.
@@ -188,7 +201,7 @@ public class OverviewController extends BaseController {
 
     @FXML
     void onClickLogout(ActionEvent event) {
-        mActions.logout( );
+        mActions.logout();
     }
 
     @FXML
@@ -196,40 +209,46 @@ public class OverviewController extends BaseController {
         mActions.gotoUser();
     }
 
-
     @FXML
     void onSendGameInvite(ActionEvent event) {
-        if (mSelectedGames.size() == 0 || mSelectedFriends.size() == 0) return;
+        if (mSelectedGames.size() == 0 || mSelectedFriends.size() == 0)
+            return;
         mActions.sendGameInvite(mSelectedGames, mSelectedFriends);
     }
 
     @FXML
     void onAcceptGameInvite(ActionEvent event) {
-        if (mSelectedGameInvites.size() == 0) return;
+        if (mSelectedGameInvites.size() == 0)
+            return;
         mActions.joinGame(mSelectedGameInvites);
     }
 
     @FXML
     void onLeaveGame(ActionEvent event) {
-        if (mSelectedGames.size() > 0) mActions.leaveGame(mSelectedGames);
-        if (mSelectedGameInvites.size() > 0) mActions.declineGameInvite(mSelectedGameInvites);
+        if (mSelectedGames.size() > 0)
+            mActions.leaveGame(mSelectedGames);
+        if (mSelectedGameInvites.size() > 0)
+            mActions.declineGameInvite(mSelectedGameInvites);
     }
 
     @FXML
     void onSendChatInvite(ActionEvent event) {
-        if (mSelectedChats.size() == 0 || mSelectedFriends.size() == 0) return;
+        if (mSelectedChats.size() == 0 || mSelectedFriends.size() == 0)
+            return;
         mActions.sendChatInvite(mSelectedChats, mSelectedFriends);
     }
 
     @FXML
     void onAcceptChatInvite(ActionEvent event) {
-        if (mSelectedChatInvites.size() == 0) return;
+        if (mSelectedChatInvites.size() == 0)
+            return;
         mActions.joinChat(mSelectedChatInvites);
     }
 
     @FXML
     void onLeaveChat(ActionEvent event) {
-        if (mSelectedChats.size() == 0) return;
+        if (mSelectedChats.size() == 0)
+            return;
         mActions.leaveChat(mSelectedChats);
     }
 
@@ -239,13 +258,15 @@ public class OverviewController extends BaseController {
         selectedUsers.addAll(mSelectedUsers);
         selectedUsers.addAll(mSelectedIgnored);
         selectedUsers.addAll(mSelectedFriendsPending);
-        if (selectedUsers.size() == 0) return;
+        if (selectedUsers.size() == 0)
+            return;
         mActions.friend(selectedUsers);
     }
 
     @FXML
     void onAcceptFriendRequest(ActionEvent event) {
-        if (mSelectedFriendsPending.size() == 0) return;
+        if (mSelectedFriendsPending.size() == 0)
+            return;
         mActions.friend(mSelectedFriendsPending);
     }
 
@@ -254,13 +275,15 @@ public class OverviewController extends BaseController {
         var selectedFriends = new HashSet<Integer>();
         selectedFriends.addAll(mSelectedFriends);
         selectedFriends.addAll(mSelectedFriendsPending);
-        if (selectedFriends.size() == 0) return;
+        if (selectedFriends.size() == 0)
+            return;
         mActions.unfriend(selectedFriends);
     }
 
     @FXML
     void onIgnoreUsers(ActionEvent event) {
-        if (mSelectedUsers.size() == 0) return;
+        if (mSelectedUsers.size() == 0)
+            return;
         mActions.ignore(mSelectedUsers);
     }
 
@@ -269,25 +292,24 @@ public class OverviewController extends BaseController {
         var selectedFriends = new HashSet<Integer>();
         selectedFriends.addAll(mSelectedFriends);
         selectedFriends.addAll(mSelectedFriendsPending);
-        if (selectedFriends.size() == 0) return;
+        if (selectedFriends.size() == 0)
+            return;
         mActions.ignore(selectedFriends);
     }
 
-    @FXML void onUnignore(ActionEvent event) {
-        if (mSelectedIgnored.size() == 0) return;
+    @FXML
+    void onUnignore(ActionEvent event) {
+        if (mSelectedIgnored.size() == 0)
+            return;
         mActions.unfriend(mSelectedIgnored);
     }
 
     @FXML
     void onSearch(KeyEvent event) {
-        if(!event.getCode().equals(KeyCode.ENTER)) return;
+        if (!event.getCode().equals(KeyCode.ENTER))
+            return;
 
-        mStateManager.commit(state -> {
-            state.searchGames = mSearchGames.getText();
-            state.searchChats = mSearchChats.getText();
-            state.searchFriends = mSearchFriends.getText();
-            state.searchUsers = mSearchUsers.getText();
-        });
+        mActions.search(mSearchGames.getText(), mSearchChats.getText(),mSearchFriends.getText(),mSearchUsers.getText());
         mActions.gotoOverview();
     }
 

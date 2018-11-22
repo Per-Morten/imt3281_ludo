@@ -1,18 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.text.*?>
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.image.*?>
-<?import java.lang.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.text.Font?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.GameTabController">
+<Pane fx:id="mBoard" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="no.ntnu.imt3281.ludo.gui.GameTabController">
    <children>
       <HBox>
          <children>
-            <ImageView pickOnBounds="true" preserveRatio="true">
+            <ImageView fitHeight="727.0" fitWidth="720.0" pickOnBounds="true" preserveRatio="true">
                <image>
                   <Image url="@../../../../../images/ludo-board.png" />
                </image>
@@ -32,7 +40,6 @@
                           </rowConstraints>
                            <children>
                               <Pane prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: FF0000;">
-                                 
                                  <GridPane.margin>
                                     <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                                  </GridPane.margin>
@@ -105,7 +112,7 @@
                                     </Label>
                                  </children>
                                  
-                              </Pane>
+                                          </Pane>
                            </children>
                         </GridPane>
                      </children>
@@ -127,7 +134,8 @@
                               </Button>
                            </children>
                         </HBox>
-                     </children></Pane>
+                     </children>
+                  </Pane>
                   <VBox prefHeight="492.0" prefWidth="295.0">
                      <children>
                         <TextArea fx:id="chatArea" prefHeight="465.0" prefWidth="295.0" />
@@ -143,5 +151,21 @@
             </VBox>
          </children>
       </HBox>
+      <Circle fx:id="mGreenPiece0" fill="#21ff35" layoutX="50.0" layoutY="210.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mGreenPiece1" fill="#21ff35" layoutX="50.0" layoutY="210.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mGreenPiece2" fill="#21ff35" layoutX="50.0" layoutY="210.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mGreenPiece3" fill="#21ff35" layoutX="50.0" layoutY="210.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mRedPiece0" fill="#ff2121" layoutX="500.0" layoutY="200.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mRedPiece1" fill="#ff2121" layoutX="500.0" layoutY="200.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mRedPiece2" fill="#ff2121" layoutX="500.0" layoutY="200.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mRedPiece3" fill="#ff2121" layoutX="500.0" layoutY="200.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mYellowPiece0" fill="#fcff21" layoutX="50.0" layoutY="500.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mYellowPiece1" fill="#fcff21" layoutX="50.0" layoutY="500.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mYellowPiece2" fill="#fcff21" layoutX="50.0" layoutY="500.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mYellowPiece3" fill="#e5ff21" layoutX="50.0" layoutY="500.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mBluePiece0" fill="#213aff" layoutX="500.0" layoutY="510.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mBluePiece1" fill="#213aff" layoutX="500.0" layoutY="510.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mBluePiece2" fill="#213aff" layoutX="500.0" layoutY="510.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mBluePiece3" fill="#213aff" layoutX="500.0" layoutY="510.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
    </children>
-</AnchorPane>
+</Pane>

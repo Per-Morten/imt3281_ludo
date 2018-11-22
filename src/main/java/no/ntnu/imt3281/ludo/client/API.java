@@ -7,25 +7,41 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.ArrayList;
-import static no.ntnu.imt3281.ludo.api.EventType.*;
-
 
 public class API {
+    /**
+     * Interface used to respond to events from server
+     */
+    interface Events {
+        void friendUpdate();
+
+        void chatUpdate(JSONObject chat);
+
+        void chatInvite(JSONObject chatInvite);
+
+        void chatMessage(JSONObject message);
+
+        void gameUpdate(JSONObject game);
+
+        void gameInvite(JSONObject gameInvite);
+
+        void forceLogout();
+    }
+
     private final ArrayBlockingQueue<Request> mPendingRequests = new ArrayBlockingQueue<Request>(1);
     private SocketManager mSocketManager;
-    private Actions mActions;
+    private Events mEvents;
 
     /**
      * Bind API dependencies
      *
      * @param socketManager need to do networking
      */
-    public void bind(SocketManager socketManager, Actions actions) {
+    public void bind(SocketManager socketManager, Events events) {
         mSocketManager = socketManager;
-        mActions = actions;
+        mEvents = events;
         mSocketManager.setOnReceiveCallback(this::read);
     }
 
@@ -38,25 +54,25 @@ public class API {
         new Thread(() -> {
             try {
                 mPendingRequests.put(request);
-            } catch(InterruptedException e) {
+            } catch (InterruptedException e) {
                 Logger.log(Logger.Level.INFO, "mPendingRequests.put() interrupted" + e.toString());
                 return;
             }
 
             try {
-                Logger.log(Level.DEBUG, "Sending request: " + request.toJSON().toString());
+                Logger.log(Level.INFO, "Sending request: " + request.toJSON().toString());
                 mSocketManager.send(request.toJSON().toString());
             } catch (NullPointerException | IOException e) {
                 Logger.log(Level.WARN, "No connection with server: " + e.toString());
                 mPendingRequests.poll(); // Throw away request to avoid blocking
-                mActions.forceLogout();
+                mEvents.forceLogout();
             }
         }).start();
     }
 
     /**
-     * Read a message from socket. Determine if the message is a responseType or eventType message.
-     * Parse message to json.
+     * Read a message from socket. Determine if the message is a responseType or
+     * eventType message. Parse message to json.
      *
      * @param message string from socket
      */
@@ -85,7 +101,7 @@ public class API {
         ResponseType reqType = ResponseType.fromString(messageType);
         EventType eventType = EventType.fromString(messageType);
 
-        if (reqType == null && eventType == null){
+        if (reqType == null && eventType == null) {
             Logger.log(Level.WARN, "Unkown message type: " + messageType);
             mPendingRequests.poll(); // Throw away request to avoid blocking
             return;
@@ -143,23 +159,37 @@ public class API {
      * @param event event as json
      */
     private void handleEvent(EventType type, JSONObject event) {
-        
-        var payload = event.getJSONArray("payload");
 
-        var payloadArray = new ArrayList<JSONObject>();
-        payload.forEach(item -> {
-            payloadArray.add((JSONObject)item);
+        var payloadJSON = event.getJSONArray("payload");
+
+        var payload = new ArrayList<JSONObject>();
+        payloadJSON.forEach(item -> {
+            payload.add((JSONObject) item);
         });
 
-        Logger.log(Level.DEBUG, "Event payload -> " + payload.toString());
+        Logger.log(Level.DEBUG, "Event payload -> " + payloadJSON.toString());
         switch (type) {
-            case FRIEND_UPDATE: mActions.friendUpdate(); break;
-            case CHAT_UPDATE: mActions.chatUpdate(); break;
-            case CHAT_INVITE: mActions.chatInvite(payloadArray); break;
-            case CHAT_MESSAGE: mActions.chatMessage(payloadArray); break;
-            case GAME_UPDATE: mActions.gameUpdate(payloadArray); break;
-            case GAME_INVITE: mActions.gameInvite(payloadArray); break;
-            case FORCE_LOGOUT: mActions.forceLogout(); break;
+        case FRIEND_UPDATE:
+            mEvents.friendUpdate();
+            break;
+        case CHAT_UPDATE:
+            payload.forEach(item -> mEvents.chatUpdate(item));
+            break;
+        case CHAT_INVITE:
+            payload.forEach(item -> mEvents.chatInvite(item));
+            break;
+        case CHAT_MESSAGE:
+            payload.forEach(item -> mEvents.chatMessage(item));
+            break;
+        case GAME_UPDATE:
+            payload.forEach(item -> mEvents.gameUpdate(item));
+            break;
+        case GAME_INVITE:
+            payload.forEach(item -> mEvents.gameInvite(item));
+            break;
+        case FORCE_LOGOUT:
+            payload.forEach(item -> mEvents.forceLogout());
+            break;
         }
     }
 }

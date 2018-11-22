@@ -1,25 +1,29 @@
 package no.ntnu.imt3281.ludo.gui;
 
+import com.notification.NotificationFactory;
+import com.notification.NotificationManager;
+import com.notification.manager.SimpleManager;
+import com.notification.types.TextNotification;
+import com.theme.ThemePackagePresets;
+import com.utils.Time;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
-import no.ntnu.imt3281.ludo.client.Actions;
-import no.ntnu.imt3281.ludo.client.Chat;
-import no.ntnu.imt3281.ludo.client.StateManager;
-import no.ntnu.imt3281.ludo.client.User;
+import no.ntnu.imt3281.ludo.client.*;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Stream;
 
 /**
  * Controls FXML Controllers and how they transition
@@ -28,32 +32,49 @@ public class Transitions {
 
     private Stage mStage;
     private Actions mActions;
-    private StateManager mStateManager;
     private Map<String, FXMLDocument> mDocuments = new HashMap<>();
+    private NotificationFactory mFactory = new NotificationFactory(ThemePackagePresets.cleanLight());
+    private NotificationManager mPlain = new SimpleManager(NotificationFactory.Location.NORTHEAST);
 
+    /**
+     * Constructor
+     */
     private class FXMLDocument {
         Parent root;
         BaseController controller;
     }
 
     /**
+     * Bind dependencies
      *
+     * @param stage fxml stage
+     * @param actions used to dispatch input from user
      */
-    public void bind(Stage stage, Actions actions, StateManager sm) {
+    public void bind(Stage stage, Actions actions) {
         mStage = stage;
         mActions = actions;
-        mStateManager = sm;
     }
 
     /**
-     *
+     * Render login scene
+     * Override without optional email parameter
      */
-    public void renderLogin() {
+    public void renderLogin() {this.renderLogin("");}
 
-        var login = this.loadFXML(Path.LOGIN);
-        var root = new Scene(login.root);
+
+    /**
+     * Render login scene
+     *
+     * @param email for autocompletion
+     */
+    public void renderLogin(String email) {
         Platform.runLater(() -> {
-            mStage.setScene(root);
+
+            var login = this.loadFXML(Path.LOGIN);
+            var loginController = (LoginController)login.controller;
+            loginController.mLoginEmail.setText(email);
+
+            mStage.setScene(new Scene(login.root));
             mStage.show();
         });
     }
@@ -64,17 +85,16 @@ public class Transitions {
      * @param user logged in user
      */
     public void renderUser(User user) {
-        Logger.log(Level.INFO, "Transition -> Render User");
+        Platform.runLater(() -> {
 
-        var userDoc = this.loadFXML(Path.USER);
-        var userController = (UserController)userDoc.controller;
+            var userDoc = this.loadFXML(Path.USER);
+            var userController = (UserController) userDoc.controller;
 
-        Platform.runLater(()-> {
-            userController.mAvatarURL.setText(user.json.getString(FieldNames.AVATAR_URI));
-            userController.mUsername.setText(user.json.getString(FieldNames.USERNAME));
+            userController.mAvatarURL.setText(user.avatarURL);
+            userController.mUsername.setText(user.username);
 
             // TODO Email does not exist in get_user_request.
-            //userController.mEmail.setText(user.json.getString(FieldNames.EMAIL));
+            // userController.mEmail.setText(user.json.getString(FieldNames.EMAIL));
 
             mStage.setScene(new Scene(userDoc.root));
             mStage.show();
@@ -85,59 +105,64 @@ public class Transitions {
      *
      */
     public void renderLive() {
-        var live = this.loadFXML(Path.LIVE);
+        Platform.runLater(() -> {
+            var live = this.loadFXML(Path.LIVE);
 
-        Platform.runLater(()-> {
             mStage.setScene(new Scene(live.root));
             mStage.show();
         });
     }
 
     /**
-     *
+     * Clear all game tabs and render them again
      */
-    public void renderGameTabs(Map<Integer, JSONObject> activeGames) {
+    public void renderGameTabs(Map<Integer, Game> activeGames) {
+        Platform.runLater(() -> {
 
-        var live = this.mDocuments.get(Path.LIVE);
-        var liveController = (LiveController)live.controller;
+            var live = this.mDocuments.get(Path.LIVE);
+            var liveController = (LiveController) live.controller;
 
-        Platform.runLater(()-> {
             liveController.mTabGames.getTabs().clear();
 
             activeGames.forEach((id, game) -> {
                 var gameTab = this.loadFXML(Path.GAME_TAB, id);
-                Tab tab = new Tab("Game" + id);
+                Tab tab = new Tab(game.name);
                 tab.setContent(gameTab.root);
+
+
+                var gameTabController = (GameTabController)gameTab.controller;
+                gameTabController.mId = game.id;
+
+                var initial = LudoBoard.getInitialPositions();
+                gameTabController.setPiecePositions(initial);
                 liveController.mTabGames.getTabs().add(tab);
             });
         });
     }
 
     /**
-     *
+     * Clear all chat tabs, and render them again
      */
     public void renderChatTabs(Map<Integer, Chat> activeChats) {
+        Platform.runLater(() -> {
 
-        var liveController = (LiveController)this.mDocuments.get(Path.LIVE).controller;
+            var liveController = (LiveController) this.mDocuments.get(Path.LIVE).controller;
 
-        Platform.runLater(()-> {
             liveController.mTabChats.getTabs().clear();
 
             activeChats.forEach((id, chat) -> {
                 var chatTab = this.loadFXML(Path.CHAT_TAB, id);
-                var chatTabController = (ChatTabController)chatTab.controller;
-                Tab tab = new Tab("Chat" + id);
+                var chatTabController = (ChatTabController) chatTab.controller;
+                Tab tab = new Tab(chat.name);
                 tab.setContent(chatTab.root);
                 liveController.mTabChats.getTabs().add(tab);
 
                 chatTabController.mId = id;
 
-                chat.messages.forEach(messageJSON -> {
-                    var message = messageJSON.getString(FieldNames.MESSAGE);
-                    var username = messageJSON.getString(FieldNames.USERNAME);
+                chat.messages.forEach(message -> {
                     var chatItem = this.loadFXML(Path.CHAT_ITEM);
-                    var chatItemController = (ChatItemController)chatItem.controller;
-                    chatItemController.mMessage.setText(username + ": " + message);
+                    var chatItemController = (ChatItemController) chatItem.controller;
+                    chatItemController.mMessage.setText(message.username + ": " + message.message);
                     chatTabController.mMessageList.getChildren().add(chatItem.root);
                 });
             });
@@ -145,116 +170,107 @@ public class Transitions {
     }
 
     /**
-     *
+     * Render overview scene with empty lists, but with filled search fields.
      */
-    public void renderOverview() {
-        var overview = this.loadFXML(Path.OVERVIEW);
-        var state = mStateManager.copy();
-        var overviewController = (OverviewController)overview.controller;
+    public void renderOverview(String searchGames, String searchChats, String searchFriends, String searchUsers) {
+        Platform.runLater(() -> {
 
-        Platform.runLater(()-> {
+            var overview = this.loadFXML(Path.OVERVIEW);
+            var overviewController = (OverviewController) overview.controller;
+
             overviewController.renderButtonTexts();
 
-            overviewController.mSearchGames.setText(state.searchGames);
-            overviewController.mSearchChats.setText(state.searchChats);
-            overviewController.mSearchFriends.setText(state.searchFriends);
-            overviewController.mSearchUsers.setText(state.searchUsers);
+            overviewController.mSearchGames.setText(searchGames);
+            overviewController.mSearchChats.setText(searchChats);
+            overviewController.mSearchFriends.setText(searchFriends);
+            overviewController.mSearchUsers.setText(searchUsers);
 
-            mStage.setScene(new Scene(overview .root));
+            mStage.setScene(new Scene(overview.root));
             mStage.show();
         });
     }
 
     /**
-     *
+     * Render the overview scene's games list
      */
-    public void renderGamesList(List<JSONObject> activeGames, List<JSONObject>  gameInvites) {
+    public void renderGamesList(List<Game> activeGames, List<GameInvite> gameInvites) {
+        Platform.runLater(() -> {
 
-        var overview = (OverviewController)this.getController(Path.OVERVIEW);
+            var overview = (OverviewController) this.getController(Path.OVERVIEW);
 
-        Platform.runLater(()-> {
 
             overview.mListGames.getChildren().clear();
 
-            Logger.log(Level.DEBUG, "activeGames.size(): " + activeGames.size());
-
             activeGames.forEach(game -> {
-                var id = game.getInt(FieldNames.GAME_ID);
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
-                var name = game.getString(FieldNames.NAME);
-                var playerCount = game.getJSONArray(FieldNames.PLAYER_ID).length();
+                var playerCount = game.playerId.size();
 
                 itemController.mType = ListItemType.GAME;
                 itemController.mOverview = overview;
-                itemController.init(ListItemType.GAME, id, overview, name + " [" + playerCount + "/4]");
+                itemController.init(ListItemType.GAME, game.id, overview, game.name + " [" + playerCount + "/4]");
                 overview.mListGames.getChildren().add(item.root);
             });
 
             gameInvites.forEach(gameInvite -> {
-
-                var id = gameInvite.getInt(FieldNames.GAME_ID);
-
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
-                var name = gameInvite.getString(FieldNames.NAME);
 
-                itemController.init(ListItemType.GAME_INVITE, id, overview, name + " invite"); // TODO i18n
+                itemController.init(ListItemType.GAME_INVITE, gameInvite.gameId, overview, gameInvite.gameName + " [invite]"); // TODO i18n
                 overview.mListGames.getChildren().add(item.root);
             });
         });
     }
 
     /**
-     *
+     * Render the overview scene's chats list
      */
-    public void renderChatsList(List<Chat> activeChats, List<JSONObject> chatInvites) {
-        var overview = (OverviewController)this.getController(Path.OVERVIEW);
+    public void renderChatsList(List<Chat> activeChats, List<ChatInvite> chatInvites) {
+        Platform.runLater(() -> {
 
-        Platform.runLater(()-> {
+            var overview = (OverviewController) this.getController(Path.OVERVIEW);
 
             overview.mListChats.getChildren().clear();
 
-            Logger.log(Level.DEBUG, "activeChats.size(): " + activeChats.size());
-
             activeChats.forEach(chat -> {
-                var id = chat.json.getInt(FieldNames.CHAT_ID);
+                var id = chat.id;
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
-                var name = chat.json.getString(FieldNames.NAME);
-                var participantCount = chat.json.getJSONArray(FieldNames.PARTICIPANT_ID).length();
+                var name = chat.name;
+                var participantCount = chat.participants.size();
 
-                itemController.init(ListItemType.CHAT, id, overview, name + " ["+ participantCount+" people]"); // TODO i18n
+                itemController.init(ListItemType.CHAT, id, overview, name + " [" + participantCount + " people]"); // TODO
+                                                                                                                   // i18n
                 overview.mListChats.getChildren().add(item.root);
             });
 
             chatInvites.forEach(chatInvite -> {
 
-                var id = chatInvite.getInt(FieldNames.CHAT_ID);
                 var item = this.loadFXML(Path.LIST_ITEM);
                 var itemController = (ListItemController) item.controller;
 
-                var name = chatInvite.getString(FieldNames.NAME);
+                var name = chatInvite.chatName;
 
-                itemController.init(ListItemType.CHAT_INVITE, id, overview, name + " invite");// TODO i18n
+                itemController.init(ListItemType.CHAT_INVITE, chatInvite.chatId, overview, name + " [invite]");// TODO i18n
                 overview.mListChats.getChildren().add(item.root);
             });
         });
     }
 
     /**
-     *
+     * Render the overview scene's friends list
      */
     public void renderFriendList(List<JSONObject> friendsList) {
-        var overview = (OverviewController)this.getController(Path.OVERVIEW);
+        Platform.runLater(() -> {
 
-        Platform.runLater(()-> {
+            var overview = (OverviewController) this.getController(Path.OVERVIEW);
+
             overview.mListFriends.getChildren().clear();
 
             friendsList.forEach((friend) -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
-                var itemController = (ListItemController)item.controller;
+                var itemController = (ListItemController) item.controller;
 
                 var userId = friend.getInt(FieldNames.USER_ID);
                 var name = friend.getString(FieldNames.USERNAME);
@@ -265,32 +281,34 @@ public class Transitions {
                 }
 
                 switch (status) {
-                    case FRIENDED:
-                        itemController.init(ListItemType.FRIEND, userId, overview, name);
-                        overview.mListFriends.getChildren().add(item.root);
-                        break;
+                case FRIENDED:
+                    itemController.init(ListItemType.FRIEND, userId, overview, name);
+                    overview.mListFriends.getChildren().add(item.root);
+                    break;
 
-                    case PENDING:
-                        itemController.init(ListItemType.FRIEND_REQUEST, userId, overview, name + " [pending]"); // TODO i18n
-                        overview.mListFriends.getChildren().add(item.root);
-                        break;
+                case PENDING:
+                    itemController.init(ListItemType.FRIEND_REQUEST, userId, overview, name + " [pending]"); // TODO
+                                                                                                             // i18n
+                    overview.mListFriends.getChildren().add(item.root);
+                    break;
                 }
             });
         });
     }
 
     /**
-     *
+     * Render the overview scene's users list
      */
     public void renderUserList(List<JSONObject> usersList, List<JSONObject> ignoredList) {
-        var overview = (OverviewController)this.getController(Path.OVERVIEW);
+        Platform.runLater(() -> {
 
-        Platform.runLater(()-> {
+            var overview = (OverviewController) this.getController(Path.OVERVIEW);
+
             overview.mListUsers.getChildren().clear();
 
             usersList.forEach(user -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
-                var itemController = (ListItemController)item.controller;
+                var itemController = (ListItemController) item.controller;
 
                 var userId = user.getInt(FieldNames.USER_ID);
                 var name = user.getString(FieldNames.USERNAME);
@@ -301,7 +319,7 @@ public class Transitions {
 
             ignoredList.forEach(friend -> {
                 var item = this.loadFXML(Path.LIST_ITEM);
-                var itemController = (ListItemController)item.controller;
+                var itemController = (ListItemController) item.controller;
 
                 var friendId = friend.getInt(FieldNames.USER_ID);
                 var name = friend.getString(FieldNames.USERNAME);
@@ -318,65 +336,40 @@ public class Transitions {
     }
 
     /**
+     * Add new chat message to existing chat
      *
+     * @param message contains message,username and chatId
      */
-    public void newGame(int id, JSONObject game) {
-        var live = (LiveController)this.getController(Path.LIVE);
-
+    public void newMessage(ChatMessage message) {
         Platform.runLater(() -> {
-            var gameTab = this.loadFXML(Path.GAME_TAB, id);
-            Tab tab = new Tab("Game " + id);
-            tab.setContent(gameTab.root);
-            live.mTabGames.getTabs().add(tab);
-        });
-    }
-
-    public void newChat(int id, JSONObject chat) {
-        var live = (LiveController)this.getController(Path.LIVE);
-        var chatTab = this.loadFXML(Path.CHAT_TAB, id);
-        var chatTabController = (ChatTabController)chatTab.controller;
-        chatTabController.mId = id;
-
-        Platform.runLater(() -> {
-            Tab tab = new Tab("Chat " + id);
-            tab.setContent(chatTab.root);
-            live.mTabChats.getTabs().add(tab);
-        });
-    }
-
-    /**
-     *
-     */
-    public void newMessage(int chatId, String username, String message) {
-        var chat = (ChatTabController)this.getController(Path.CHAT_TAB, chatId);
-
-        Platform.runLater(() -> {
-
+            var chat = (ChatTabController) this.getController(Path.CHAT_TAB, message.chatId);
             var chatItem = this.loadFXML(Path.CHAT_ITEM);
-            var chatItemController = (ChatItemController)chatItem.controller;
-            chatItemController.mMessage.setText(username + ": " + message);
+            var chatItemController = (ChatItemController) chatItem.controller;
+            chatItemController.mMessage.setText(message.username + ": " + message.message);
             chat.mMessageList.getChildren().add(chatItem.root);
         });
     }
 
-
-    /**
-     *
-     */
-    public void renderGame(int id) {
-
+    public void toastInfo(String message) {
+        Platform.runLater(() -> {
+            TextNotification notification = mFactory.buildTextNotification("Info",message); // TODO i18n
+            notification.setCloseOnClick(true);
+            mPlain.addNotification(notification, Time.seconds(2));
+        });
     }
-
 
     public void toastError(String message) {
-        int toastMsgTime = 1500;
-        int fadeInTime = 100;
-        int fadeOutTime = 100;
-        final var red =
-                Color.color((float) 0xB0 / 0xff, (float) 0x00 / 0xff, (float) 0x20 / 0xff);
-        Toast.makeText(mStage, message, toastMsgTime, fadeInTime, fadeOutTime, red);
+        Platform.runLater(() -> {
+            TextNotification notification = mFactory.buildTextNotification("Error", message); // TODO i18n
+            notification.setCloseOnClick(true);
+            mPlain.addNotification(notification, Time.seconds(2));
+        });
     }
 
+    ////////////////////////////////////////////////////////////
+    //
+    // ----------------- PRIVATE FUNCTIONS -------------------
+    //
     private FXMLDocument loadFXML(String filename) {
         return loadFXML(filename, -1);
     }
@@ -390,7 +383,7 @@ public class Transitions {
         try {
             fxmlDocument.root = fxmlLoader.load();
             fxmlDocument.controller = fxmlLoader.getController();
-            fxmlDocument.controller.bind(mActions, mStateManager);
+            fxmlDocument.controller.bind(mActions);
 
             if (id != -1) {
                 mDocuments.put(filename + String.valueOf(id), fxmlDocument);
@@ -404,7 +397,6 @@ public class Transitions {
 
         return fxmlDocument;
     }
-
 
     /**
      * Shortcut function for getting a controller

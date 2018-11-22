@@ -27,7 +27,7 @@ class TestServer {
         });
         sServerThread.start();
         // We need to sleep a bit here to ensure that the thread is actually running.
-        Thread.sleep(250);
+        Thread.sleep(1000);
     }
 
     static void stop() throws InterruptedException {

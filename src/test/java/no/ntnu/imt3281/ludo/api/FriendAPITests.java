@@ -37,7 +37,7 @@ public class FriendAPITests {
     private static final Database.User LARS_TRYING_TO_STOP_BEING_IGNORED_BY_RALF = new Database.User(14, "Lars", null, "Lars@mail.com", null, null, "Lars");
     private static final Database.User RALF_IGNORING_LARS = new Database.User(15, "Ralf", null, "Ralf@mail.com", null, null, "Ralf");
 
-    private static final Database.User ARN_IGNORING_FRANK_WITHOUT_KNOWHING_HIM = new Database.User(16, "Arn", null, "Arn@mail.com", null, null, "Arn");
+    private static final Database.User ARN_IGNORING_FRANK_WITHOUT_KNOWHING_HIM = new Database.User(16, "Arn_Ignoring", null, "Arn@mail.com", null, null, "Arn");
     private static final Database.User FRANK = new Database.User(17, "Frank", null, "Frank@mail.com", null, null, "Frank");
 
 

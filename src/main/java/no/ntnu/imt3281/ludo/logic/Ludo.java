@@ -12,11 +12,12 @@ public class Ludo {
 
     public static final int UNASSIGNED = -1;
     public static final int MAX_PLAYERS = 4;
+    public static final int MIN_PLAYERS = 2;
 
-    static final int RED = 0;
-    static final int BLUE = 1;
-    static final int YELLOW = 2;
-    static final int GREEN = 3;
+    public static final int RED = 0;
+    public static final int BLUE = 1;
+    public static final int YELLOW = 2;
+    public static final int GREEN = 3;
 
     int[] mPlayer;
     int[][] mPiecePositions;
@@ -324,7 +325,13 @@ public class Ludo {
         mSixesInARow = 0;
         mCurrentPlayer = (mCurrentPlayer + 1) % 4;
         // Skip inactive mPlayer
+        int count = 0;
         while (mPlayer[mCurrentPlayer] == UNASSIGNED) {
+            count++;
+            if (count > Ludo.MAX_PLAYERS * 2) {
+                throw new RuntimeException("Have iterated over the game too many times, will livelock, shutting down ludo game");
+            }
+
             mCurrentPlayer = (mCurrentPlayer + 1) % 4;
         }
 
