@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
+import no.ntnu.imt3281.ludo.api.ActionType;
 import org.junit.Test;
 import org.mockito.InOrder;
 
@@ -1047,8 +1048,21 @@ public class LudoTest {
         Ludo ludo = new Ludo(1, 2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 
         ludo.throwDice(6);
-        assertEquals(ludo.getNextAction(), "movePiece");
+        assertEquals(ludo.getNextAction(), ActionType.MOVE_PIECE);
         ludo.movePiece(0, 0, 1);
-        assertEquals(ludo.getNextAction(), "throwDice");
+        assertEquals(ludo.getNextAction(), ActionType.THROW_DICE);
     }
+
+    @Test
+	public void getPiecePositionsContainsCorrectGlobalPositionsForStartCells() {
+		var ludo = new Ludo(1, 2, 3, 4);
+		var positions = ludo.getPiecePositions();
+		int counter = 0;
+
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				assertEquals(counter++, positions[i][j]);
+			}
+		}
+	}
 }

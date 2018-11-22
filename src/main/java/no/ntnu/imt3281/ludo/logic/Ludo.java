@@ -1,5 +1,7 @@
 package no.ntnu.imt3281.ludo.logic;
 
+import no.ntnu.imt3281.ludo.api.ActionType;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,7 +25,7 @@ public class Ludo {
     private boolean mStarted;
     private int mSixesInARow;
     private int mLastDiceResult;
-    private String mNextAction;
+    private ActionType mNextAction;
 
     List<DiceListener> mDiceListeners = new ArrayList<>();
     List<PieceListener> mPieceListeners = new ArrayList<>();
@@ -44,7 +46,7 @@ public class Ludo {
         mStarted = false;
         mSixesInARow = 0;
         mLastDiceResult = -1;
-        mNextAction = "throw";
+        mNextAction = ActionType.THROW_DICE;
     }
 
     /**
@@ -74,7 +76,7 @@ public class Ludo {
         mStarted = false;
         mSixesInARow = 0;
         mLastDiceResult = -1;
-        mNextAction = "throw";
+        mNextAction = ActionType.THROW_DICE;
     }
 
     /**
@@ -171,7 +173,7 @@ public class Ludo {
             mSixesInARow = 0;
             mRemainingAttempts--;
             if (mRemainingAttempts == 0) {
-                mNextAction = "move";
+                mNextAction = ActionType.MOVE_PIECE;
                 boolean noPiecesOut = true;
                 for (int piece = 0; piece < 4; piece++) {
                     if (getPosition(mCurrentPlayer, piece) != 0) {
@@ -196,7 +198,7 @@ public class Ludo {
             }
         } else {
             mSixesInARow++;
-            mNextAction = "move";
+            mNextAction = ActionType.MOVE_PIECE;
             if (mSixesInARow == 3) {
                 mSixesInARow = 0;
                 nextPlayersTurn();
@@ -221,6 +223,7 @@ public class Ludo {
             mSixesInARow = 0;
             mRemainingAttempts--;
             if (mRemainingAttempts == 0) {
+                mNextAction = ActionType.MOVE_PIECE;
                 boolean noPiecesOut = true;
                 for (int piece = 0; piece < 4; piece++) {
                     if (getPosition(mCurrentPlayer, piece) != 0) {
@@ -245,6 +248,7 @@ public class Ludo {
             }
         } else {
             mSixesInARow++;
+            mNextAction = ActionType.MOVE_PIECE;
             if (mSixesInARow == 3) {
                 nextPlayersTurn();
             }
@@ -352,7 +356,7 @@ public class Ludo {
         mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, prevPlayer, PlayerEvent.WAITING)));
         mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, newPlayer, PlayerEvent.PLAYING)));
 
-        mNextAction = "throw";
+        mNextAction = ActionType.THROW_DICE;
     }
 
     /**
@@ -470,7 +474,18 @@ public class Ludo {
 
     // MUST RETURN THIS IN GLOBAL POSITION
     public int[][] getPiecePositions() {
-        return mPiecePositions;
+        var globalPiecePositions = new int[4][4];
+        for (int i = 0; i < globalPiecePositions.length; i++) {
+            for (int j = 0; j < globalPiecePositions[i].length; j++) {
+                var pos = userGridToLudoBoardGrid(i, getPosition(i, j));
+                if (pos < 16) {
+                    pos = (i * Ludo.MAX_PLAYERS) + j;
+                }
+                globalPiecePositions[i][j] = pos;
+            }
+        }
+
+        return globalPiecePositions;
     }
 
     /**
@@ -509,7 +524,7 @@ public class Ludo {
      *
      * @return
      */
-    public String getNextAction() {
+    public ActionType getNextAction() {
         return mNextAction;
     }
 
