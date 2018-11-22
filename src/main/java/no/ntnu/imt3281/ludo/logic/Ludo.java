@@ -218,7 +218,7 @@ public class Ludo {
     public int throwDice() {
         mStarted = true;
         Random random = new Random();
-        int result = random.nextInt(5) + 1;
+        int result = random.nextInt(6) + 1;
         mDiceListeners.forEach(value -> value.diceThrown(new DiceEvent(this, mCurrentPlayer, result)));
 
         if (result < 6) {
