@@ -41,13 +41,7 @@ public class Ludo {
             mPlayer[i] = UNASSIGNED;
         }
 
-        mPiecePositions = new int[4][4];
-        mCurrentPlayer = 0;
-        mRemainingAttempts = 3;
-        mStarted = false;
-        mSixesInARow = 0;
-        mLastDiceResult = -1;
-        mNextAction = ActionType.THROW_DICE;
+        setUp();
     }
 
     /**
@@ -71,6 +65,13 @@ public class Ludo {
         mPlayer[2] = player3ID;
         mPlayer[3] = player4ID;
 
+        setUp();
+    }
+
+    /**
+     * Initializes member variables. Called in all constructors.
+     */
+    private void setUp() {
         mPiecePositions = new int[4][4];
         mCurrentPlayer = 0;
         mRemainingAttempts = 3;
@@ -269,52 +270,56 @@ public class Ludo {
      * @return
      */
     public boolean movePiece(int color, int from, int to) {
-        int conflictingPlayer = -1;
-        int conflictingPiece = -1;
-        int conflictingTile = -1;
+
+        // Go through the pieces belonging to this player until we find one in the right
+        // position that can legally make the desired move (no towers in the way).
         for (int i = 0; i < 4; i++) {
-            if (getPosition(color, i) == from) {
-                if (canMoveTo(from, to)) {
-                    for (int player = 0; player < 4; player++) {
-                        if (player != mCurrentPlayer) {
-                            for (int piece = 0; piece < 4; piece++) {
-                                int targetTile = userGridToLudoBoardGrid(mCurrentPlayer, to);
-                                int tilePieceIsOn = userGridToLudoBoardGrid(player, getPosition(player, piece));
-                                if (targetTile == tilePieceIsOn) {
-                                    conflictingPiece = piece;
-                                    conflictingPlayer = player;
-                                    conflictingTile = getPosition(player, piece);
+            if (getPosition(color, i) == from && canMoveTo(from, to)) {
 
-                                    setPosition(player, piece, 0);
-                                }
-                            }
-                        }
-                    }
-                    final var i2 = i;
-                    mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, color, i2, from, to)));
-                    if (conflictingPlayer != -1) {
-                        final var finPlayer = conflictingPlayer;
-                        final var finPiece = conflictingPiece;
-                        final var finFrom = conflictingTile;
-                        mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, finPlayer, finPiece, finFrom, 0)));
-                    }
-
-                    setPosition(color, i, to);
-                    if (getWinner() != -1) {
-                        mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, color, PlayerEvent.WON)));
-                    }
-
-                    if (from == 0 || (to - from) < 6) {
-                        nextPlayersTurn();
-                    }
-                    if ((to - from) == 6) {
-                        mNextAction = ActionType.THROW_DICE;
-                    }
-
-                    return true;
+                // Move the piece, and notify listeners that the piece has been moved. If this
+                // was a winning move, notify them of that as well.
+                setPosition(color, i, to);
+                final var i2 = i;
+                mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, color, i2, from, to)));
+                if (getWinner() != -1) {
+                    mPlayerListeners
+                            .forEach(value -> value.playerStateChanged(new PlayerEvent(this, color, PlayerEvent.WON)));
                 }
+
+                // We already know (from canMoveTo()) that the aren't any towers in the tiles up
+                // to and including where we want to move, but is there a single piece there? We
+                // check all pieces belonging to other, active players.
+                int targetTile = userGridToLudoBoardGrid(mCurrentPlayer, to);
+                int piecesToCheck = (activePlayers() - 1) * 4;
+                for (int j = 0; j < piecesToCheck; j++) {
+                    int otherPlayer = ((j / 4) + mCurrentPlayer + 1) % activePlayers();
+                    int otherPiece = j % 4;
+                    int tilePieceIsOn = userGridToLudoBoardGrid(otherPlayer, getPosition(otherPlayer, otherPiece));
+
+                    // If there is a piece there belonging to someone else, we move it back to its
+                    // starting position and notify listeners about it.
+                    if (targetTile == tilePieceIsOn) {
+                        mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, otherPlayer, otherPiece,
+                                getPosition(otherPlayer, otherPiece), 0)));
+                        setPosition(otherPlayer, otherPiece, 0);
+                    }
+                }
+
+                // If the move was out from the starting area, or the roll was less than 6, it's
+                // the next players turn.
+                if (from == 0 || (to - from) < 6) {
+                    nextPlayersTurn();
+                }
+                // If the roll was a 6, this player gets to roll again.
+                if ((to - from) == 6) {
+                    mNextAction = ActionType.THROW_DICE;
+                }
+
+                // We have successfully moved.
+                return true;
             }
         }
+        // We could not legally make this move.
         return false;
     }
 
