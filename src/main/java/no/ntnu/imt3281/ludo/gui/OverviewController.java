@@ -168,7 +168,7 @@ public class OverviewController extends BaseController {
         mSendChatInvite.setText(textSendChatInvite + " " + mSelectedChats.size() + " ->  " + mSelectedFriends.size());
 
         // Leave selected chats
-        mLeaveChat.setText(textLeaveChat + " " + mSelectedChats.size() + mSelectedChatInvites.size());
+        mLeaveChat.setText(textLeaveChat + " " + (mSelectedChats.size() + mSelectedChatInvites.size()));
 
         // Accept chat invites
         mAcceptChatInvite.setText(textAcceptChatInvite + " " + mSelectedChatInvites.size());

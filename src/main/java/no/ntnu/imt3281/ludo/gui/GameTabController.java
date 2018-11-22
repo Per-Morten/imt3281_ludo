@@ -22,6 +22,7 @@ import java.util.ArrayList;
 public class GameTabController extends BaseController {
 
     int mId;
+    int mChatId;
 
     @FXML
     Label player1Name;
@@ -334,5 +335,10 @@ public class GameTabController extends BaseController {
     @FXML
     void onAllowRandoms(ActionEvent event) {
         mActions.allowRandoms(mId, mCheckboxAllowRandoms.isSelected());
+    }
+
+    @FXML
+    void onSendMessage(ActionEvent event) {
+        mActions.sendChatMessage(mChatId, textToSay.getText());
     }
 }

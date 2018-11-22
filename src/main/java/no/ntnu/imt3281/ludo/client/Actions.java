@@ -212,7 +212,7 @@ public class Actions implements API.Events {
 
         var state = mState.copy();
         mTransitions.renderLive();
-        mTransitions.renderGameTabs(state.activeGames, mState.getUserId());
+        mTransitions.renderGameTabs(state.activeGames, state.activeChats, mState.getUserId());
         mTransitions.renderChatTabs(state.activeChats);
 
         mCurrentScene = Scene.LIVE;
@@ -307,33 +307,9 @@ public class Actions implements API.Events {
         payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(FieldNames.NAME, gameName);
 
-        send(CREATE_GAME_REQUEST, payload, successCreateGame -> {
-
-            send(GET_GAME_REQUEST, successCreateGame, successGetGame -> {
-
-                var game = new Game(successGetGame);
-                mState.commit(state -> {
-                    state.activeGames.put(game.id, game);
-                });
-
-                mTransitions.renderGameTabs(mState.copy().activeGames, mState.getUserId());
-
-
-                game.playerId.forEach(id -> {
-                    var payloadUser = new JSONObject();
-                    payloadUser.put(USER_ID, id);
-
-                    send(GET_USER_REQUEST, payloadUser, successUser -> {
-
-                        var user = new User(successUser);
-
-                        mState.commit(state -> {
-                            state.activeGames.get(game.id).playerNames.add(user.username);
-                        });
-                        mTransitions.renderGameTabs(mState.copy().activeGames, mState.getUserId());
-                    });
-                });
-            });
+        send(CREATE_GAME_REQUEST, payload, success -> {
+            this.fetchNewGame(success);
+            mTransitions.toastInfo("Created new game");
         });
     }
 
@@ -685,12 +661,9 @@ public class Actions implements API.Events {
         var payload = new JSONObject();
         payload.put(USER_ID, mState.getUserId());
 
-        send(JOIN_RANDOM_GAME_REQUEST, payload, successRandom -> {
-            send(GET_GAME_REQUEST, successRandom, successGetGame -> {
-                var game = new Game(successGetGame);
-                mState.commit(state -> state.activeGames.put(game.id, game));
-                mTransitions.renderGameTabs(mState.copy().activeGames, mState.getUserId());
-            });
+        send(JOIN_RANDOM_GAME_REQUEST, payload, success -> {
+            this.fetchNewGame(success);
+            mTransitions.toastInfo("Joined random game");
         });
     }
 
@@ -793,8 +766,10 @@ public class Actions implements API.Events {
                 state.activeChats.get(message.chatId).messages.add(message);
             });
 
+            var state = mState.copy();
             if (mCurrentScene.equals(Scene.LIVE)) {
-                mTransitions.newMessage(message);
+                mTransitions.renderGameTabs(state.activeGames, state.activeChats, state.userId);
+                mTransitions.renderChatTabs(state.activeChats);
             }
             mTransitions.toastInfo(message.username + ": " + message.message);
         });
@@ -804,19 +779,8 @@ public class Actions implements API.Events {
      * Notify which games has been changed
      */
     public void gameUpdate(JSONObject gameUpdateJson) {
-        send(GET_GAME_REQUEST, gameUpdateJson, success -> {
-
-            var game = new Game(success);
-            mState.commit(state -> {
-                state.activeGames.put(game.id, game);
-            });
-
-            if(mCurrentScene.equals(Scene.LIVE)) {
-                mTransitions.renderGameTabs(mState.copy().activeGames, mState.getUserId());
-            } else if(mCurrentScene.equals(Scene.OVERVIEW)) {
-                this.gotoOverview();
-            }
-        });
+        this.fetchNewGame(gameUpdateJson);
+        mTransitions.toastInfo("Game updated");
     }
 
     /**
@@ -887,11 +851,63 @@ public class Actions implements API.Events {
         this.gotoLogin();
     }
 
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // Private functions
     //
+
+
+    /**
+     * Fetch newly created game
+     *
+     * @param payload api payload for GET_GAME_REQUEST
+     */
+    private void fetchNewGame(JSONObject payload) {
+        send(GET_GAME_REQUEST, payload, successGetGame -> {
+
+            var game = new Game(successGetGame);
+
+            var payloadJoinChat = new JSONObject();
+            payloadJoinChat.put(USER_ID, mState.getUserId());
+            payloadJoinChat.put(CHAT_ID, game.chatId);
+
+            send(JOIN_CHAT_REQUEST, payloadJoinChat, successJoinChat -> {
+
+                var payloadGetChat = new JSONObject();
+                payloadGetChat.put(CHAT_ID, game.chatId);
+                send(GET_CHAT_REQUEST, payloadGetChat, successGetChat -> {
+
+                    var chat = new Chat(successGetChat);
+                    mState.commit(state -> {
+                        state.activeGames.put(game.id, game);
+                        state.activeChats.put(chat.id, chat);
+                    });
+
+
+                    var state = mState.copy();
+                    mTransitions.renderGameTabs(state.activeGames, state.activeChats, state.userId);
+
+                    game.playerId.forEach(id -> {
+                        var payloadUser = new JSONObject();
+                        payloadUser.put(USER_ID, id);
+
+                        send(GET_USER_REQUEST, payloadUser, successUser -> {
+
+                            var user = new User(successUser);
+
+                            mState.commit(state2 -> {
+                                state2.activeGames.get(game.id).playerNames.add(user.username);
+                            });
+
+                            var state2 = mState.copy();
+                            mTransitions.renderGameTabs(state2.activeGames, state2.activeChats, state2.userId);
+                        });
+                    });
+                });
+            });
+        });
+    }
+
     /**
      * Do prep-work for each action.
      *
