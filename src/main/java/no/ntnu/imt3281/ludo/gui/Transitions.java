@@ -146,6 +146,12 @@ public class Transitions {
                 };
                 if (i == 4) Logger.log(Level.WARN, "Logged in user not found in active games player id's");
 
+
+                // Hide start button if not game master
+                if (game.ownerId != userId) {
+                    gameTabController.mBtnStartGame.setVisible(false);
+                }
+
                 liveController.mTabGames.getTabs().add(tab);
             });
         });

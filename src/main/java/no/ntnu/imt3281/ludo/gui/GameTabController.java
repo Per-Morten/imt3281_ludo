@@ -121,7 +121,7 @@ public class GameTabController extends BaseController {
     private Button mBtnThrowDice;
 
     @FXML
-    private Button mBtnStartGame;
+    Button mBtnStartGame;
 
 
     private Circle[] mRedPieces;
@@ -184,11 +184,11 @@ public class GameTabController extends BaseController {
 
                     var pieceIndex = Integer.valueOf(newValue);
 
+                    // Note: displays which piece is selected at any given time
                     Platform.runLater(() -> {
                         switch (mColor) {
                             case Ludo.RED: {
                                 for(var piece: mRedPieces) {
-                                    Logger.log(Logger.Level.WARN, "RED valuechange: " + newValue + "  color: " + mColor);
                                     piece.setFill(Color.RED);
                                 }
                                 mRedPieces[pieceIndex].setFill(Color.PINK);
@@ -196,7 +196,6 @@ public class GameTabController extends BaseController {
                             case Ludo.BLUE: {
 
                                 for(var piece: mBluePieces) {
-                                    Logger.log(Logger.Level.WARN, "BLUE valuechange: " + newValue + "  color: " + mColor);
                                     piece.setFill(Color.BLUE);
                                 }
                                 mBluePieces[pieceIndex].setFill(Color.PINK);
@@ -204,7 +203,6 @@ public class GameTabController extends BaseController {
                             case Ludo.YELLOW: {
 
                                 for(var piece: mYellowPieces) {
-                                    Logger.log(Logger.Level.WARN, "YELLOW valuechange: " + newValue + "  color: " + mColor);
                                     piece.setFill(Color.YELLOW);
                                 }
                                 mYellowPieces[pieceIndex].setFill(Color.PINK);
@@ -212,7 +210,6 @@ public class GameTabController extends BaseController {
                             case Ludo.GREEN: {
 
                                 for(var piece: mGreenPieces) {
-                                    Logger.log(Logger.Level.WARN, "GREEN valuechange: " + newValue + "  color: " + mColor);
                                     piece.setFill(Color.GREEN);
                                 }
                                 mGreenPieces[pieceIndex].setFill(Color.PINK);
