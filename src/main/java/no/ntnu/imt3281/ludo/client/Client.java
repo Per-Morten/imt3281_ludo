@@ -76,7 +76,7 @@ public class Client extends Application {
         var initialState = mStateManager.copy();
         Logger.log(Level.DEBUG, initialState.username + " - " + initialState.password);
         if (!initialState.password.isEmpty()) {
-            mActions.login(initialState.username, initialState.password);
+            mActions.login(initialState.email, initialState.password);
         } else {
             mActions.gotoLogin();
         }

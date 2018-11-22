@@ -114,11 +114,12 @@ public class StateManager {
             var json = new JSONObject(text);
             try {
                 state = State.fromJson(json);
+                Logger.log(Logger.Level.DEBUG, "Loading state from " + StateManager.filepath + " " + json.toString());
             } catch (JSONException e) {
-                Logger.log(Logger.Level.WARN, "Missing key in " + StateManager.filepath);
+                Logger.logException(Logger.Level.WARN, e, "Failed in fromJson");
             }
         } catch (Exception e) {
-            Logger.log(Logger.Level.INFO, "Failed to load " + StateManager.filepath);
+            Logger.logException(Logger.Level.INFO, e, "Failed to load " + StateManager.filepath);
         }
         mState.put(state);
     }
@@ -136,6 +137,7 @@ public class StateManager {
             var plainText = json.toString();
             var encryptedText = mEncryptDecrypt.encrypt(plainText);
             writer.write(encryptedText);
+            Logger.log(Logger.Level.DEBUG, "Dumping state to " + StateManager.filepath + " " + plainText);
         } catch (Exception e) {
             Logger.logException(Logger.Level.WARN, e, "Failed to write to " + StateManager.filepath);
         }

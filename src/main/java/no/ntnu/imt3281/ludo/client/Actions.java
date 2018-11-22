@@ -310,36 +310,24 @@ public class Actions implements API.Events {
         payload.put(FieldNames.NAME, gameName);
 
         send(CREATE_GAME_REQUEST, payload, successCreateGame -> {
+
+            // TODO HACK below. Join game before getting game, to prevent UNAUTHORIZED error
+            successCreateGame.put(USER_ID, mState.getUserId());
+            send(JOIN_GAME_REQUEST, successCreateGame);
+            // TODO End hack
+
             send(GET_GAME_REQUEST, successCreateGame, successGetGame -> {
 
                 var game = new Game(successGetGame);
                 mState.commit(state -> {
                     state.activeGames.put(game.id, game);
                 });
+                mTransitions.renderGameTabs(mState.copy().activeGames);
             });
         });
 
-        var game = new Game();
-        game.name = "Test game";
-        game.id = 1;
-        game.ownerId = mState.getUserId();
-        game.playerId.add(mState.getUserId());
-        game.status = 0;
-        mState.commit(state -> {
-            state.activeGames.put(game.id, game);
-        });
-        mTransitions.renderGameTabs(mState.copy().activeGames);
     }
 
-    // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE GAME
-    private static JSONObject makeGame() {
-        var gameId = randomInt();
-        var game = new JSONObject();
-        game.put(FieldNames.GAME_ID, gameId);
-        game.put(FieldNames.NAME, "Game " + gameId);
-        game.put(FieldNames.PLAYER_ID, new JSONArray(new int[] {}));
-        return game;
-    }
 
     /**
      * Create chat and add to active chat list
