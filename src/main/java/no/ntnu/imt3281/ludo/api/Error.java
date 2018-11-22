@@ -26,7 +26,10 @@ public enum Error {
     NOT_TIME_TO_MOVE_PIECE,          // 19
     PIECE_INDEX_OUT_OF_BOUNDS,       // 20
     GAME_IS_FULL,                    // 21
-    NOT_INVITED_TO_GAME;             // 22
+    NOT_INVITED_TO_GAME,             // 22
+    MALFORMED_EMAIL,                 // 23
+    MALFORMED_USERNAME,              // 24
+    MALFORMED_AVATAR_URI,;           // 25
 
 
 

@@ -2,6 +2,7 @@ package no.ntnu.imt3281.ludo.client;
 
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
+import no.ntnu.imt3281.ludo.api.GlobalChat;
 import no.ntnu.imt3281.ludo.api.RequestType;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
@@ -9,25 +10,27 @@ import no.ntnu.imt3281.ludo.gui.Transitions;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-import static no.ntnu.imt3281.ludo.api.FieldNames.CHAT_ID;
+import static no.ntnu.imt3281.ludo.api.FieldNames.*;
 import static no.ntnu.imt3281.ludo.api.RequestType.*;
 
-public class Actions {
+public class Actions implements API.Events {
 
     private Transitions mTransitions;
     private API mAPI;
     private StateManager mState;
     private final RequestFactory mRequests = new RequestFactory();
-
+    private Scene mCurrentScene;
     /**
      * Bind dependencies of Actions
      *
-     * @param transitions to feed mutations
-     * @param API         to push requests
+     * @param transitions to mutate the FXML state
+     * @param API         to push requests to server, and get responses + events
+     *                    from server
      */
     void bind(Transitions transitions, API API, StateManager stateManager) {
         mTransitions = transitions;
@@ -41,25 +44,10 @@ public class Actions {
     void gotoLogin() {
         this.logAction("gotoLogin");
 
-        mState.commit(gState -> {
-            gState.userId = -1;
-            gState.email = "";
-            gState.authToken = "";
-            gState.username = "";
-            gState.avatarURI = "";
-
-            gState.searchUsers = "";
-            gState.searchChats = "";
-            gState.searchFriends = "";
-            gState.searchGames = "";
-
-            gState.activeChats.clear();
-            gState.activeGames.clear();
-            gState.chatInvites.clear();
-            gState.gameInvites.clear();
-        });
+        mState.reset();
 
         mTransitions.renderLogin();
+        mCurrentScene = Scene.LOGIN;
     }
 
     /**
@@ -87,7 +75,7 @@ public class Actions {
                 state.username = username;
             });
 
-            mTransitions.renderLogin();
+            mTransitions.renderLogin(email);
         });
     }
 
@@ -109,12 +97,33 @@ public class Actions {
             mState.commit(state -> {
                 state.userId = success.getInt(FieldNames.USER_ID);
                 state.authToken = success.getString(FieldNames.AUTH_TOKEN);
+                state.password = password;
+                state.email = email;
             });
+
+            // Join global chat
+            var payloadGlobalChat = new JSONObject();
+            payloadGlobalChat.put(CHAT_ID, GlobalChat.ID);
+            payloadGlobalChat.put(USER_ID, mState.getUserId());
+
+            send(JOIN_CHAT_REQUEST, payloadGlobalChat, successJoin -> {
+                send(GET_CHAT_REQUEST, payloadGlobalChat, successGetChat -> {
+
+                    var globalChat = new Chat(successGetChat);
+                    mState.commit(state -> {
+                        state.activeChats.put(GlobalChat.ID, globalChat);
+                    });
+                });
+            });
+
+            mTransitions.toastInfo("Successfully logged in"); // TODO i18n
             this.gotoUser();
-        
+
+        }, error ->  {
+            this.logError(error);
+            this.gotoLogin();
         });
     }
-
 
     /**
      * Logout user. Return to login screen
@@ -125,7 +134,10 @@ public class Actions {
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, mState.getUserId());
 
-        send(LOGOUT_REQUEST, payload, success -> this.gotoLogin());
+        send(LOGOUT_REQUEST, payload, success -> this.gotoLogin(), error -> {
+            this.logError(error);
+            this.gotoLogin();
+        });
 
     }
 
@@ -166,7 +178,6 @@ public class Actions {
 
         send(DELETE_USER_REQUEST, payload, success -> {
             this.logout();
-        
         });
     }
 
@@ -181,16 +192,17 @@ public class Actions {
 
         send(GET_USER_REQUEST, payload, success -> {
 
-            var user = new User();
-            user.json = success;
+            var user = new User(success);
 
             mState.commit(state -> {
-                state.username = success.getString(FieldNames.USERNAME);
-                state.avatarURI = success.getString(FieldNames.AVATAR_URI);
+                state.username = user.username;
+                state.avatarURI = user.avatarURL;
                 // TODO Email does not exist in get_user_request.
             });
             mTransitions.renderUser(user);
-        
+            mCurrentScene = Scene.USER;
+        }, error -> {
+            gotoLogin();
         });
     }
 
@@ -204,43 +216,25 @@ public class Actions {
         mTransitions.renderLive();
         mTransitions.renderGameTabs(state.activeGames);
         mTransitions.renderChatTabs(state.activeChats);
+
+        mCurrentScene = Scene.LIVE;
     }
 
     /**
-     * Goto the overview screen.
-     * Display list of games,chats,friends and users.
-     * Filter the aforementioned lists by the value of each correponding search field.
+     * Goto the overview screen. Display list of games,chats,friends and users.
+     * Filter the aforementioned lists by the value of each correponding search
+     * field.
      */
     public void gotoOverview() {
         this.logAction("gotoOverview");
 
         var stateCopy = mState.copy();
 
-        // Filter based on search
-        var filteredGames = stateCopy.activeGames.values().stream()
-                .filter(game -> game.getString(FieldNames.NAME).toUpperCase()
-                        .contains(stateCopy.searchGames.toUpperCase()))
-                .collect(Collectors.toList());
+        mTransitions.renderOverview(stateCopy.searchGames, stateCopy.searchChats, stateCopy.searchFriends, stateCopy.searchUsers);
+        mTransitions.renderGamesList(mState.filteredGames(), mState.filteredGameInvites());
+        mTransitions.renderChatsList(mState.filteredChats(), mState.filteredChatInvites());
 
-        var filteredGameInvites = stateCopy.gameInvites.values().stream()
-                .filter(gameInv -> gameInv.getString(FieldNames.NAME).toUpperCase()
-                            .contains(stateCopy.searchGames.toUpperCase()))
-                .collect(Collectors.toList());
-
-        var filteredChats = stateCopy.activeChats.values().stream()
-                .filter(chat -> chat.json.getString(FieldNames.NAME).toUpperCase()
-                            .contains(stateCopy.searchChats.toUpperCase()))
-                .collect(Collectors.toList());
-
-        var filteredChatInvites = stateCopy.chatInvites.values().stream()
-                .filter(chatInv -> chatInv.getString(FieldNames.NAME).toUpperCase()
-                        .contains(stateCopy.searchChats.toUpperCase()))
-                .collect(Collectors.toList());
-
-
-        mTransitions.renderOverview();
-        mTransitions.renderGamesList(filteredGames, filteredGameInvites);
-        mTransitions.renderChatsList(filteredChats, filteredChatInvites);
+        mCurrentScene = Scene.OVERVIEW;
 
         // Get friends range
         final var payload = new JSONObject();
@@ -253,7 +247,7 @@ public class Actions {
             var friendsList = new ArrayList<JSONObject>();
 
             friendsRange.forEach(friend -> {
-                friendsList.add((JSONObject)friend);
+                friendsList.add((JSONObject) friend);
             });
 
             // Filter friends by search
@@ -263,9 +257,7 @@ public class Actions {
                             .contains(stateCopy.searchFriends.toUpperCase()))
                     .collect(Collectors.toList());
 
-
             mTransitions.renderFriendList(filteredFriendsList);
-
 
             // Get user range
             send(GET_USER_RANGE_REQUEST, payload, successUsers -> {
@@ -274,12 +266,12 @@ public class Actions {
                 var usersList = new ArrayList<JSONObject>();
                 usersRange.forEach(user -> {
 
-                    var userjson = (JSONObject)user;
+                    var userjson = (JSONObject) user;
                     int userId = userjson.getInt(FieldNames.USER_ID);
 
                     // Only add users who are not in the friends list
                     boolean found = false;
-                    for (var friend: friendsList) {
+                    for (var friend : friendsList) {
                         var friendId = friend.getInt(FieldNames.USER_ID);
                         if (friendId == userId || userId == stateCopy.userId) {
                             found = true;
@@ -287,15 +279,13 @@ public class Actions {
                         }
                     }
                     if (!found) {
-                        usersList.add((JSONObject)user);
+                        usersList.add((JSONObject) user);
                     }
                 });
 
                 // Filter user by search
-                var filteredUserList = usersList.stream()
-                        .filter(user -> user.getString(FieldNames.USERNAME).toUpperCase()
-                                .contains(stateCopy.searchUsers.toUpperCase()))
-                        .collect(Collectors.toList());
+                var filteredUserList = usersList.stream().filter(user -> user.getString(FieldNames.USERNAME)
+                        .toUpperCase().contains(stateCopy.searchUsers.toUpperCase())).collect(Collectors.toList());
 
                 // Filter ignored by search
                 var filteredIgnoredList = friendsList.stream()
@@ -305,81 +295,74 @@ public class Actions {
                         .collect(Collectors.toList());
 
                 mTransitions.renderUserList(filteredUserList, filteredIgnoredList);
-            
             });
         });
     }
 
     /**
-     * Create game and add as active
+     * Create game and add to active games list
      */
-    public void createGame(/* TODO pass name*/) {
+    public void createGame(String gameName) {
         this.logAction("createGame");
-
-        var game = makeGame();
-        var clientGameId = game.getInt(FieldNames.GAME_ID);
 
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, mState.getUserId());
-        payload.put(FieldNames.NAME, "Game " + clientGameId);
+        payload.put(FieldNames.NAME, gameName);
 
-        send(CREATE_GAME_REQUEST, payload, success -> {
-            // TODO SERVER UNIMPLEMENTED
-        
+        send(CREATE_GAME_REQUEST, payload, successCreateGame -> {
+            send(GET_GAME_REQUEST, successCreateGame, successGetGame -> {
+
+                var game = new Game(successGetGame);
+                mState.commit(state -> {
+                    state.activeGames.put(game.id, game);
+                });
+            });
         });
 
+        var game = new Game();
+        game.name = "Test game";
+        game.id = 1;
+        game.ownerId = mState.getUserId();
+        game.playerId.add(mState.getUserId());
+        game.status = 0;
         mState.commit(state -> {
-            state.activeGames.put(clientGameId, game);
+            state.activeGames.put(game.id, game);
         });
-        mTransitions.newGame(clientGameId, game);
+        mTransitions.renderGameTabs(mState.copy().activeGames);
     }
 
     // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE GAME
     private static JSONObject makeGame() {
-        var gameId = randomId();
+        var gameId = randomInt();
         var game = new JSONObject();
         game.put(FieldNames.GAME_ID, gameId);
         game.put(FieldNames.NAME, "Game " + gameId);
-        game.put(FieldNames.PLAYER_ID, new JSONArray(new int[]{}));
+        game.put(FieldNames.PLAYER_ID, new JSONArray(new int[] {}));
         return game;
     }
 
-
     /**
-     * Create chat and add as active
+     * Create chat and add to active chat list
      */
-    public void createChat(/* TODO pass name*/) {
+    public void createChat(String chatName) {
         this.logAction("createChat");
-
-        var chatJSON = makeChat();
-        var clientChatId = chatJSON.getInt(CHAT_ID);
 
         var payload = new JSONObject();
         payload.put(FieldNames.USER_ID, mState.getUserId());
-        payload.put(FieldNames.NAME, "Chat " + clientChatId);
+        payload.put(FieldNames.NAME, chatName);
 
-        send(CREATE_CHAT_REQUEST, payload, success -> {
-            // TODO SERVER UNIMPLEMENTED
+        send(CREATE_CHAT_REQUEST, payload, successCreateChat -> {
+            send(GET_CHAT_REQUEST, successCreateChat, successGetChat -> {
+
+                var chat = new Chat(successGetChat);
+
+                mState.commit(state -> {
+                    state.activeChats.put(chat.id, chat);
+                });
+                mTransitions.renderChatTabs(mState.copy().activeChats);
+            });
         });
-
-        var chat = new Chat();
-        chat.json = chatJSON;
-        mState.commit(state -> {
-            state.activeChats.put(clientChatId , chat);
-        });
-        mTransitions.newChat(clientChatId, chat.json);
     }
-
-    // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE CHAT
-    private static JSONObject makeChat() {
-        var chatId = randomId();
-        var chat = new JSONObject();
-        chat.put(CHAT_ID, chatId);
-        chat.put(FieldNames.NAME, "Chat " + chatId);
-        chat.put(FieldNames.PARTICIPANT_ID, new JSONArray(new int[]{}));
-        return chat;
-    }
-
 
     /**
      * Send friend request to a set of users
@@ -399,7 +382,7 @@ public class Actions {
 
         send(FRIEND_REQUEST, payload, success -> {
             this.gotoOverview();
-    
+
         });
     }
 
@@ -443,12 +426,12 @@ public class Actions {
 
         send(IGNORE_REQUEST, payload, success -> {
             this.gotoOverview();
-        
+
         });
     }
 
     /**
-     *
+     * Join chat you have been invited to or is visible to you
      */
     public void joinChat(HashSet<Integer> chatsId) {
         this.logAction("joinChat");
@@ -463,12 +446,11 @@ public class Actions {
 
         send(JOIN_CHAT_REQUEST, payload, success -> {
             this.gotoOverview();
-
         });
     }
 
     /**
-     *
+     * Join chat you have been invited to or active chat
      */
     public void leaveChat(HashSet<Integer> chatsId) {
         this.logAction("leaveChat");
@@ -482,48 +464,29 @@ public class Actions {
         });
 
         send(LEAVE_CHAT_REQUEST, payload, success -> {
-            // TODO SERVER UNIMPLEMENTED
-        });
-
-        mState.commit(state -> {
-            chatsId.forEach(id ->  {
-                state.activeChats.remove(id);
+            mState.commit(state -> {
+                state.activeChats.remove(success.getInt(CHAT_ID));
             });
+            this.gotoOverview();
         });
-
-        this.gotoOverview();
     }
 
     /**
-     *
+     * Send a chat message as currently logged in user
      */
     public void sendChatMessage(int chatId, String message) {
         this.logAction("sendChatMessage");
 
         var payload = new JSONObject();
-        payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(CHAT_ID, chatId);
+        payload.put(FieldNames.USER_ID, mState.getUserId());
         payload.put(FieldNames.MESSAGE, message);
 
-        send(SEND_CHAT_MESSAGE_REQUEST, payload, success -> {
-            // TODO SERVER UNIMPLEMENTED
-
-        });
-
-        var stateCopy = mState.copy();
-        var messageJSON = new JSONObject();
-        messageJSON.put(FieldNames.MESSAGE, message);
-        messageJSON.put(FieldNames.USERNAME, stateCopy.username);
-
-        mState.commit(state -> {
-            Logger.log(Level.DEBUG, "!!!chatId: " + String.valueOf(chatId));
-            state.activeChats.get(chatId).messages.add(messageJSON);
-        });
-        mTransitions.newMessage(chatId, stateCopy.username, message);
+        send(SEND_CHAT_MESSAGE_REQUEST, payload);
     }
 
     /**
-     *
+     * Send chat invite as currently logged in user
      */
     public void sendChatInvite(HashSet<Integer> chatsId, HashSet<Integer> friendsId) {
         this.logAction("sendChatInvite");
@@ -540,13 +503,13 @@ public class Actions {
         });
 
         send(SEND_CHAT_INVITE_REQUEST, payload, success -> {
+
             this.gotoOverview();
-        
         });
     }
 
     /**
-     *
+     * Join a collection of games
      */
     public void joinGame(HashSet<Integer> gamesId) {
         this.logAction("joinGame");
@@ -561,12 +524,11 @@ public class Actions {
 
         send(JOIN_GAME_REQUEST, payload, success -> {
             this.gotoOverview();
-        
         });
     }
 
     /**
-     *
+     * Leave a collection of games
      */
     public void leaveGame(HashSet<Integer> gamesId) {
         this.logAction("leaveGame");
@@ -581,11 +543,11 @@ public class Actions {
 
         send(LEAVE_GAME_REQUEST, payload, success -> {
             // TODO SERVER UNIMPLEMENTED
-        
+
         });
 
         mState.commit(state -> {
-            gamesId.forEach(id ->  {
+            gamesId.forEach(id -> {
                 state.activeGames.remove(id);
             });
         });
@@ -611,7 +573,7 @@ public class Actions {
 
         send(SEND_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
-    
+
         });
     }
 
@@ -630,7 +592,25 @@ public class Actions {
 
         send(DECLINE_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
-       
+
+        });
+    }
+
+
+    /**
+     * Updates the different search filteres
+     *
+     * @param searchGames search text games
+     * @param searchChats search text chats
+     * @param searchFriends search text friends
+     * @param searchUsers search text users
+     */
+    public void search(String searchGames, String searchChats, String searchFriends, String searchUsers) {
+        mState.commit(state -> {
+            state.searchGames = searchGames;
+            state.searchChats = searchChats;
+            state.searchFriends = searchFriends;
+            state.searchUsers = searchUsers;
         });
     }
 
@@ -655,10 +635,6 @@ public class Actions {
         this.logAction("movePiece");
     }
 
-
-
-
-
     // ------------------- GET REQUESTS -------------------
 
     /**
@@ -668,7 +644,6 @@ public class Actions {
         this.logAction("login");
     }
 
-
     /**
      *
      */
@@ -677,6 +652,7 @@ public class Actions {
         this.logAction("getUser");
 
     }
+
     /**
      *
      */
@@ -698,42 +674,160 @@ public class Actions {
         this.logAction("getGameState");
     }
 
-    /**
-     *
-     */
-    void friendUpdate() {
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // API.Events implementation
+    //
 
+    /**
+     * Something in the friends list has changed
+     */
+    public void friendUpdate() {
+        // TODO if in overview scene update friendlist
+        if (mCurrentScene.equals(Scene.OVERVIEW)) {
+            this.gotoOverview();
+        }
+        mTransitions.toastInfo("Friends list updated"); // TODO i18n
     }
-    void chatUpdate() {
 
+    /**
+     * Notify which chats has changed
+     */
+    public void chatUpdate(JSONObject chats) {
+        send(GET_CHAT_REQUEST, chats, success -> {
+            var chat = new Chat(success);
+
+            mState.commit(state -> {
+                state.activeChats.put(chat.id, chat);
+            });
+
+            if (mCurrentScene.equals(Scene.OVERVIEW)) {
+                this.gotoOverview();
+            } else if (mCurrentScene.equals(Scene.LIVE)) {
+                this.gotoLive();
+            }
+        });
     }
 
     /**
-     *
+     * Handle incoming chat invites
      */
-    void chatInvite(ArrayList<JSONObject> chats) {}
+    public void chatInvite(JSONObject chatInviteJSON) {
+
+        var chatInvite = new ChatInvite(chatInviteJSON);
+
+        var payloadUser = new JSONObject();
+        payloadUser.put(USER_ID, chatInvite.userId);
+        send(GET_USER_REQUEST,payloadUser, successUser -> {
+
+            var user = new User(successUser);
+
+            var payloadChat = new JSONObject();
+            payloadChat.put(CHAT_ID, chatInvite.chatId);
+            send(GET_CHAT_REQUEST, payloadChat, successChat -> {
+
+                var chat = new Chat(successChat);
+                chatInvite.userName = user.username;
+                chatInvite.chatName = chat.name;
+
+                mState.commit(state -> {
+                    state.chatInvites.put(chatInvite.chatId, chatInvite);
+                });
+
+
+                if (mCurrentScene.equals(Scene.OVERVIEW)) {
+                    this.gotoOverview();
+                }
+                mTransitions.toastInfo("New chat invite from" + chatInvite.userName + " " + "to" + " " + chatInvite.chatName); // TODO i18n
+            });
+        });
+    }
 
     /**
-     *
+     * Handle incoming chat messages. Make sure there is a user matching the user_id in state.
      */
-    void chatMessage(ArrayList<JSONObject> messages) {}
+    public void chatMessage(JSONObject messagejson) {
+
+        var payload = new JSONObject();
+        payload.put(USER_ID, messagejson.getInt(USER_ID));
+
+        send(GET_USER_REQUEST, payload, success -> {
+            var user = new User(success);
+            var message = new ChatMessage(messagejson);
+            message.username = user.username;
+
+            mState.commit(state -> {
+                state.activeChats.get(message.chatId).messages.add(message);
+            });
+
+            if (mCurrentScene.equals(Scene.LIVE)) {
+                mTransitions.newMessage(message);
+            }
+            mTransitions.toastInfo(message.username + ": " + message.message);
+        });
+    }
 
     /**
-     *
+     * Notify which games has been changed
      */
-    void gameUpdate(ArrayList<JSONObject> games) {}
+    public void gameUpdate(JSONObject games) {
+        send(GET_GAME_REQUEST, games, success -> {
+            var game = new Game(success);
+
+            mState.commit(state -> {
+                state.activeGames.put(game.id, game);
+            });
+
+            if(mCurrentScene.equals(Scene.LIVE)) {
+                this.gotoLive();
+            } else if(mCurrentScene.equals(Scene.OVERVIEW)) {
+                this.gotoOverview();
+            }
+        });
+    }
 
     /**
-     *
+     * Handle incoming game invites
      */
-    void gameInvite(ArrayList<JSONObject> gameInvites) {}
+    public void gameInvite(JSONObject gameInvitesJSON) {
+        var gameInvite = new GameInvite(gameInvitesJSON);
+
+        var payloadUser = new JSONObject();
+        payloadUser.put(USER_ID, gameInvite.userId);
+        send(GET_USER_REQUEST,payloadUser, successUser -> {
+
+            var user = new User(successUser);
+
+            var payloadGame = new JSONObject();
+            payloadGame.put(CHAT_ID, gameInvite.gameId);
+            send(GET_GAME_REQUEST, payloadGame, successGame -> {
+
+                var game = new Game(successGame);
+                gameInvite.userName = user.username;
+                gameInvite.gameName = game.name;
+
+                mState.commit(state -> {
+                    state.gameInvites.put(gameInvite.gameId, gameInvite);
+                });
+                if (mCurrentScene.equals(Scene.OVERVIEW)) {
+                    this.gotoOverview();
+                }
+                mTransitions.toastInfo("New game invite from" + " " + gameInvite.userName + " " + "to" + " " + gameInvite.gameName); // TODO i18n
+            });
+        });
+    }
 
     /**
-     *
+     * Server has logged you out. Deal with it.
      */
-    void forceLogout() {
+    public void forceLogout() {
         this.gotoLogin();
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Private functions
+    //
 
     /**
      * Do prep-work for each action.
@@ -747,19 +841,67 @@ public class Actions {
     private void logError(JSONObject error) {
         var codes = error.getJSONArray(FieldNames.CODE);
         codes.forEach(code -> {
-            Logger.log(Level.WARN, "code -> " + no.ntnu.imt3281.ludo.api.Error.fromInt((int)code).toString());
+            Logger.log(Level.WARN, "code -> " + no.ntnu.imt3281.ludo.api.Error.fromInt((int) code).toString());
+
+            mTransitions.toastError(no.ntnu.imt3281.ludo.api.Error.fromInt((int) code).toString());
         });
     }
 
-    private static int randomId() {
+    /**
+     * Generate random integer
+     *
+     * @return random integer
+     */
+    private static int randomInt() {
         return ThreadLocalRandom.current().nextInt(1000000, 9999999);
     }
 
+    /**
+     * Wrapper for the mAPI.send() and RequestFactory.make()
+     *
+     * @param type    request type
+     * @param payload request payload
+     * @param success success callback function
+     * @param error   error callback function
+     */
+    private void send(RequestType type, JSONObject payload, RequestCallback success, RequestCallback error) {
+        mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success, error));
+    }
+
+    /**
+     * Wrapper for the mAPI.send() and RequestFactory.make(). Sends all errors to
+     * this::logError
+     *
+     * @param type    request type
+     * @param payload request payload
+     * @param success success callback function
+     */
     private void send(RequestType type, JSONObject payload, RequestCallback success) {
         mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success, this::logError));
     }
 
+    /**
+     * Wrapper for the mAPI.send() and RequestFactory.make() Sends all errors to
+     * this::logError
+     *
+     * @param type    request type
+     * @param payload request payload
+     * @param success success callback function
+     */
     private void send(RequestType type, ArrayList<JSONObject> payload, RequestCallback success) {
-        mAPI.send(mRequests.make(type,payload,mState.getAuthToken(), success, this::logError));
+        mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success, this::logError));
     }
+
+
+    /**
+     * Wrapper for the mAPI.send() and RequestFactory.make(). Sends all errors to
+     * this::logError. Empty success
+     *
+     * @param type    request type
+     * @param payload request payload
+     */
+    private void send(RequestType type, JSONObject payload) {
+        mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success -> {}, this::logError));
+    }
+
 }

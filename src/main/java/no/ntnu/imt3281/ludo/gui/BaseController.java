@@ -8,11 +8,8 @@ import no.ntnu.imt3281.ludo.client.StateManager;
  */
 public class BaseController {
     Actions mActions;
-    StateManager mStateManager;
 
-    void bind(Actions a, StateManager c) {
-
+    void bind(Actions a) {
         mActions = a;
-        mStateManager = c;
     }
 }

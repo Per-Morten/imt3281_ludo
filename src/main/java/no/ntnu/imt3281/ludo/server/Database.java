@@ -63,6 +63,8 @@ public class Database implements AutoCloseable {
 
     private String mDBURL;
 
+    //LinkedBlockingQueue<Connection> mConnections = new LinkedBlockingQueue<>();
+
     /**
      * Creates or connects to the database specified by the filename passed as
      * parameter. Creates the tables needed upon construction if they don't already
@@ -144,8 +146,9 @@ public class Database implements AutoCloseable {
         try (var query = getOneOffConnection().prepareStatement(
                 String.format("SELECT %s FROM %s WHERE %s=?", UserFields.ID, UserFields.DBName, UserFields.Email))) {
             query.setString(1, email);
-            var res = query.executeQuery();
-            return res.getInt(UserFields.ID);
+            try (var res = query.executeQuery()) {
+                return res.getInt(UserFields.ID);
+            }
         }
     }
 
@@ -183,7 +186,7 @@ public class Database implements AutoCloseable {
             statement.setString(4, avatarURI);
             statement.setString(5, salt);
             statement.setInt(6, id);
-            statement.execute();
+            statement.executeUpdate();
         }
     }
 
@@ -201,9 +204,10 @@ public class Database implements AutoCloseable {
                         UserFields.AvatarURI, UserFields.DBName, UserFields.ID))) {
 
             query.setInt(1, id);
-            var res = query.executeQuery();
-            if (res.next()) {
-                return queryToUser(res);
+            try (var res = query.executeQuery()) {
+                if (res.next()) {
+                    return queryToUser(res);
+                }
             }
         }
         return null;
@@ -223,11 +227,12 @@ public class Database implements AutoCloseable {
                         UserFields.AvatarURI, UserFields.DBName, UserFields.Token))) {
 
             query.setString(1, token);
-            var res = query.executeQuery();
-            if (res.next()) {
-                return queryToUser(res);
+            try (var res = query.executeQuery()) {
+                if (res.next()) {
+                    return queryToUser(res);
+                }
+                return null;
             }
-            return null;
         }
     }
 
@@ -293,13 +298,14 @@ public class Database implements AutoCloseable {
             query.setInt(1, pageSize);
             query.setInt(2, pageIdx * pageSize);
 
-            var res = query.executeQuery();
+            try (var res = query.executeQuery()) {
 
-            var retVal = new ArrayList<User>();
-            while (res.next()) {
-                retVal.add(queryToUser(res));
+                var retVal = new ArrayList<User>();
+                while (res.next()) {
+                    retVal.add(queryToUser(res));
+                }
+                return retVal;
             }
-            return retVal;
         }
     }
 
@@ -317,10 +323,10 @@ public class Database implements AutoCloseable {
                 UserFields.DBName, UserFields.Email))) {
 
             query.setString(1, email);
-            var res = query.executeQuery();
-
-            if (res.next()) {
-                return queryToExtendedUser(res);
+            try (var res = query.executeQuery()) {
+                if (res.next()) {
+                    return queryToExtendedUser(res);
+                }
             }
         }
         return null;
@@ -390,12 +396,13 @@ public class Database implements AutoCloseable {
                 query.setInt(1, usersToCheck[i]);
                 query.setInt(2, usersToCheck[(i + 1) % usersToCheck.length]);
 
-                var res = query.executeQuery();
+                try (var res = query.executeQuery()) {
 
-                if (res.next()) {
-                    retVal[i] = new Relationship(res.getInt(FriendFields.ID), res.getInt(FriendFields.UserID),
-                            res.getInt(FriendFields.FriendID),
-                            FriendStatus.fromInt(res.getInt(FriendFields.Status)));
+                    if (res.next()) {
+                        retVal[i] = new Relationship(res.getInt(FriendFields.ID), res.getInt(FriendFields.UserID),
+                                res.getInt(FriendFields.FriendID),
+                                FriendStatus.fromInt(res.getInt(FriendFields.Status)));
+                    }
                 }
             }
         }
@@ -429,14 +436,15 @@ public class Database implements AutoCloseable {
             query.setInt(3, pageSize);
             query.setInt(4, pageSize * pageIndex);
 
-            var res = query.executeQuery();
+            try (var res = query.executeQuery()) {
 
-            var retVal = new ArrayList<Friend>();
-            while (res.next()) {
-                retVal.add(new Friend(res.getInt(FriendFields.FriendID), res.getString(UserFields.Username), FriendStatus.fromInt(res.getInt(FriendFields.Status))));
+                var retVal = new ArrayList<Friend>();
+                while (res.next()) {
+                    retVal.add(new Friend(res.getInt(FriendFields.FriendID), res.getString(UserFields.Username), FriendStatus.fromInt(res.getInt(FriendFields.Status))));
+                }
+
+                return retVal;
             }
-
-            return retVal;
         }
     }
 
@@ -444,7 +452,9 @@ public class Database implements AutoCloseable {
     /// CHAT RELATED
     ///////////////////////////////////////////////////////
     public int createChat(String name) throws SQLException {
-        try (var connection = getMultiStatementConnection()) {
+        Connection connection = null;
+        try {
+            connection = getMultiStatementConnection();
             try (var stmt = connection.prepareStatement(String.format("INSERT INTO %s(%s) VALUES(?)", ChatFields.DBName, ChatFields.Name), Statement.RETURN_GENERATED_KEYS)) {
                 stmt.setString(1, name);
                 stmt.execute();
@@ -452,7 +462,12 @@ public class Database implements AutoCloseable {
                 res.next();
                 return res.getInt(1);
             }
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
         }
+
     }
 
     public void logChatMessage(int userID, int chatID, String message) throws SQLException {
@@ -476,8 +491,9 @@ public class Database implements AutoCloseable {
                 + UserFields.Salt + " text NOT NULL, "
                 + UserFields.AvatarURI + " text DEFAULT(NULL), " + UserFields.Token + " text DEFAULT(NULL)" + ");";
 
-        var statement = getOneOffConnection().createStatement();
-        statement.execute(command);
+        try (var statement = getOneOffConnection().createStatement()) {
+            statement.execute(command);
+        }
     }
 
     private void createFriendsTable() throws SQLException {
@@ -490,8 +506,9 @@ public class Database implements AutoCloseable {
                 + "FOREIGN KEY (" + FriendFields.FriendID + ") REFERENCES " + UserFields.DBName + "(" + UserFields.ID + ") ON DELETE CASCADE"
                 + ");";
 
-        var statement = getOneOffConnection().createStatement();
-        statement.execute(command);
+        try (var statement = getOneOffConnection().createStatement()) {
+            statement.execute(command);
+        }
     }
 
     private void createChatMessagesTable() throws SQLException {
@@ -505,29 +522,32 @@ public class Database implements AutoCloseable {
                 + "FOREIGN KEY (" + ChatMessageFields.UserID + ") REFERENCES " + UserFields.DBName + "(" + UserFields.ID + ") ON DELETE CASCADE"
                 + ");";
 
-        var statement = getOneOffConnection().createStatement();
-        statement.execute(command);
+        try (var statement = getOneOffConnection().createStatement()) {
+            statement.execute(command);
+        }
     }
 
     private void createChatTable() throws SQLException {
         // Specifically checking for this first, as we want the global chat to always have the value 0.
-        var query = getOneOffConnection().createStatement();
-        var res = query.executeQuery(String.format("SELECT name FROM sqlite_master WHERE type = 'table' AND name = '%s'",
-                ChatFields.DBName));
+        try (var query = getOneOffConnection().createStatement()) {
+            try (var res = query.executeQuery(String.format("SELECT name FROM sqlite_master WHERE type = 'table' AND name = '%s'",
+                    ChatFields.DBName))) {
 
-        // We already have this table.
-        if (res.next()) {
-            return;
+                // We already have this table.
+                if (res.next()) {
+                    return;
+                }
+
+                String command = "CREATE TABLE IF NOT EXISTS " + ChatFields.DBName + "("
+                        + ChatFields.ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                        + ChatFields.Name + " TEXT NOT NULL);";
+
+                var statement = getOneOffConnection().createStatement();
+                statement.execute(command);
+
+                createChat(GlobalChat.NAME);
+            }
         }
-
-        String command = "CREATE TABLE IF NOT EXISTS " + ChatFields.DBName + "("
-                + ChatFields.ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
-                + ChatFields.Name + " TEXT NOT NULL);";
-
-        var statement = getOneOffConnection().createStatement();
-        statement.execute(command);
-
-        createChat(GlobalChat.NAME);
     }
 
     ///////////////////////////////////////////////////////
@@ -538,8 +558,9 @@ public class Database implements AutoCloseable {
         try (var query = getOneOffConnection()
                 .prepareStatement(String.format("SELECT %s FROM %s WHERE %s=?", idField, table, field))) {
             query.setString(1, value);
-            var res = query.executeQuery();
-            return res.next() && res.getInt(idField) != id;
+            try (var res = query.executeQuery()) {
+                return res.next() && res.getInt(idField) != id;
+            }
         }
     }
 

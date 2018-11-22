@@ -44,7 +44,7 @@ public class Client extends Application {
      * @param primaryStage fxml window context
      */
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) throws InterruptedException {
         Logger.log(Level.INFO, "Starting FXML context");
 
         // Set up Socket
@@ -55,16 +55,16 @@ public class Client extends Application {
         }
 
         // Bind dependencies between important systems.
-        State initialState = State.load();
-        mStateManager = new StateManager(initialState);
+        mStateManager = new StateManager();
+        mStateManager.load();
         mApi.bind(mSocketManager, mActions);
         mActions.bind(mTransitions, mApi, mStateManager);
-        mTransitions.bind(primaryStage, mActions, mStateManager);
+        mTransitions.bind(primaryStage, mActions);
 
         // Start socket
         try {
             mSocketManager.start();
-        } catch (IOException|NullPointerException e) {
+        } catch (IOException | NullPointerException e) {
             Logger.log(Level.WARN, "Could not create connection: " + e.toString());
         }
 
@@ -73,8 +73,10 @@ public class Client extends Application {
             Platform.exit();
         });
 
-        if (!initialState.authToken.isEmpty()) {
-            mActions.gotoUser();
+        var initialState = mStateManager.copy();
+        Logger.log(Level.DEBUG, initialState.username + " - " + initialState.password);
+        if (!initialState.password.isEmpty()) {
+            mActions.login(initialState.username, initialState.password);
         } else {
             mActions.gotoLogin();
         }
@@ -91,9 +93,9 @@ public class Client extends Application {
 
         try {
             mSocketManager.stop();
-        } catch (InterruptedException|NullPointerException e) {
+        } catch (InterruptedException | NullPointerException e) {
             Logger.log(Level.WARN, "Trying to stop non-existing connection: " + e.toString());
         }
-        State.dump(mStateManager.copy());
+        mStateManager.dump();
     }
 }
