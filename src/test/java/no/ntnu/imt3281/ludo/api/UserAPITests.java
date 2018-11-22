@@ -1,17 +1,18 @@
 package no.ntnu.imt3281.ludo.api;
 
-import no.ntnu.imt3281.ludo.common.Logger;
-import no.ntnu.imt3281.ludo.server.Database;
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertEquals;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
+import no.ntnu.imt3281.ludo.common.Logger;
+import no.ntnu.imt3281.ludo.server.Database;
 
 public class UserAPITests {
     private static final Database.User USER_1 = new Database.User(1, "User1", null, "User1@mail.com", null, null, "User1Password");
@@ -45,7 +46,8 @@ public class UserAPITests {
     ///////////////////////////////////////////////////////
     @Test
     public void canCreateUser() {
-        TestUtility.runTestWithNewUser("USER_TO_TEST_CREATE", "USER_TO_TEST_CREATE@mail", "password", (context, msg) -> {
+        TestUtility.runTestWithNewUser("USER_TO_TEST_CREATE", "USER_TO_TEST_CREATE@mail.com", "password",
+                (context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.CREATE_USER_RESPONSE) {
                 var successes = msg.getJSONArray(FieldNames.SUCCESS);
@@ -57,7 +59,8 @@ public class UserAPITests {
 
     @Test
     public void canLogIn() {
-        TestUtility.runTestWithNewUser("USER_TO_TEST_LOGIN", "USER_TO_TEST_LOGIN@mail", "password", (context, msg) -> {
+        TestUtility.runTestWithNewUser("USER_TO_TEST_LOGIN", "USER_TO_TEST_LOGIN@mail.com", "password",
+                (context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 var successes = msg.getJSONArray(FieldNames.SUCCESS);
@@ -69,7 +72,7 @@ public class UserAPITests {
 
     @Test
     public void canLogOut() {
-        TestUtility.runTestWithNewUser("USER_TO_LOG_OUT", "USER_TO_LOG_OUT@mail", "pwd", (context, msg) -> {
+        TestUtility.runTestWithNewUser("USER_TO_LOG_OUT", "USER_TO_LOG_OUT@mail.com", "pwd", (context, msg) -> {
             var type = msg.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 var payload = new JSONArray();
@@ -176,7 +179,7 @@ public class UserAPITests {
                 request.put(FieldNames.USERNAME, context.user.username);
                 request.put(FieldNames.PASSWORD, context.user.password);
                 request.put(FieldNames.EMAIL, context.user.email);
-                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                        request.put(FieldNames.AVATAR_URI, "http://www.someavataruri.com");
                 payload.put(0, request);
                 TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
             }
@@ -192,7 +195,7 @@ public class UserAPITests {
                 var success = msg.getJSONArray(FieldNames.SUCCESS);
                 assertEquals(1, success.length());
                 var firstUser = success.getJSONObject(0);
-                assertEquals("Some Cool Avatar", firstUser.getString(FieldNames.AVATAR_URI));
+                        assertEquals("http://www.someavataruri.com", firstUser.getString(FieldNames.AVATAR_URI));
                 context.running.set(false);
             }
         });
@@ -203,7 +206,8 @@ public class UserAPITests {
         // Hate using atomic integers this way, but I cannot modify an Integer class within the callback (Java, you are stupid at times!))
         final var userID = new AtomicInteger(0);
 
-        TestUtility.runTestWithNewUser("USER_TO_BE_DELETED", "USER_TO_BE_DELETED@mail", "password", (context, message) -> {
+        TestUtility.runTestWithNewUser("USER_TO_BE_DELETED", "USER_TO_BE_DELETED@mail.com", "password",
+                (context, message) -> {
             var type = message.getString(FieldNames.TYPE);
             if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
                 var payload = new JSONArray();
@@ -272,7 +276,36 @@ public class UserAPITests {
             context.running.set(false);
         });
 
-        TestUtility.runTestNotRequiringLogin(TestUtility.createUserRequest(USER_1.username, "TotallyUniqueEmail1923@email", USER_1.password).toString(), callback);
+        TestUtility.runTestNotRequiringLogin(TestUtility
+                .createUserRequest(USER_1.username, "TotallyUniqueEmail1923@email.com", USER_1.password).toString(),
+                callback);
+    }
+
+    @Test
+    public void errorOnCreateMalformedUserName() {
+        var callback = TestUtility.createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            TestUtility.assertError(Error.MALFORMED_USERNAME, json);
+            context.running.set(false);
+        });
+
+        TestUtility.runTestNotRequiringLogin(TestUtility
+                .createUserRequest("UsernameThatQuiteConvenientlyIsAGreatDealLongerThanWeShouldAllow",
+                        "testName@testEmail.com", USER_1.password)
+                .toString(), callback);
+    }
+
+    @Test
+    public void errorOnCreateMalformedEmail() {
+        var callback = TestUtility.createCallback((context, string) -> {
+            var json = new JSONObject(string);
+            TestUtility.assertError(Error.MALFORMED_EMAIL, json);
+            context.running.set(false);
+        });
+
+        TestUtility.runTestNotRequiringLogin(
+                TestUtility.createUserRequest("Username321", "testNametestEmailcom", USER_1.password).toString(),
+                callback);
     }
 
     @Test
@@ -298,13 +331,38 @@ public class UserAPITests {
                 request.put(FieldNames.USERNAME, USER_1.username);
                 request.put(FieldNames.PASSWORD, context.user.password);
                 request.put(FieldNames.EMAIL, context.user.email);
-                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                        request.put(FieldNames.AVATAR_URI, "http://www.someavataruri.com");
                 payload.put(0, request);
                 TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
             }
 
             if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
                 TestUtility.assertError(Error.NOT_UNIQUE_USERNAME, msg);
+                context.running.set(false);
+            }
+        });
+    }
+
+    @Test
+    public void errorOnUpdateMalformedUserName() {
+        TestUtility.runTestWithNewUser("USER_TO_TEST_MALFORMED_USERNAME_UPDATE",
+                "USER_TO_TEST_MALFORMED_USERNAME_UPDATE@mail.com", "password", (context, msg) -> {
+            var type = msg.getString(FieldNames.TYPE);
+            if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.USER_ID, context.user.id);
+                        request.put(FieldNames.USERNAME, "Username with spaces");
+                request.put(FieldNames.PASSWORD, context.user.password);
+                        request.put(FieldNames.EMAIL, context.user.email);
+                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                payload.put(0, request);
+                TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
+            }
+
+            if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
+                TestUtility.assertError(Error.MALFORMED_USERNAME, msg);
                 context.running.set(false);
             }
         });
@@ -322,7 +380,7 @@ public class UserAPITests {
                 request.put(FieldNames.USERNAME, context.user.username);
                 request.put(FieldNames.PASSWORD, context.user.password);
                 request.put(FieldNames.EMAIL, USER_1.email);
-                request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                        request.put(FieldNames.AVATAR_URI, "http://www.someavataruri.com");
                 payload.put(0, request);
                 TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
             }
@@ -332,6 +390,58 @@ public class UserAPITests {
                 context.running.set(false);
             }
         });
+    }
+
+    @Test
+    public void errorOnUpdateMalformedEmail() {
+        TestUtility.runTestWithNewUser("USER_TO_TEST_MALFORMED_EMAIL_UPDATE",
+                "USER_TO_TEST_MALFORMED_EMAIL_UPDATE@mail.com", "password", (context, msg) -> {
+                    var type = msg.getString(FieldNames.TYPE);
+                    if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                        var payload = new JSONArray();
+                        var request = new JSONObject();
+                        request.put(FieldNames.ID, 0);
+                        request.put(FieldNames.USER_ID, context.user.id);
+                        request.put(FieldNames.USERNAME, context.user.username);
+                        request.put(FieldNames.PASSWORD, context.user.password);
+                        request.put(FieldNames.EMAIL, "malformed@email");
+                        request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                        payload.put(0, request);
+                        TestUtility.sendMessage(context.socket, TestUtility
+                                .createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
+                    }
+
+                    if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
+                        TestUtility.assertError(Error.MALFORMED_EMAIL, msg);
+                        context.running.set(false);
+                    }
+                });
+    }
+
+    @Test
+    public void errorOnUpdateMalformedAvatarURI() {
+        TestUtility.runTestWithNewUser("USER_TO_TEST_MALFORMED_AVATAR_URI_UPDATE",
+                "USER_TO_TEST_MALFORMED_AVATAR_URI_UPDATE@mail.com", "password", (context, msg) -> {
+                    var type = msg.getString(FieldNames.TYPE);
+                    if (ResponseType.fromString(type) == ResponseType.LOGIN_RESPONSE) {
+                        var payload = new JSONArray();
+                        var request = new JSONObject();
+                        request.put(FieldNames.ID, 0);
+                        request.put(FieldNames.USER_ID, context.user.id);
+                        request.put(FieldNames.USERNAME, context.user.username);
+                        request.put(FieldNames.PASSWORD, context.user.password);
+                        request.put(FieldNames.EMAIL, context.user.email);
+                        request.put(FieldNames.AVATAR_URI, "Some Cool Avatar");
+                        payload.put(0, request);
+                        TestUtility.sendMessage(context.socket, TestUtility
+                                .createRequest(RequestType.UPDATE_USER_REQUEST, payload, context.user.token));
+                    }
+
+                    if (ResponseType.fromString(type) == ResponseType.UPDATE_USER_RESPONSE) {
+                        TestUtility.assertError(Error.MALFORMED_AVATAR_URI, msg);
+                        context.running.set(false);
+                    }
+                });
     }
 
     @Test
