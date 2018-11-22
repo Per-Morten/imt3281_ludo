@@ -290,6 +290,8 @@ public class GameManager {
                 var gameID = request.getInt(FieldNames.GAME_ID);
                 var game = mGames.get(gameID);
 
+                Logger.log(Logger.Level.DEBUG, "Received roll dice event");
+
                 if (game.status != GameStatus.IN_SESSION) {
                     MessageUtility.appendError(errors, requestID, Error.GAME_NOT_IN_SESSION);
                     return;
@@ -306,8 +308,11 @@ public class GameManager {
                     return;
                 }
 
+                Logger.log(Logger.Level.DEBUG, "Passed all test, now we are rolling dice");
+
                 game.ludo.throwDice();
                 events.add(createGameStateUpdateMessage(game));
+                MessageUtility.appendSuccess(successes, requestID, new JSONObject());
             });
         }
     }
@@ -346,9 +351,12 @@ public class GameManager {
                     if (game.ludo.getWinner() != Ludo.UNASSIGNED) {
                         game.status = GameStatus.GAME_OVER;
                     }
-
                     events.add(createGameStateUpdateMessage(game));
+                } else {
+                    Logger.log(Logger.Level.DEBUG, "Could not move piece");
                 }
+
+                MessageUtility.appendSuccess(successes, requestID, new JSONObject());
             });
         }
     }
@@ -516,7 +524,7 @@ public class GameManager {
         payload.put(gameID);
 
         var receivers = DeepCopy.copy(game.players);
-        receivers.addAll(game.pendingPlayers);
+        //receivers.addAll(game.pendingPlayers);
         return new Message(event, receivers);
     }
 
