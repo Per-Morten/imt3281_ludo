@@ -12,3 +12,4 @@ ludo.db
 out/
 src/main/java/META-INF/
 ludo_tests.db
+.attach_pid20486

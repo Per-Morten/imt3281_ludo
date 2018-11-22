@@ -7,6 +7,7 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.InputMethodEvent;
 import javafx.scene.layout.Pane;
@@ -287,6 +288,29 @@ public class GameTabController extends BaseController {
                 mYellowPieces[i].setLayoutX(layoutPosition.x);
                 mYellowPieces[i].setLayoutY(layoutPosition.y);
             }
+        }
+    }
+
+    void setRolledDiceImage(int latestRolledDice) {
+        switch (latestRolledDice) {
+            case 1: {
+                diceThrown.setImage(new Image("no/ntnu/imt3281/ludo/gui/images/dice1.png"));
+            } break;
+            case 2: {
+                diceThrown.setImage(new Image("no/ntnu/imt3281/ludo/gui/images/dice2.png"));
+            } break;
+            case 3: {
+                diceThrown.setImage(new Image("no/ntnu/imt3281/ludo/gui/images/dice3.png"));
+            } break;
+            case 4: {
+                diceThrown.setImage(new Image("no/ntnu/imt3281/ludo/gui/images/dice4.png"));
+            } break;
+            case 5: {
+                diceThrown.setImage(new Image("no/ntnu/imt3281/ludo/gui/images/dice5.png"));
+            } break;
+            case 6: {
+                diceThrown.setImage(new Image("no/ntnu/imt3281/ludo/gui/images/dice6.png"));
+            } break;
         }
     }
 

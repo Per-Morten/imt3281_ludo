@@ -26,6 +26,8 @@ public class GameState {
 
     public ArrayList<String> playerNames = new ArrayList<>(4);
 
+    GameState() {
+    }
     GameState(JSONObject json) {
 
         gameId = json.getInt(GAME_ID);

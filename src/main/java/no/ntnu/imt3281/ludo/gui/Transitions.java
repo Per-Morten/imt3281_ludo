@@ -133,7 +133,7 @@ public class Transitions {
                 var gameTabController = (GameTabController)gameTab.controller;
                 gameTabController.mId = game.id;
                 gameTabController.setPiecePositions(initial);
-                gameTabController.setPlayerLabels(game.playerNames);
+               // gameTabController.setPlayerLabels(game.playerNames);
 
                 // Compute color
                 int i = 0;
@@ -166,6 +166,7 @@ public class Transitions {
                 var gameTabController = (GameTabController)this.getController(Path.GAME_TAB, id);
                 gameTabController.setPlayerLabels(gameState.playerNames);
                 gameTabController.setPiecePositions(gameState.piecePositions);
+                gameTabController.setRolledDiceImage(gameState.previousDiceThrow);
             });
         });
     }

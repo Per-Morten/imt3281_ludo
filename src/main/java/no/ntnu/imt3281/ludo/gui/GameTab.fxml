@@ -23,7 +23,7 @@
          <children>
             <ImageView fitHeight="727.0" fitWidth="720.0" pickOnBounds="true" preserveRatio="true">
                <image>
-                  <Image url="@../../../../../images/ludo-board.png" />
+                  <Image url="@images/ludo-board.png" />
                </image>
             </ImageView>
             <VBox>
@@ -48,7 +48,7 @@
                                     <VBox />
                                     <ImageView fx:id="player1Active" fitHeight="30.0" fitWidth="30.0" layoutX="105.0" layoutY="5.0" pickOnBounds="true" preserveRatio="true">
                                        <image>
-                                          <Image url="@../../../../../images/rolldice.png" />
+                                          <Image url="@images/rolldice.png"/>
                                        </image>
                                     </ImageView>
                                     <Label fx:id="player1Name" layoutX="7.0" layoutY="27.0">
@@ -67,7 +67,7 @@
                                     <VBox />
                                     <ImageView fx:id="player2Active" fitHeight="30.0" fitWidth="30.0" layoutX="105.0" layoutY="5.0" pickOnBounds="true" preserveRatio="true">
                                        <image>
-                                          <Image url="@../../../../../images/rolldice.png" />
+                                          <Image url="@images/rolldice.png" />
                                        </image>
                                     </ImageView>
                                     <Label fx:id="player2Name" layoutX="7.0" layoutY="27.0">
@@ -85,7 +85,7 @@
                                     <VBox />
                                     <ImageView fx:id="player3Active" fitHeight="30.0" fitWidth="30.0" layoutX="105.0" layoutY="5.0" pickOnBounds="true" preserveRatio="true">
                                        <image>
-                                          <Image url="@../../../../../images/rolldice.png" />
+                                          <Image url="@images/rolldice.png" />
                                        </image>
                                     </ImageView>
                                     <Label fx:id="player3Name" layoutX="7.0" layoutY="27.0">
@@ -103,7 +103,7 @@
                                     <VBox />
                                     <ImageView fx:id="player4Active" fitHeight="30.0" fitWidth="30.0" layoutX="105.0" layoutY="5.0" pickOnBounds="true" preserveRatio="true">
                                        <image>
-                                          <Image url="@../../../../../images/rolldice.png" />
+                                          <Image url="@images/rolldice.png" />
                                        </image>
                                     </ImageView>
                                     <Label fx:id="player4Name" layoutX="7.0" layoutY="27.0">
@@ -124,7 +124,7 @@
                            <children>
                               <ImageView fx:id="diceThrown" fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
                                  <image>
-                                    <Image url="@../../../../../images/dice1.png" />
+                                    <Image url="@images/dice1.png" />
                                  </image>
                               </ImageView>
                               <Pane prefHeight="50.0" prefWidth="31.0" />
