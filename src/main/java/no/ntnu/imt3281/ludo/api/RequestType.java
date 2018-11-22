@@ -29,12 +29,10 @@ public enum RequestType {
     DECLINE_GAME_INVITE_REQUEST,
     START_GAME_REQUEST,
     GET_GAME_REQUEST,
-    GET_GAME_STATE_REQUEST,
     ROLL_DICE_REQUEST,
     MOVE_PIECE_REQUEST,
-    GET_GAME_RANGE_REQUEST,
+    JOIN_RANDOM_GAME,
     ;
-
 
     /**
      * Creates the request from a given string value, returning null if the value is illegal.

@@ -169,6 +169,28 @@ public class JSONValidator {
     }
 
     /**
+     * Checks if the JSONObject has the boolean type with the key key.
+     * <p>
+     * The JSON library we use does not support a way to check if a value if of a specific type
+     * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
+     * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
+     * that controlflow.
+     *
+     * @param key  The key of the value.
+     * @param json The JSONObject to check.
+     * @return True of it has a boolean named key, false otherwise.
+     */
+    public static boolean hasBoolean(String key, JSONObject json) {
+        try {
+            json.getBoolean(key);
+            return true;
+        } catch (JSONException e) {
+            Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasBooleanObject");
+            return false;
+        }
+    }
+
+    /**
      * Function for verifying that a request is correct, by ensuring that it has all the fields indicated by the request type.
      * The logic of this is quite ugly, but I think it does work.
      */
@@ -231,6 +253,13 @@ public class JSONValidator {
                                 field.fieldName));
                         return false;
                     }
+
+                    if (field.type == FieldType.BOOLEAN && !hasBoolean(field.fieldName, item)) {
+                        Logger.log(Logger.Level.DEBUG, String.format("Request was of type: %s, but did not contain Boolean field: %s",
+                                type,
+                                field.fieldName));
+                        return false;
+                    }
                 }
             }
         }
@@ -242,7 +271,7 @@ public class JSONValidator {
         INTEGER,
         STRING,
         JSON_OBJECT,
-        JSON_ARRAY,
+        JSON_ARRAY, BOOLEAN,
     }
 
     private static class Field<T> {
@@ -343,6 +372,10 @@ public class JSONValidator {
 
         sRequestTypes.add(new Field<>(FieldNames.PIECE_INDEX, FieldType.INTEGER, new RequestType[]{
                 RequestType.MOVE_PIECE_REQUEST,
+        }));
+
+        sRequestTypes.add(new Field<>(FieldNames.ALLOW_RANDOMS, FieldType.BOOLEAN, new RequestType[]{
+                RequestType.JOIN_RANDOM_GAME,
         }));
     }
 

@@ -34,6 +34,7 @@ public class Server {
     private static SocketManager sSocketManager = new SocketManager(NetworkConfig.LISTENING_PORT);
     private static UserManager sUserManager;
     private static ChatManager sChatManager;
+    private static GameManager sGameManager;
 
     private static HashMap<RequestType, EventHandler> mRequestHandlers = new HashMap<>();
 
@@ -94,6 +95,7 @@ public class Server {
 
             var handler = mRequestHandlers.get(requestType);
             if (handler != null) {
+                Logger.log(Logger.Level.DEBUG, "Sent to handler: %s", requests);
                 handler.apply(requests, successes, errors, sPendingEvents);
             } else {
                 Logger.log(Logger.Level.WARN, "Unimplemented feature: %s", requestType.toLowerCaseString());
@@ -104,6 +106,7 @@ public class Server {
                 updateSocketIDs(message, successes);
             }
 
+            Logger.log(Logger.Level.DEBUG, "Response: %s", response);
             sSocketManager.sendWithSocketID(message.socketID, response.toString());
         }
     }
@@ -167,7 +170,7 @@ public class Server {
 
         sUserManager.applyFirstOrderFilter(type, requests, errors);
         sChatManager.applyFirstOrderFilter(type, requests, errors);
-
+        sGameManager.applyFirstOrderFilter(type, requests, errors);
     }
 
     private static void updateSocketIDs(SocketManager.Message message, JSONArray successes) {
@@ -242,6 +245,9 @@ public class Server {
 
         Logger.log(Logger.Level.INFO, "Setting up ChatManager");
         sChatManager = new ChatManager(sDB, sUserManager);
+
+        Logger.log(Logger.Level.INFO, "Setting up GameManager");
+        sGameManager = new GameManager(sUserManager);
 
         Logger.log(Logger.Level.INFO, "Setting up Event Handlers");
         setupRequestHandlers();

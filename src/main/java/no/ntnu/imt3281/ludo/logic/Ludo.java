@@ -9,6 +9,7 @@ import java.util.Random;
 public class Ludo {
 
     public static final int UNASSIGNED = -1;
+    public static final int MAX_PLAYERS = 4;
 
     static final int RED = 0;
     static final int BLUE = 1;
@@ -21,8 +22,8 @@ public class Ludo {
     private int mRemainingAttempts;
     private boolean mStarted;
     private int mSixesInARow;
-    private int lastDiceResult;
-    private String nextAction;
+    private int mLastDiceResult;
+    private String mNextAction;
 
     List<DiceListener> mDiceListeners = new ArrayList<>();
     List<PieceListener> mPieceListeners = new ArrayList<>();
@@ -42,8 +43,8 @@ public class Ludo {
         mRemainingAttempts = 3;
         mStarted = false;
         mSixesInARow = 0;
-        lastDiceResult = -1;
-        nextAction = "throwDice";
+        mLastDiceResult = -1;
+        mNextAction = "throw";
     }
 
     /**
@@ -72,8 +73,8 @@ public class Ludo {
         mRemainingAttempts = 3;
         mStarted = false;
         mSixesInARow = 0;
-        lastDiceResult = -1;
-        nextAction = "throwDice";
+        mLastDiceResult = -1;
+        mNextAction = "throw";
     }
 
     /**
@@ -170,7 +171,7 @@ public class Ludo {
             mSixesInARow = 0;
             mRemainingAttempts--;
             if (mRemainingAttempts == 0) {
-                nextAction = "movePiece";
+                mNextAction = "move";
                 boolean noPiecesOut = true;
                 for (int piece = 0; piece < 4; piece++) {
                     if (getPosition(mCurrentPlayer, piece) != 0) {
@@ -195,13 +196,13 @@ public class Ludo {
             }
         } else {
             mSixesInARow++;
-            nextAction = "movePiece";
+            mNextAction = "move";
             if (mSixesInARow == 3) {
                 mSixesInARow = 0;
                 nextPlayersTurn();
             }
         }
-        lastDiceResult = result;
+        mLastDiceResult = result;
         return result;
     }
 
@@ -249,7 +250,7 @@ public class Ludo {
             }
         }
 
-        lastDiceResult = result;
+        mLastDiceResult = result;
         return result;
     }
 
@@ -309,6 +310,17 @@ public class Ludo {
         return false;
     }
 
+    public boolean movePiece(int userID, int piece) {
+        int color = 0;
+        for (int i = 0; i < mPlayer.length; i++) {
+            if (mPlayer[i] == userID) {
+                color = i;
+            }
+        }
+        var from = getPosition(color, piece);
+        return movePiece(color, from, from + mLastDiceResult);
+    }
+
     /**
      * Passes the turn onto the next player.
      */
@@ -340,7 +352,7 @@ public class Ludo {
         mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, prevPlayer, PlayerEvent.WAITING)));
         mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, newPlayer, PlayerEvent.PLAYING)));
 
-        nextAction = "throwDice";
+        mNextAction = "throw";
     }
 
     /**
@@ -447,6 +459,20 @@ public class Ludo {
         return localGrid + 14 + (6 * playerColor);
     }
 
+    public int getCurrentPlayerID() {
+        return mPlayer[mCurrentPlayer];
+    }
+
+
+    public int[] getPlayerOrder() {
+        return mPlayer;
+    }
+
+    // MUST RETURN THIS IN GLOBAL POSITION
+    public int[][] getPiecePositions() {
+        return mPiecePositions;
+    }
+
     /**
      * Adds a DiceListener to the list of DiceListeners to be notified whenever a
      * dice is rolled.
@@ -479,12 +505,12 @@ public class Ludo {
 
     /**
      * Predicts what the next action will be, and returns it as a String. Result
-     * will be either "throwDice" or "movePiece".
+     * will be either "throw" or "move".
      *
      * @return
      */
     public String getNextAction() {
-        return nextAction;
+        return mNextAction;
     }
 
     /**
@@ -493,6 +519,6 @@ public class Ludo {
      * @return
      */
     public int previousRoll() {
-        return lastDiceResult;
+        return mLastDiceResult;
     }
 }

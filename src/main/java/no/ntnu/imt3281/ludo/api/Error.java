@@ -14,7 +14,21 @@ public enum Error {
     USER_IS_FRIEND,
     CANNOT_LEAVE_GLOBAL_CHAT,
     CHAT_ID_NOT_FOUND,
-    USER_IS_NOT_FRIEND;
+    USER_IS_NOT_FRIEND,
+    GAME_ID_NOT_FOUND,
+    USER_IS_NOT_OWNER,
+    GAME_ALREADY_STARTED,
+    USER_NOT_IN_GAME,
+    USER_ALREADY_INVITED_OR_IN_GAME,
+    OUT_OF_TURN,
+    NOT_TIME_TO_THROW_DICE,
+    GAME_NOT_IN_SESSION,
+    NOT_TIME_TO_MOVE_PIECE,
+    PIECE_INDEX_OUT_OF_BOUNDS,
+    GAME_IS_FULL,
+    NOT_INVITED_TO_GAME;
+
+
 
     /**
      * Utility function for going to integer, which we considered more readable than ordinal.
