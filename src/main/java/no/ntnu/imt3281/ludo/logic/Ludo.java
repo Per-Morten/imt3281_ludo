@@ -270,8 +270,14 @@ public class Ludo {
      * @return
      */
     public boolean movePiece(int color, int from, int to) {
+
+        // Go through the pieces belonging to this player until we find one in the right
+        // position that can legally make the desired move (no towers in the way).
         for (int i = 0; i < 4; i++) {
             if (getPosition(color, i) == from && canMoveTo(from, to)) {
+
+                // Move the piece, and notify listeners that the piece has been moved. If this
+                // was a winning move, notify them of that as well.
                 setPosition(color, i, to);
                 final var i2 = i;
                 mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, color, i2, from, to)));
@@ -280,6 +286,9 @@ public class Ludo {
                             .forEach(value -> value.playerStateChanged(new PlayerEvent(this, color, PlayerEvent.WON)));
                 }
 
+                // We already know (from canMoveTo()) that the aren't any towers in the tiles up
+                // to and including where we want to move, but is there a single piece there? We
+                // check all pieces belonging to other, active players.
                 int targetTile = userGridToLudoBoardGrid(mCurrentPlayer, to);
                 int piecesToCheck = (activePlayers() - 1) * 4;
                 for (int j = 0; j < piecesToCheck; j++) {
@@ -287,22 +296,30 @@ public class Ludo {
                     int otherPiece = j % 4;
                     int tilePieceIsOn = userGridToLudoBoardGrid(otherPlayer, getPosition(otherPlayer, otherPiece));
 
+                    // If there is a piece there belonging to someone else, we move it back to its
+                    // starting position and notify listeners about it.
                     if (targetTile == tilePieceIsOn) {
                         mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, otherPlayer, otherPiece,
                                 getPosition(otherPlayer, otherPiece), 0)));
                         setPosition(otherPlayer, otherPiece, 0);
                     }
                 }
+
+                // If the move was out from the starting area, or the roll was less than 6, it's
+                // the next players turn.
                 if (from == 0 || (to - from) < 6) {
                     nextPlayersTurn();
                 }
+                // If the roll was a 6, this player gets to roll again.
                 if ((to - from) == 6) {
                     mNextAction = ActionType.THROW_DICE;
                 }
 
+                // We have successfully moved.
                 return true;
             }
         }
+        // We could not legally make this move.
         return false;
     }
 
