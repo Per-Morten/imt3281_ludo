@@ -98,6 +98,7 @@ public class Actions implements API.Events {
                 state.userId = success.getInt(FieldNames.USER_ID);
                 state.authToken = success.getString(FieldNames.AUTH_TOKEN);
                 state.password = password;
+                state.email = email;
             });
 
             // Join global chat
@@ -115,6 +116,7 @@ public class Actions implements API.Events {
                 });
             });
 
+            mTransitions.toastInfo("Successfully logged in"); // TODO i18n
             this.gotoUser();
 
         }, error ->  {
@@ -314,9 +316,19 @@ public class Actions implements API.Events {
                 mState.commit(state -> {
                     state.activeGames.put(game.id, game);
                 });
-                mTransitions.newGame(game.id, game);
             });
         });
+
+        var game = new Game();
+        game.name = "Test game";
+        game.id = 1;
+        game.ownerId = mState.getUserId();
+        game.playerId.add(mState.getUserId());
+        game.status = 0;
+        mState.commit(state -> {
+            state.activeGames.put(game.id, game);
+        });
+        mTransitions.renderGameTabs(mState.copy().activeGames);
     }
 
     // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE GAME
@@ -347,7 +359,7 @@ public class Actions implements API.Events {
                 mState.commit(state -> {
                     state.activeChats.put(chat.id, chat);
                 });
-                mTransitions.newChat(chat);
+                mTransitions.renderChatTabs(mState.copy().activeChats);
             });
         });
     }
@@ -460,7 +472,7 @@ public class Actions implements API.Events {
     }
 
     /**
-     *
+     * Send a chat message as currently logged in user
      */
     public void sendChatMessage(int chatId, String message) {
         this.logAction("sendChatMessage");
@@ -474,7 +486,7 @@ public class Actions implements API.Events {
     }
 
     /**
-     *
+     * Send chat invite as currently logged in user
      */
     public void sendChatInvite(HashSet<Integer> chatsId, HashSet<Integer> friendsId) {
         this.logAction("sendChatInvite");
@@ -497,7 +509,7 @@ public class Actions implements API.Events {
     }
 
     /**
-     *
+     * Join a collection of games
      */
     public void joinGame(HashSet<Integer> gamesId) {
         this.logAction("joinGame");
@@ -512,12 +524,11 @@ public class Actions implements API.Events {
 
         send(JOIN_GAME_REQUEST, payload, success -> {
             this.gotoOverview();
-
         });
     }
 
     /**
-     *
+     * Leave a collection of games
      */
     public void leaveGame(HashSet<Integer> gamesId) {
         this.logAction("leaveGame");
@@ -673,7 +684,10 @@ public class Actions implements API.Events {
      */
     public void friendUpdate() {
         // TODO if in overview scene update friendlist
-        // TODO else show toast
+        if (mCurrentScene.equals(Scene.OVERVIEW)) {
+            this.gotoOverview();
+        }
+        mTransitions.toastInfo("Friends list updated"); // TODO i18n
     }
 
     /**
@@ -687,19 +701,16 @@ public class Actions implements API.Events {
                 state.activeChats.put(chat.id, chat);
             });
 
-
             if (mCurrentScene.equals(Scene.OVERVIEW)) {
-                mTransitions.renderChatsList(mState.filteredChats(), mState.filteredChatInvites());
+                this.gotoOverview();
             } else if (mCurrentScene.equals(Scene.LIVE)) {
-                // TODO If in live scene update chattabs
-            } else {
-                // TODO else show toast
+                this.gotoLive();
             }
         });
     }
 
     /**
-     * Handle incoming chat notifications
+     * Handle incoming chat invites
      */
     public void chatInvite(JSONObject chatInviteJSON) {
 
@@ -725,10 +736,9 @@ public class Actions implements API.Events {
 
 
                 if (mCurrentScene.equals(Scene.OVERVIEW)) {
-                    mTransitions.renderChatsList(mState.filteredChats(), mState.filteredChatInvites());
-                } else {
-                    // TODO toast
+                    this.gotoOverview();
                 }
+                mTransitions.toastInfo("New chat invite from" + chatInvite.userName + " " + "to" + " " + chatInvite.chatName); // TODO i18n
             });
         });
     }
@@ -750,12 +760,10 @@ public class Actions implements API.Events {
                 state.activeChats.get(message.chatId).messages.add(message);
             });
 
-
             if (mCurrentScene.equals(Scene.LIVE)) {
                 mTransitions.newMessage(message);
-            }  else {
-                // TODO else show toast
             }
+            mTransitions.toastInfo(message.username + ": " + message.message);
         });
     }
 
@@ -771,12 +779,9 @@ public class Actions implements API.Events {
             });
 
             if(mCurrentScene.equals(Scene.LIVE)) {
-                // TODO If in live scene update gametabs
-
+                this.gotoLive();
             } else if(mCurrentScene.equals(Scene.OVERVIEW)) {
-                // TODO If in overview scene update gamelist
-            } else {
-                // TODO else show toast
+                this.gotoOverview();
             }
         });
     }
@@ -805,10 +810,9 @@ public class Actions implements API.Events {
                     state.gameInvites.put(gameInvite.gameId, gameInvite);
                 });
                 if (mCurrentScene.equals(Scene.OVERVIEW)) {
-                    mTransitions.renderGamesList(mState.filteredGames(), mState.filteredGameInvites());
-                } else {
-                    // TODO toast
+                    this.gotoOverview();
                 }
+                mTransitions.toastInfo("New game invite from" + " " + gameInvite.userName + " " + "to" + " " + gameInvite.gameName); // TODO i18n
             });
         });
     }
@@ -838,6 +842,8 @@ public class Actions implements API.Events {
         var codes = error.getJSONArray(FieldNames.CODE);
         codes.forEach(code -> {
             Logger.log(Level.WARN, "code -> " + no.ntnu.imt3281.ludo.api.Error.fromInt((int) code).toString());
+
+            mTransitions.toastError(no.ntnu.imt3281.ludo.api.Error.fromInt((int) code).toString());
         });
     }
 

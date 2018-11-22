@@ -1,11 +1,19 @@
 package no.ntnu.imt3281.ludo.gui;
 
+import com.notification.NotificationFactory;
+import com.notification.NotificationManager;
+import com.notification.manager.SimpleManager;
+import com.notification.types.TextNotification;
+import com.theme.ThemePackagePresets;
+import com.utils.Time;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
@@ -25,6 +33,8 @@ public class Transitions {
     private Stage mStage;
     private Actions mActions;
     private Map<String, FXMLDocument> mDocuments = new HashMap<>();
+    private NotificationFactory mFactory = new NotificationFactory(ThemePackagePresets.cleanLight());
+    private NotificationManager mPlain = new SimpleManager(NotificationFactory.Location.NORTHEAST);
 
     /**
      * Constructor
@@ -118,6 +128,13 @@ public class Transitions {
                 var gameTab = this.loadFXML(Path.GAME_TAB, id);
                 Tab tab = new Tab(game.name);
                 tab.setContent(gameTab.root);
+
+
+                var gameTabController = (GameTabController)gameTab.controller;
+                gameTabController.mId = game.id;
+
+                var initial = LudoBoard.getInitialPositions();
+                gameTabController.setPiecePositions(initial);
                 liveController.mTabGames.getTabs().add(tab);
             });
         });
@@ -319,40 +336,6 @@ public class Transitions {
     }
 
     /**
-     * New game tab, append to existing tabs
-     */
-    public void newGame(int id, Game game) {
-        Platform.runLater(() -> {
-            var live = (LiveController) this.getController(Path.LIVE);
-
-            var gameTab = this.loadFXML(Path.GAME_TAB, id);
-            Tab tab = new Tab(game.name);
-
-            tab.setContent(gameTab.root);
-            live.mTabGames.getTabs().add(tab);
-        });
-    }
-
-    /**
-     * New chat tab, append to existing tabs
-     */
-    public void newChat(Chat chat) {
-        Platform.runLater(() -> {
-
-            var id = chat.id;
-            var live = (LiveController) this.getController(Path.LIVE);
-
-            var chatTab = this.loadFXML(Path.CHAT_TAB, id);
-            var chatTabController = (ChatTabController) chatTab.controller;
-            Tab tab = new Tab(chat.name);
-            chatTabController.mId = id;
-
-            tab.setContent(chatTab.root);
-            live.mTabChats.getTabs().add(tab);
-        });
-    }
-
-    /**
      * Add new chat message to existing chat
      *
      * @param message contains message,username and chatId
@@ -367,13 +350,19 @@ public class Transitions {
         });
     }
 
+    public void toastInfo(String message) {
+        Platform.runLater(() -> {
+            TextNotification notification = mFactory.buildTextNotification("Info",message); // TODO i18n
+            notification.setCloseOnClick(true);
+            mPlain.addNotification(notification, Time.seconds(2));
+        });
+    }
+
     public void toastError(String message) {
         Platform.runLater(() -> {
-            int toastMsgTime = 1500;
-            int fadeInTime = 100;
-            int fadeOutTime = 100;
-            final var red = Color.color((float) 0xB0 / 0xff, (float) 0x00 / 0xff, (float) 0x20 / 0xff);
-            Toast.makeText(mStage, message, toastMsgTime, fadeInTime, fadeOutTime, red);
+            TextNotification notification = mFactory.buildTextNotification("Error", message); // TODO i18n
+            notification.setCloseOnClick(true);
+            mPlain.addNotification(notification, Time.seconds(2));
         });
     }
 
