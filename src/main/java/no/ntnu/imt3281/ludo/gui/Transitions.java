@@ -102,7 +102,7 @@ public class Transitions {
     }
 
     /**
-     *
+     * Render live controller
      */
     public void renderLive() {
         Platform.runLater(() -> {

@@ -625,42 +625,6 @@ public class Actions implements API.Events {
 
     // ------------------- GET REQUESTS -------------------
 
-    /**
-     *
-     */
-    public void getChat() {
-        this.logAction("login");
-    }
-
-    /**
-     *
-     */
-    public void getUser(Collection<Integer> userIds) {
-
-        this.logAction("getUser");
-
-    }
-
-    /**
-     *
-     */
-    public void getFriend() {
-        this.logAction("getFriend");
-    }
-
-    /**
-     *
-     */
-    public void getGame() {
-        this.logAction("getGame");
-    }
-
-    /**
-     *
-     */
-    public void getGameState() {
-        this.logAction("getGameState");
-    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -758,10 +722,10 @@ public class Actions implements API.Events {
     /**
      * Notify which games has been changed
      */
-    public void gameUpdate(JSONObject games) {
-        send(GET_GAME_REQUEST, games, success -> {
-            var game = new Game(success);
+    public void gameUpdate(JSONObject gameUpdateJson) {
+        send(GET_GAME_REQUEST, gameUpdateJson, success -> {
 
+            var game = new Game(success);
             mState.commit(state -> {
                 state.activeGames.put(game.id, game);
             });
@@ -777,18 +741,15 @@ public class Actions implements API.Events {
     /**
      * Handle incoming game invites
      */
-    public void gameInvite(JSONObject gameInvitesJSON) {
-        var gameInvite = new GameInvite(gameInvitesJSON);
+    public void gameInvite(JSONObject gameInviteJson) {
 
-        var payloadUser = new JSONObject();
-        payloadUser.put(USER_ID, gameInvite.userId);
-        send(GET_USER_REQUEST,payloadUser, successUser -> {
+        var gameInvite = new GameInvite(gameInviteJson);
+
+        send(GET_USER_REQUEST, gameInviteJson, successUser -> {
 
             var user = new User(successUser);
 
-            var payloadGame = new JSONObject();
-            payloadGame.put(CHAT_ID, gameInvite.gameId);
-            send(GET_GAME_REQUEST, payloadGame, successGame -> {
+            send(GET_GAME_REQUEST, gameInviteJson, successGame -> {
 
                 var game = new Game(successGame);
                 gameInvite.userName = user.username;
@@ -802,6 +763,18 @@ public class Actions implements API.Events {
                 }
                 mTransitions.toastInfo("New game invite from" + " " + gameInvite.userName + " " + "to" + " " + gameInvite.gameName); // TODO i18n
             });
+        });
+    }
+
+    /**
+     * Handle incomming game state changes
+     */
+    public void gameStateUpdate(JSONObject gameStateUpdate) {
+
+        var gameState = new GameState(gameStateUpdate);
+
+        mState.commit(state -> {
+            state.activeGameStates.put(gameState.gameId, gameState);
         });
     }
 
