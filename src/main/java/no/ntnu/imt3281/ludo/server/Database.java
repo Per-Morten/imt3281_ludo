@@ -98,6 +98,7 @@ public class Database implements AutoCloseable {
      */
     @Override
     public void close() throws SQLException {
+
         if (mConnection != null) {
             mConnection.close();
         }

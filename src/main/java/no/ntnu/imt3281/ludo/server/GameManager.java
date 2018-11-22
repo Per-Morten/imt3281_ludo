@@ -2,14 +2,13 @@ package no.ntnu.imt3281.ludo.server;
 
 import no.ntnu.imt3281.ludo.api.Error;
 import no.ntnu.imt3281.ludo.api.*;
+import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.logic.Ludo;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Questions I need answer too:
@@ -78,6 +77,8 @@ public class GameManager {
     private HashMap<Integer, Game> mGames = new HashMap<>();
     private int mNextGameID = 0;
 
+    private ReentrantLock mLock = new ReentrantLock();
+
     private UserManager mUserManager;
 
     public GameManager(UserManager userManager) {
@@ -96,17 +97,19 @@ public class GameManager {
      * @param events Function will not lead to any events.
      */
     public void createGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var name = request.getString(FieldNames.NAME);
-            var owner = request.getInt(FieldNames.USER_ID);
-            var gameID = mNextGameID++;
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var name = request.getString(FieldNames.NAME);
+                var owner = request.getInt(FieldNames.USER_ID);
+                var gameID = mNextGameID++;
 
-            mGames.put(gameID, new Game(gameID, owner, name));
+                mGames.put(gameID, new Game(gameID, owner, name));
 
-            var success = new JSONObject();
-            success.put(FieldNames.GAME_ID, gameID);
-            MessageUtility.appendSuccess(successes, requestID, success);
-        });
+                var success = new JSONObject();
+                success.put(FieldNames.GAME_ID, gameID);
+                MessageUtility.appendSuccess(successes, requestID, success);
+            });
+        }
     }
 
     /**
@@ -118,45 +121,58 @@ public class GameManager {
      * @param events Function will not lead to any events.
      */
     public void getGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var gameID = request.getInt(FieldNames.GAME_ID);
-            var game = mGames.get(gameID);
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var gameID = request.getInt(FieldNames.GAME_ID);
+                var game = mGames.get(gameID);
 
-            var success = new JSONObject();
-            success.put(FieldNames.GAME_ID, gameID);
-            success.put(FieldNames.STATUS, game.status.toInt());
-            success.put(FieldNames.PLAYER_ID, game.players);
-            success.put(FieldNames.OWNER_ID, game.ownerID);
-            success.put(FieldNames.PENDING_ID, game.pendingPlayers);
-            MessageUtility.appendSuccess(successes, requestID, success);
-        });
+                if (game == null) {
+
+                }
+                if (game.status == null) {
+                    Logger.log(Logger.Level.WARN, "Game with id: %d has null status", gameID);
+                }
+
+                var success = new JSONObject();
+                success.put(FieldNames.GAME_ID, gameID);
+                success.put(FieldNames.PLAYER_ID, game.players);
+                success.put(FieldNames.STATUS, game.status.toInt());
+                success.put(FieldNames.OWNER_ID, game.ownerID);
+                success.put(FieldNames.PENDING_ID, game.pendingPlayers);
+                success.put(FieldNames.NAME, game.name);
+                success.put(FieldNames.ALLOW_RANDOMS, game.allowRandoms);
+                MessageUtility.appendSuccess(successes, requestID, success);
+            });
+        }
     }
 
     public void joinGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var gameID = request.getInt(FieldNames.GAME_ID);
-            var game = mGames.get(gameID);
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var gameID = request.getInt(FieldNames.GAME_ID);
+                var game = mGames.get(gameID);
 
-            if (game.players.size() >= Ludo.MAX_PLAYERS) {
-                MessageUtility.appendError(errors, requestID, Error.GAME_IS_FULL);
-                return;
-            }
+                if (game.players.size() >= Ludo.MAX_PLAYERS) {
+                    MessageUtility.appendError(errors, requestID, Error.GAME_IS_FULL);
+                    return;
+                }
 
-            if (game.status != GameStatus.IN_LOBBY) {
-                MessageUtility.appendError(errors, requestID, Error.GAME_ALREADY_STARTED);
-                return;
-            }
+                if (game.status != GameStatus.IN_LOBBY) {
+                    MessageUtility.appendError(errors, requestID, Error.GAME_ALREADY_STARTED);
+                    return;
+                }
 
-            int userID = request.getInt(FieldNames.USER_ID);
-            if (!game.pendingPlayers.contains(userID)) {
-                MessageUtility.appendError(errors, requestID, Error.NOT_INVITED_TO_GAME);
-                return;
-            }
+                int userID = request.getInt(FieldNames.USER_ID);
+                if (!game.pendingPlayers.contains(userID)) {
+                    MessageUtility.appendError(errors, requestID, Error.NOT_INVITED_TO_GAME);
+                    return;
+                }
 
-            putUserInGame(game, userID);
-            MessageUtility.appendSuccess(successes, requestID, new JSONObject());
-        });
-
+                putUserInGame(game, userID);
+                events.add(createGameUpdateMessage(game));
+                MessageUtility.appendSuccess(successes, requestID, new JSONObject());
+            });
+        }
     }
 
     /**
@@ -170,21 +186,25 @@ public class GameManager {
 
     // Send both: Game Update, and game state update (if the game is in session)
     public void leaveGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var userID = request.getInt(FieldNames.USER_ID);
-            var gameID = request.getInt(FieldNames.GAME_ID);
-            var game = mGames.get(gameID);
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var userID = request.getInt(FieldNames.USER_ID);
+                var gameID = request.getInt(FieldNames.GAME_ID);
+                var game = mGames.get(gameID);
 
-            game.players.remove(userID);
-            game.pendingPlayers.remove(userID);
+                game.players.removeIf(item -> item == userID);
+                game.pendingPlayers.removeIf(item -> item == userID);
 
-            events.add(createGameUpdateMessage(game));
+                events.add(createGameUpdateMessage(game));
 
-            if (game.status == GameStatus.IN_SESSION) {
-                game.ludo.removePlayer(userID);
-                events.add(createGameStateUpdateMessage(game));
-            }
-        });
+                if (game.status == GameStatus.IN_SESSION) {
+                    removePlayerFromActiveGame(game, userID, events);
+                    if (game.status == GameStatus.GAME_OVER) {
+                        mGames.remove(game.id);
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -195,125 +215,135 @@ public class GameManager {
      * @param events
      */
     public void startGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var userID = request.getInt(FieldNames.USER_ID);
-            var gameID = request.getInt(FieldNames.GAME_ID);
-            var game = mGames.get(gameID);
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var userID = request.getInt(FieldNames.USER_ID);
+                var gameID = request.getInt(FieldNames.GAME_ID);
+                var game = mGames.get(gameID);
 
-            if (userID != game.ownerID) {
-                MessageUtility.appendError(errors, requestID, Error.USER_IS_NOT_OWNER);
-                return;
-            }
+                if (userID != game.ownerID) {
+                    MessageUtility.appendError(errors, requestID, Error.USER_IS_NOT_OWNER);
+                    return;
+                }
 
-            if (game.status != GameStatus.IN_LOBBY) {
-                MessageUtility.appendError(errors, requestID, Error.GAME_ALREADY_STARTED);
-                return;
-            }
+                if (game.status != GameStatus.IN_LOBBY) {
+                    MessageUtility.appendError(errors, requestID, Error.GAME_ALREADY_STARTED);
+                    return;
+                }
 
-            game.start();
+                game.start();
 
-            MessageUtility.appendSuccess(successes, requestID, new JSONObject());
+                MessageUtility.appendSuccess(successes, requestID, new JSONObject());
 
-            events.add(createGameStateUpdateMessage(game));
-        });
+                events.add(createGameStateUpdateMessage(game));
+            });
+        }
     }
 
     public void inviteToGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var gameID = request.getInt(FieldNames.GAME_ID);
-            var game = mGames.get(gameID);
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var gameID = request.getInt(FieldNames.GAME_ID);
+                var game = mGames.get(gameID);
 
-            if (game.status != GameStatus.IN_LOBBY) {
-                MessageUtility.appendError(errors, requestID, Error.GAME_ALREADY_STARTED);
-            }
+                if (game.status != GameStatus.IN_LOBBY) {
+                    MessageUtility.appendError(errors, requestID, Error.GAME_ALREADY_STARTED);
+                }
 
-            var otherID = request.getInt(FieldNames.OTHER_ID);
+                var otherID = request.getInt(FieldNames.OTHER_ID);
 
-            if (game.players.contains(otherID) || game.pendingPlayers.contains(otherID)) {
-                MessageUtility.appendError(errors, requestID, Error.USER_ALREADY_INVITED_OR_IN_GAME);
-                return;
-            }
+                if (game.players.contains(otherID) || game.pendingPlayers.contains(otherID)) {
+                    MessageUtility.appendError(errors, requestID, Error.USER_ALREADY_INVITED_OR_IN_GAME);
+                    return;
+                }
 
-            var userID = request.getInt(FieldNames.USER_ID);
-            if (!mUserManager.areUsersFriends(userID, otherID)) {
-                MessageUtility.appendError(errors, requestID, Error.USER_IS_NOT_FRIEND);
-                return;
-            }
+                var userID = request.getInt(FieldNames.USER_ID);
+                if (!mUserManager.areUsersFriends(userID, otherID)) {
+                    MessageUtility.appendError(errors, requestID, Error.USER_IS_NOT_FRIEND);
+                    return;
+                }
 
-            // Notify all the other players.
-            game.pendingPlayers.add(otherID);
-            events.add(createGameUpdateMessage(game));
+                // Notify all the other players.
+                game.pendingPlayers.add(otherID);
+                events.add(createGameUpdateMessage(game));
 
-            // Setup invite message
-            var invite = new JSONObject();
-            invite.put(FieldNames.USER_ID, userID);
-            invite.put(FieldNames.GAME_ID, gameID);
+                // Setup invite message
+                var invite = new JSONObject();
+                invite.put(FieldNames.USER_ID, userID);
+                invite.put(FieldNames.GAME_ID, gameID);
 
-            events.add(new Message(MessageUtility.createEvent(EventType.GAME_INVITE, invite), List.of(otherID)));
-        });
+                events.add(new Message(MessageUtility.createEvent(EventType.GAME_INVITE, invite), List.of(otherID)));
+
+                MessageUtility.appendSuccess(successes, requestID, new JSONObject());
+            });
+        }
     }
 
     public void rollDice(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var gameID = request.getInt(FieldNames.GAME_ID);
-            var game = mGames.get(gameID);
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var gameID = request.getInt(FieldNames.GAME_ID);
+                var game = mGames.get(gameID);
 
-            if (game.status != GameStatus.IN_SESSION) {
-                MessageUtility.appendError(errors, requestID, Error.GAME_NOT_IN_SESSION);
-                return;
-            }
+                if (game.status != GameStatus.IN_SESSION) {
+                    MessageUtility.appendError(errors, requestID, Error.GAME_NOT_IN_SESSION);
+                    return;
+                }
 
-            var userID = request.getInt(FieldNames.USER_ID);
-            if (userID != game.ludo.getCurrentPlayerID()) {
-                MessageUtility.appendError(errors, requestID, Error.OUT_OF_TURN);
-                return;
-            }
+                var userID = request.getInt(FieldNames.USER_ID);
+                if (userID != game.ludo.getCurrentPlayerID()) {
+                    MessageUtility.appendError(errors, requestID, Error.OUT_OF_TURN);
+                    return;
+                }
 
-            if (!game.ludo.getNextAction().equals("throw")) {
-                MessageUtility.appendError(errors, requestID, Error.NOT_TIME_TO_THROW_DICE);
-                return;
-            }
+                if (game.ludo.getNextAction() != ActionType.THROW_DICE) {
+                    MessageUtility.appendError(errors, requestID, Error.NOT_TIME_TO_THROW_DICE);
+                    return;
+                }
 
-            game.ludo.throwDice();
-            events.add(createGameStateUpdateMessage(game));
-        });
+                game.ludo.throwDice();
+                events.add(createGameStateUpdateMessage(game));
+            });
+        }
     }
 
     public void movePiece(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var gameID = request.getInt(FieldNames.GAME_ID);
-            var game = mGames.get(gameID);
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var gameID = request.getInt(FieldNames.GAME_ID);
+                var game = mGames.get(gameID);
 
-            if (game.status != GameStatus.IN_SESSION) {
-                MessageUtility.appendError(errors, requestID, Error.GAME_NOT_IN_SESSION);
-                return;
-            }
-
-            var userID = request.getInt(FieldNames.USER_ID);
-            if (userID != game.ludo.getCurrentPlayerID()) {
-                MessageUtility.appendError(errors, requestID, Error.OUT_OF_TURN);
-                return;
-            }
-
-            if (!game.ludo.getNextAction().equals("move")) {
-                MessageUtility.appendError(errors, requestID, Error.NOT_TIME_TO_MOVE_PIECE);
-                return;
-            }
-
-            var piece = request.getInt(FieldNames.PIECE_INDEX);
-            if (piece >= Ludo.MAX_PLAYERS) {
-                MessageUtility.appendError(errors, requestID, Error.PIECE_INDEX_OUT_OF_BOUNDS);
-                return;
-            }
-
-            if (game.ludo.movePiece(userID, piece)) {
-                if (game.ludo.getWinner() != Ludo.UNASSIGNED) {
-                    game.status = GameStatus.GAME_OVER;
+                if (game.status != GameStatus.IN_SESSION) {
+                    MessageUtility.appendError(errors, requestID, Error.GAME_NOT_IN_SESSION);
+                    return;
                 }
 
-                events.add(createGameStateUpdateMessage(game));
-            }
-        });
+                var userID = request.getInt(FieldNames.USER_ID);
+                if (userID != game.ludo.getCurrentPlayerID()) {
+                    MessageUtility.appendError(errors, requestID, Error.OUT_OF_TURN);
+                    return;
+                }
+
+                if (game.ludo.getNextAction() != ActionType.MOVE_PIECE) {
+                    MessageUtility.appendError(errors, requestID, Error.NOT_TIME_TO_MOVE_PIECE);
+                    return;
+                }
+
+                var piece = request.getInt(FieldNames.PIECE_INDEX);
+                if (piece >= Ludo.MAX_PLAYERS) {
+                    MessageUtility.appendError(errors, requestID, Error.PIECE_INDEX_OUT_OF_BOUNDS);
+                    return;
+                }
+
+                if (game.ludo.movePiece(userID, piece)) {
+                    if (game.ludo.getWinner() != Ludo.UNASSIGNED) {
+                        game.status = GameStatus.GAME_OVER;
+                    }
+
+                    events.add(createGameStateUpdateMessage(game));
+                }
+            });
+        }
     }
 
     /**
@@ -324,19 +354,21 @@ public class GameManager {
      * @param events
      */
     public void setAllowRandoms(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var userID = request.getInt(FieldNames.USER_ID);
-            var gameID = request.getInt(FieldNames.GAME_ID);
-            var game = mGames.get(gameID);
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var userID = request.getInt(FieldNames.USER_ID);
+                var gameID = request.getInt(FieldNames.GAME_ID);
+                var game = mGames.get(gameID);
 
-            if (userID != game.ownerID) {
-                MessageUtility.appendError(errors, requestID, Error.USER_IS_NOT_OWNER);
-                return;
-            }
+                if (userID != game.ownerID) {
+                    MessageUtility.appendError(errors, requestID, Error.USER_IS_NOT_OWNER);
+                    return;
+                }
 
-            game.allowRandoms = request.getBoolean(FieldNames.ALLOW_RANDOMS);
-            MessageUtility.appendSuccess(successes, requestID, new JSONObject());
-        });
+                game.allowRandoms = request.getBoolean(FieldNames.ALLOW_RANDOMS);
+                MessageUtility.appendSuccess(successes, requestID, new JSONObject());
+            });
+        }
     }
 
     /**
@@ -350,58 +382,85 @@ public class GameManager {
      * @param events
      */
     public void joinRandomGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            var userID = request.getInt(FieldNames.USER_ID);
-            var item = mGames.values().stream()
-                    .filter(game -> {
-                        return game.allowRandoms &&
-                                game.status == GameStatus.IN_LOBBY &&
-                                game.players.size() < Ludo.MAX_PLAYERS &&
-                                !game.players.contains(userID) &&
-                                !game.pendingPlayers.contains(userID);
-                    })
-                    .findFirst();
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var userID = request.getInt(FieldNames.USER_ID);
+                var item = mGames.values().stream()
+                        .filter(game -> {
+                            return game.allowRandoms &&
+                                    game.status == GameStatus.IN_LOBBY &&
+                                    game.players.size() < Ludo.MAX_PLAYERS &&
+                                    !game.players.contains(userID) &&
+                                    !game.pendingPlayers.contains(userID);
+                        })
+                        .findFirst();
 
-            Game game;
-            if (item.isPresent()) {
-                game = item.get();
-                putUserInGame(game, userID);
-                events.add(createGameUpdateMessage(game));
-            } else {
-                var id = mNextGameID++;
-                game = new Game(id, userID, String.format("Random game %d", id));
-                mGames.put(id, game);
-            }
+                Game game;
+                if (item.isPresent()) {
+                    game = item.get();
+                    putUserInGame(game, userID);
+                    events.add(createGameUpdateMessage(game));
+                } else {
+                    var id = mNextGameID++;
+                    game = new Game(id, userID, String.format("Random game %d", id));
+                    mGames.put(id, game);
+                }
 
-            var success = new JSONObject();
-            success.put(FieldNames.GAME_ID, game.id);
-            MessageUtility.appendSuccess(successes, requestID, success);
-        });
+                var success = new JSONObject();
+                success.put(FieldNames.GAME_ID, game.id);
+                MessageUtility.appendSuccess(successes, requestID, success);
+            });
+        }
     }
 
     public void onLogoutUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
-        MessageUtility.each(requests, (requestID, request) -> {
-            removeUserFromGames(request.getInt(FieldNames.USER_ID), events);
-        });
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                removeFromGames(request.getInt(FieldNames.USER_ID), events);
+            });
+        }
     }
 
-    public void putUserInGame(Game game, int userID) {
+    private void putUserInGame(Game game, int userID) {
         game.players.add(userID);
         game.pendingPlayers.removeIf(item -> item == userID);
     }
 
-    public void removeUserFromGames(int userID, Queue<Message> events) {
-        mGames.forEach((gameID, game) -> {
-            game.players.remove(userID);
-            game.pendingPlayers.remove(userID);
+    public void removeFromGames(int userID, Queue<Message> events) {
+        try (var lock = new LockGuard(mLock)) {
 
-            events.add(createGameUpdateMessage(game));
+            mGames.values().removeIf(game -> {
+                game.players.removeIf(item -> item == userID);
+                game.pendingPlayers.removeIf(item -> item == userID);
 
-            if (game.status == GameStatus.IN_SESSION) {
-                game.ludo.removePlayer(userID);
-                events.add(createGameStateUpdateMessage(game));
-            }
-        });
+                events.add(createGameUpdateMessage(game));
+
+                if (game.status == GameStatus.IN_SESSION) {
+                    removePlayerFromActiveGame(game, userID, events);
+                }
+                return game.status == GameStatus.GAME_OVER;
+            });
+        }
+    }
+
+    /**
+     * Returns true if the game should continue, and false if it should be deleted.
+     * @param game
+     * @param userID
+     * @param events
+     * @return
+     */
+    private void removePlayerFromActiveGame(Game game, int userID, Queue<Message> events) {
+        if (game.players.size() < Ludo.MIN_PLAYERS) {
+            if (game.status != GameStatus.IN_SESSION)
+                throw new RuntimeException("Game is not in session");
+
+            game.status = GameStatus.GAME_OVER;
+            events.add(createGameStateUpdateMessage(game));
+            game.ludo = null;
+        } else {
+            game.ludo.removePlayer(userID);
+        }
     }
 
     /**
@@ -416,25 +475,28 @@ public class GameManager {
      * @param errors The JSONArray to put the errors in.
      */
     public void applyFirstOrderFilter(RequestType type, JSONArray requests, JSONArray errors) {
-        MessageUtility.applyFilter(requests, (id, request) -> {
-            if (JSONValidator.hasInt(FieldNames.GAME_ID, request) && mGames.containsKey(request.getInt(FieldNames.GAME_ID))) {
-                var game = mGames.get(request.getInt(FieldNames.GAME_ID));
-                if (game == null) {
-                    MessageUtility.appendError(errors, id, Error.GAME_ID_NOT_FOUND);
-                    return false;
-                }
+        try (var lock = new LockGuard(mLock)) {
 
-                if (JSONValidator.hasInt(FieldNames.USER_ID, request) && type != RequestType.JOIN_GAME_REQUEST) {
-                    var userID = request.getInt(FieldNames.USER_ID);
-                    if (!game.players.contains(userID) && !game.pendingPlayers.contains(userID)) {
-                        MessageUtility.appendError(errors, id, Error.USER_NOT_IN_GAME);
+            MessageUtility.applyFilter(requests, (id, request) -> {
+                if (JSONValidator.hasInt(FieldNames.GAME_ID, request) && mGames.containsKey(request.getInt(FieldNames.GAME_ID))) {
+                    var game = mGames.get(request.getInt(FieldNames.GAME_ID));
+                    if (game == null) {
+                        MessageUtility.appendError(errors, id, Error.GAME_ID_NOT_FOUND);
                         return false;
                     }
-                }
-            }
 
-            return true;
-        });
+                    if (JSONValidator.hasInt(FieldNames.USER_ID, request) && type != RequestType.JOIN_GAME_REQUEST) {
+                        var userID = request.getInt(FieldNames.USER_ID);
+                        if (!game.players.contains(userID) && !game.pendingPlayers.contains(userID)) {
+                            MessageUtility.appendError(errors, id, Error.USER_NOT_IN_GAME);
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            });
+        }
     }
 
     private static Message createGameUpdateMessage(Game game) {
@@ -444,7 +506,9 @@ public class GameManager {
         var payload = event.getJSONArray(FieldNames.PAYLOAD);
         payload.put(gameID);
 
-        return new Message(event, game.players);
+        var receivers = new ArrayList<>(game.players);
+        receivers.addAll(game.pendingPlayers);
+        return new Message(event, receivers);
     }
 
     private static Message createGameStateUpdateMessage(Game game) {
@@ -454,13 +518,14 @@ public class GameManager {
         gameState.put(FieldNames.GAME_ID, game.id);
         gameState.put(FieldNames.PLAYER_ORDER, game.ludo.getPlayerOrder());
         gameState.put(FieldNames.CURRENT_PLAYER_ID, game.ludo.getCurrentPlayerID());
-        gameState.put(FieldNames.NEXT_ACTION, game.ludo.getNextAction());
+        gameState.put(FieldNames.NEXT_ACTION, game.ludo.getNextAction().toInt());
         gameState.put(FieldNames.PREVIOUS_DICE_THROW, game.ludo.previousRoll());
         gameState.put(FieldNames.PIECE_POSITIONS, game.ludo.getPiecePositions());
-        gameState.put(FieldNames.STATUS, game.status);
+        gameState.put(FieldNames.STATUS, game.status.toInt());
         gameState.put(FieldNames.WINNER, game.ludo.getWinner());
 
         payload.put(gameState);
+        Logger.log(Logger.Level.DEBUG, "creating game state: %s", gameState);
 
         return new Message(event, game.players);
     }

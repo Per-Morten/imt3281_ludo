@@ -95,7 +95,7 @@ public class Server {
 
             var handler = mRequestHandlers.get(requestType);
             if (handler != null) {
-                Logger.log(Logger.Level.DEBUG, "Sent to handler: %s", requests);
+                //Logger.log(Logger.Level.DEBUG, "Sent to handler: %s", requests);
                 handler.apply(requests, successes, errors, sPendingEvents);
             } else {
                 Logger.log(Logger.Level.WARN, "Unimplemented feature: %s", requestType.toLowerCaseString());
@@ -106,7 +106,7 @@ public class Server {
                 updateSocketIDs(message, successes);
             }
 
-            Logger.log(Logger.Level.DEBUG, "Response: %s", response);
+            //Logger.log(Logger.Level.DEBUG, "Response: %s", response);
             sSocketManager.sendWithSocketID(message.socketID, response.toString());
         }
     }
@@ -196,6 +196,7 @@ public class Server {
         mRequestHandlers.put(RequestType.LOGOUT_REQUEST, (requests, successes, errors, events) -> {
             sUserManager.logOutUser(requests, successes, errors, events);
             sChatManager.onLogoutUser(requests, successes, errors, events);
+            sGameManager.onLogoutUser(requests, successes, errors, events);
         });
 
         /// Friends Related
@@ -216,6 +217,18 @@ public class Server {
 
         mRequestHandlers.put(RequestType.JOIN_CHAT_REQUEST, sChatManager::joinChat);
         mRequestHandlers.put(RequestType.SEND_CHAT_MESSAGE_REQUEST, sChatManager::sendChatMessage);
+
+        // Games
+        mRequestHandlers.put(RequestType.CREATE_GAME_REQUEST, sGameManager::createGame);
+        mRequestHandlers.put(RequestType.GET_GAME_REQUEST, sGameManager::getGame);
+        mRequestHandlers.put(RequestType.LEAVE_GAME_REQUEST, sGameManager::leaveGame);
+        mRequestHandlers.put(RequestType.START_GAME_REQUEST, sGameManager::startGame);
+        mRequestHandlers.put(RequestType.SEND_GAME_INVITE_REQUEST, sGameManager::inviteToGame);
+        mRequestHandlers.put(RequestType.ROLL_DICE_REQUEST, sGameManager::rollDice);
+        mRequestHandlers.put(RequestType.MOVE_PIECE_REQUEST, sGameManager::movePiece);
+        mRequestHandlers.put(RequestType.SET_ALLOW_RANDOMS_REQUEST, sGameManager::setAllowRandoms);
+        mRequestHandlers.put(RequestType.JOIN_RANDOM_GAME, sGameManager::joinRandomGame);
+        mRequestHandlers.put(RequestType.JOIN_GAME_REQUEST, sGameManager::joinGame);
     }
 
     private static void setupSocketManager() {
@@ -224,6 +237,7 @@ public class Server {
             try {
                 sDB.setUserToken(id.intValue(), null);
                 sChatManager.removeFromChats(id.intValue(), sPendingEvents);
+                sGameManager.removeFromGames(id.intValue(), sPendingEvents);
             } catch (Exception e) {
                 Logger.logException(Logger.Level.WARN, e, "Exception encountered when disconnect logging out user");
             }

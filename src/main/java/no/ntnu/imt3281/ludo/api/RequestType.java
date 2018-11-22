@@ -32,7 +32,7 @@ public enum RequestType {
     ROLL_DICE_REQUEST,
     MOVE_PIECE_REQUEST,
     JOIN_RANDOM_GAME,
-    ;
+    SET_ALLOW_RANDOMS_REQUEST;
 
     /**
      * Creates the request from a given string value, returning null if the value is illegal.
