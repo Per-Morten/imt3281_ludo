@@ -8,8 +8,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,11 +24,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Server {
     @FunctionalInterface
     interface EventHandler {
-        public void apply(JSONArray requests, JSONArray successes, JSONArray errors, LinkedBlockingQueue<Message> events);
+        public void apply(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events);
     }
 
     private static LinkedBlockingQueue<SocketManager.Message> sPendingRequests = new LinkedBlockingQueue<>();
-    private static LinkedBlockingQueue<Message> sPendingEvents = new LinkedBlockingQueue<>();
+    private static Queue<Message> sPendingEvents = new ArrayDeque<>();
 
     private static Database sDB;
     private static AtomicBoolean sRunning = new AtomicBoolean();
@@ -39,9 +40,7 @@ public class Server {
     private static HashMap<RequestType, EventHandler> mRequestHandlers = new HashMap<>();
 
     private static String sDatabaseURL = "ludo.db";
-
-    private static Thread sEventThread;
-
+    
     /**
      * Goldy locks number.
      * It is short enough that when shutting down the server, users don't really notice,
@@ -95,7 +94,6 @@ public class Server {
 
             var handler = mRequestHandlers.get(requestType);
             if (handler != null) {
-                //Logger.log(Logger.Level.DEBUG, "Sent to handler: %s", requests);
                 handler.apply(requests, successes, errors, sPendingEvents);
             } else {
                 Logger.log(Logger.Level.WARN, "Unimplemented feature: %s", requestType.toLowerCaseString());
@@ -106,38 +104,14 @@ public class Server {
                 updateSocketIDs(message, successes);
             }
 
-            //Logger.log(Logger.Level.DEBUG, "Response: %s", response);
             sSocketManager.sendWithSocketID(message.socketID, response.toString());
-        }
-    }
 
-    private static void startEventThread() {
-        sEventThread = new Thread(() -> {
-            try {
-                while (sRunning.get()) {
-                    var event = sPendingEvents.poll(sPollTimeout, TimeUnit.MILLISECONDS);
-                    if (event == null) {
-                        continue;
-                    }
-
-                    for (var receiver : event.receivers) {
-                        sSocketManager.sendWithUserID(receiver, event.object.toString());
-                    }
-
+            while (!sPendingEvents.isEmpty()) {
+                var event = sPendingEvents.remove();
+                for (var receiver : event.receivers) {
+                    sSocketManager.sendWithUserID(receiver, event.object.toString());
                 }
-            } catch (Exception e) {
-                Logger.logException(Logger.Level.ERROR, e, "Unexpected exception in eventThread");
             }
-        });
-
-        sEventThread.start();
-    }
-
-    private static void stopEventThread() {
-        try {
-            sEventThread.join();
-        } catch (Exception e) {
-            Logger.logException(Logger.Level.ERROR, e, "Unexpected exception when joining eventThread");
         }
     }
 
@@ -158,7 +132,6 @@ public class Server {
                     type != RequestType.GET_CHAT_REQUEST && type != RequestType.GET_CHAT_RANGE_REQUEST) {
 
                 authorized = sUserManager.isUserAuthorized(request, token);
-
             }
             if (!authorized) {
                 MessageUtility.appendError(errors, request.getInt(FieldNames.ID), Error.UNAUTHORIZED);
@@ -227,7 +200,7 @@ public class Server {
         mRequestHandlers.put(RequestType.ROLL_DICE_REQUEST, sGameManager::rollDice);
         mRequestHandlers.put(RequestType.MOVE_PIECE_REQUEST, sGameManager::movePiece);
         mRequestHandlers.put(RequestType.SET_ALLOW_RANDOMS_REQUEST, sGameManager::setAllowRandoms);
-        mRequestHandlers.put(RequestType.JOIN_RANDOM_GAME, sGameManager::joinRandomGame);
+        mRequestHandlers.put(RequestType.JOIN_RANDOM_GAME_REQUEST, sGameManager::joinRandomGame);
         mRequestHandlers.put(RequestType.JOIN_GAME_REQUEST, sGameManager::joinGame);
     }
 
@@ -290,24 +263,19 @@ public class Server {
         Logger.log(Logger.Level.INFO, "Setting Running to true");
         sRunning.set(true);
 
-        Logger.log(Logger.Level.INFO, "Starting Event thread");
-
-        startEventThread();
         Logger.log(Logger.Level.INFO, "Server is up");
 
         try {
             run();
         } catch (Exception e) {
+            sRunning.set(false);
             Logger.logException(Logger.Level.WARN, e, "Caught unexpected exception, shutting down server");
         }
 
         Logger.log(Logger.Level.INFO, "Server Stopping");
 
-        Logger.log(Logger.Level.INFO, "Stopping event thread");
-        stopEventThread();
-
-        sSocketManager.stop();
         Logger.log(Logger.Level.INFO, "Stopped SocketManager");
+        sSocketManager.stop();
 
         try {
             Thread.sleep(250);

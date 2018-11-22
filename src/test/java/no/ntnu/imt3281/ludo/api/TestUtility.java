@@ -167,6 +167,17 @@ class TestUtility {
         return createUserIDAndGameIDGameRequest(RequestType.JOIN_GAME_REQUEST, userID, gameID, token);
     }
 
+    static JSONObject createMovePieceRequest(int userID, int gameID, int pieceIndex, String token) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.PIECE_INDEX, pieceIndex);
+        request.put(FieldNames.GAME_ID, gameID);
+        payload.put(request);
+        return createRequest(RequestType.MOVE_PIECE_REQUEST, payload, token);
+    }
+
     static int getChatID(JSONObject msg) {
         return msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.CHAT_ID);
     }
@@ -376,6 +387,7 @@ class TestUtility {
             contexts[i].socket.setOnReceiveCallback((string) -> {
                 var msg = new JSONObject(string);
 
+                Logger.log(Logger.Level.DEBUG, "Client received: %s", string);
                 if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg) && contexts[idx].internalCount.get() < 1) {
 
                     var successes = msg.getJSONArray(FieldNames.SUCCESS);
@@ -453,7 +465,7 @@ class TestUtility {
             }
 
             if (TestUtility.isOfType(ResponseType.CREATE_GAME_RESPONSE, msg)) {
-                Logger.log(Logger.Level.DEBUG, "Got create game response");
+                //Logger.log(Logger.Level.DEBUG, "Got create game response");
 
                         TestCase.assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
                 var gameID = msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.GAME_ID);
@@ -464,12 +476,7 @@ class TestUtility {
 
             }
 
-            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
-                usersInGame.incrementAndGet();
-                Logger.log(Logger.Level.DEBUG, "Got game update: %d out of %d", usersInGame.get(), (users.size() - 1) * 2);
-            }
-
-            if (usersInGame.get() >= (users.size() - 1) * 2) {
+            if (usersInGame.get() >= (users.size() - 1)) {
                 callbacks.get(0).accept(context, msg);
             }
         });
@@ -480,12 +487,17 @@ class TestUtility {
             final var idx = i;
             totalCallbacks.add(TestUtility.createJSONCallback((context, msg) -> {
                 if (TestUtility.isOfType(EventType.GAME_INVITE, msg)) {
+                    Logger.log(Logger.Level.DEBUG, "Got game invite");
                     var gameID = msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID);
                     context.gameID.set(gameID);
                     TestUtility.sendMessage(context.socket, TestUtility.createJoinGameRequest(context.user.id, gameID, context.user.token));
                 }
 
-                if (usersInGame.get() >= (users.size() - 1) * 2) {
+                if (TestUtility.isOfType(ResponseType.JOIN_GAME_RESPONSE, msg)) {
+                    usersInGame.incrementAndGet();
+                }
+
+                if (usersInGame.get() >= (users.size() - 1)) {
                     callbacks.get(idx).accept(context, msg);
                 }
             }));
