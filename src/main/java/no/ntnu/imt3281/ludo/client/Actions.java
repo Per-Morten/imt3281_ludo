@@ -98,6 +98,7 @@ public class Actions implements API.Events {
                 state.userId = success.getInt(FieldNames.USER_ID);
                 state.authToken = success.getString(FieldNames.AUTH_TOKEN);
                 state.password = password;
+                state.email = email;
             });
 
             // Join global chat
@@ -315,9 +316,16 @@ public class Actions implements API.Events {
                 mState.commit(state -> {
                     state.activeGames.put(game.id, game);
                 });
-                mTransitions.newGame(game.id, game);
             });
         });
+
+        var game = new Game();
+        game.name = "Test game";
+        game.id = 1;
+        game.ownerId = mState.getUserId();
+        game.playerId.add(mState.getUserId());
+        game.status = 0;
+        mTransitions.newGame(game.id, game);
     }
 
     // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE GAME
@@ -699,7 +707,7 @@ public class Actions implements API.Events {
     }
 
     /**
-     * Handle incoming chat notifications
+     * Handle incoming chat invites
      */
     public void chatInvite(JSONObject chatInviteJSON) {
 

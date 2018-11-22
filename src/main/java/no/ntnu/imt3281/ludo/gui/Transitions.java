@@ -12,6 +12,8 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
@@ -126,6 +128,24 @@ public class Transitions {
                 var gameTab = this.loadFXML(Path.GAME_TAB, id);
                 Tab tab = new Tab(game.name);
                 tab.setContent(gameTab.root);
+
+
+                var gameTabController = (GameTabController)gameTab.controller;
+                gameTabController.mId = game.id;
+
+
+                // Colors
+                final Color green = new Color((float)0x1f/0xff, (float)0xff, (float)0x2b/0xff, 0);
+
+                // Make player
+                Circle player = new Circle();
+                player.setRadius(20);
+                player.setFill(green);
+                player.setStrokeWidth(4);
+                player.setLayoutX(97); // TODO map start position
+                player.setLayoutY(145);
+
+                gameTabController.mBoard.getChildren().add(player);
                 liveController.mTabGames.getTabs().add(tab);
             });
         });
@@ -335,6 +355,20 @@ public class Transitions {
 
             var gameTab = this.loadFXML(Path.GAME_TAB, id);
             Tab tab = new Tab(game.name);
+
+            // Colors
+            Color green = new Color((float)0x1f/0xff, (float)0xff/0xff, (float)0x2b/0xff, 0);
+
+
+
+            var gtController = (GameTabController)gameTab.controller;
+            var player = gtController.mPlayer;
+            // Make player
+            player.setRadius(20);
+            player.setFill(green);
+            player.setStrokeWidth(4);
+            player.setLayoutX(90); // TODO map start position
+            player.setLayoutY(150);
 
             tab.setContent(gameTab.root);
             live.mTabGames.getTabs().add(tab);
