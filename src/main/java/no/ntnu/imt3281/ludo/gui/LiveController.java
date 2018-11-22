@@ -72,6 +72,12 @@ public class LiveController extends BaseController {
     }
 
     @FXML
+    void onBtnRandomGame(ActionEvent event) {
+        mActions.randomGame();
+        Platform.runLater(() -> mChatName.setText(""));
+    }
+
+    @FXML
     void onNewGame(KeyEvent event) {
         if (!event.getCode().equals(KeyCode.ENTER))
             return;

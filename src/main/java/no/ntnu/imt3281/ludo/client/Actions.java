@@ -680,7 +680,18 @@ public class Actions implements API.Events {
         send(MOVE_PIECE_REQUEST, payload);
     }
 
-    // ------------------- GET REQUESTS -------------------
+    public void randomGame() {
+        var payload = new JSONObject();
+        payload.put(USER_ID, mState.getUserId());
+
+        send(JOIN_RANDOM_GAME_REQUEST, payload, successRandom -> {
+            send(GET_GAME_REQUEST, successRandom, successGetGame -> {
+                var game = new Game(successGetGame);
+                mState.commit(state -> state.activeGames.put(game.id, game));
+                mTransitions.renderGameTabs(mState.copy().activeGames, mState.getUserId());
+            });
+        });
+    }
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
