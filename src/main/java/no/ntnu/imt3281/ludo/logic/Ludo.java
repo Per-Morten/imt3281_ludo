@@ -269,50 +269,37 @@ public class Ludo {
      * @return
      */
     public boolean movePiece(int color, int from, int to) {
-        int conflictingPlayer = -1;
-        int conflictingPiece = -1;
-        int conflictingTile = -1;
         for (int i = 0; i < 4; i++) {
-            if (getPosition(color, i) == from) {
-                if (canMoveTo(from, to)) {
-                    for (int player = 0; player < 4; player++) {
-                        if (player != mCurrentPlayer) {
-                            for (int piece = 0; piece < 4; piece++) {
-                                int targetTile = userGridToLudoBoardGrid(mCurrentPlayer, to);
-                                int tilePieceIsOn = userGridToLudoBoardGrid(player, getPosition(player, piece));
-                                if (targetTile == tilePieceIsOn) {
-                                    conflictingPiece = piece;
-                                    conflictingPlayer = player;
-                                    conflictingTile = getPosition(player, piece);
-
-                                    setPosition(player, piece, 0);
-                                }
-                            }
-                        }
-                    }
-                    final var i2 = i;
-                    mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, color, i2, from, to)));
-                    if (conflictingPlayer != -1) {
-                        final var finPlayer = conflictingPlayer;
-                        final var finPiece = conflictingPiece;
-                        final var finFrom = conflictingTile;
-                        mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, finPlayer, finPiece, finFrom, 0)));
-                    }
-
-                    setPosition(color, i, to);
-                    if (getWinner() != -1) {
-                        mPlayerListeners.forEach(value -> value.playerStateChanged(new PlayerEvent(this, color, PlayerEvent.WON)));
-                    }
-
-                    if (from == 0 || (to - from) < 6) {
-                        nextPlayersTurn();
-                    }
-                    if ((to - from) == 6) {
-                        mNextAction = ActionType.THROW_DICE;
-                    }
-
-                    return true;
+            if (getPosition(color, i) == from && canMoveTo(from, to)) {
+                setPosition(color, i, to);
+                final var i2 = i;
+                mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, color, i2, from, to)));
+                if (getWinner() != -1) {
+                    mPlayerListeners
+                            .forEach(value -> value.playerStateChanged(new PlayerEvent(this, color, PlayerEvent.WON)));
                 }
+
+                int targetTile = userGridToLudoBoardGrid(mCurrentPlayer, to);
+                int piecesToCheck = (activePlayers() - 1) * 4;
+                for (int j = 0; j < piecesToCheck; j++) {
+                    int otherPlayer = ((j / 4) + mCurrentPlayer + 1) % activePlayers();
+                    int otherPiece = j % 4;
+                    int tilePieceIsOn = userGridToLudoBoardGrid(otherPlayer, getPosition(otherPlayer, otherPiece));
+
+                    if (targetTile == tilePieceIsOn) {
+                        mPieceListeners.forEach(value -> value.pieceMoved(new PieceEvent(this, otherPlayer, otherPiece,
+                                getPosition(otherPlayer, otherPiece), 0)));
+                        setPosition(otherPlayer, otherPiece, 0);
+                    }
+                }
+                if (from == 0 || (to - from) < 6) {
+                    nextPlayersTurn();
+                }
+                if ((to - from) == 6) {
+                    mNextAction = ActionType.THROW_DICE;
+                }
+
+                return true;
             }
         }
         return false;
