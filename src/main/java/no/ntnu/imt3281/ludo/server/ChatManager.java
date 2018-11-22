@@ -56,6 +56,7 @@ public class ChatManager {
 
     public void createChat(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.CREATE_CHAT_REQUEST, requests, errors);
             MessageUtility.each(requests, (requestID, request) -> {
                 try {
                     var name = request.getString(FieldNames.NAME);
@@ -78,6 +79,7 @@ public class ChatManager {
 
     public void getChat(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.GET_CHAT_REQUEST, requests, errors);
             MessageUtility.each(requests, (requestID, request) -> {
                 var chatID = request.getInt(FieldNames.CHAT_ID);
 
@@ -97,6 +99,7 @@ public class ChatManager {
 
     public void getChatRange(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.GET_CHAT_RANGE_REQUEST, requests, errors);
             MessageUtility.each(requests, (requestID, request) -> {
                 var page = request.getInt(FieldNames.PAGE_INDEX);
                 if (page < 0) {
@@ -132,6 +135,7 @@ public class ChatManager {
 
     public void leaveChat(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.LEAVE_CHAT_REQUEST, requests, errors);
             MessageUtility.each(requests, (requestID, request) -> {
                 var chatID = request.getInt(FieldNames.CHAT_ID);
 
@@ -158,6 +162,7 @@ public class ChatManager {
 
     public void inviteToChat(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.SEND_CHAT_INVITE_REQUEST, requests, errors);
             MessageUtility.each(requests, (requestID, request) -> {
                 var chatID = request.getInt(FieldNames.CHAT_ID);
 
@@ -193,6 +198,7 @@ public class ChatManager {
 
     public void joinChat(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.JOIN_CHAT_REQUEST, requests, errors);
             MessageUtility.each(requests, (requestID, request) -> {
                 var chatID = request.getInt(FieldNames.CHAT_ID);
 
@@ -227,6 +233,7 @@ public class ChatManager {
 
     public void sendChatMessage(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.SEND_CHAT_MESSAGE_REQUEST, requests, errors);
             MessageUtility.each(requests, (requestID, request) -> {
 
                 var chat = mChats.get(request.getInt(FieldNames.CHAT_ID));
@@ -277,7 +284,7 @@ public class ChatManager {
      * @param requests The actual requests themselves
      * @param errors   The JSONArray to put the errors in.
      */
-    public void applyFirstOrderFilter(RequestType type, JSONArray requests, JSONArray errors) {
+    private void applyFirstOrderFilter(RequestType type, JSONArray requests, JSONArray errors) {
         MessageUtility.applyFilter(requests, (id, request) -> {
             if (JSONValidator.hasInt(FieldNames.CHAT_ID, request) && mChats.get(request.getInt(FieldNames.CHAT_ID)) == null) {
                 MessageUtility.appendError(errors, id, Error.CHAT_ID_NOT_FOUND);

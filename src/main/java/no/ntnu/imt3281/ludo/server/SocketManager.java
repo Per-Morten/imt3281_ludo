@@ -144,14 +144,6 @@ public class SocketManager {
             }
         }
 
-//        for (var s : mConnectionsToRemove) {
-//            try {
-//                s.stop();
-//            } catch (Exception e) {
-//                Logger.logException(Logger.Level.WARN,e , "Exception Encountered when closing client sockets");
-//            }
-//        }
-
         mUserSockets.clear();
 
         try {

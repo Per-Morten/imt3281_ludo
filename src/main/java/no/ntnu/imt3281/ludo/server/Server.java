@@ -134,10 +134,6 @@ public class Server {
 
             return true;
         });
-
-        sUserManager.applyFirstOrderFilter(type, requests, errors);
-        sChatManager.applyFirstOrderFilter(type, requests, errors);
-        sGameManager.applyFirstOrderFilter(type, requests, errors);
     }
 
     private static void updateSocketIDs(SocketManager.Message message, JSONArray successes) {

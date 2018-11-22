@@ -11,7 +11,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * TODO: Need to create chat
  * But for now, just lock on everything (Lock on all public facing calls, assume lock on others).
  * Use re-entrant lock.
  */
@@ -494,7 +493,7 @@ public class GameManager {
      * @param requests The actual requests themselves
      * @param errors The JSONArray to put the errors in.
      */
-    public void applyFirstOrderFilter(RequestType type, JSONArray requests, JSONArray errors) {
+    private void applyFirstOrderFilter(RequestType type, JSONArray requests, JSONArray errors) {
         try (var lock = new LockGuard(mLock)) {
 
             MessageUtility.applyFilter(requests, (id, request) -> {
