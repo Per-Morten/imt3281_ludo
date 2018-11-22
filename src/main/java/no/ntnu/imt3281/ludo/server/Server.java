@@ -122,7 +122,8 @@ public class Server {
         MessageUtility.applyFilter(requests, (requestID, request) -> {
             boolean authorized = hasToken;
             if (type != RequestType.GET_USER_REQUEST && type != RequestType.GET_USER_RANGE_REQUEST &&
-                    type != RequestType.GET_CHAT_REQUEST && type != RequestType.GET_CHAT_RANGE_REQUEST) {
+                    type != RequestType.GET_CHAT_REQUEST && type != RequestType.GET_CHAT_RANGE_REQUEST &&
+                    type != RequestType.GET_GAME_REQUEST) {
 
                 authorized = sUserManager.isUserAuthorized(request, token);
             }
