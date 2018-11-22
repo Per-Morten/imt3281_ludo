@@ -1,5 +1,12 @@
-# Velkommen til prosjekt 2 (Ludo prosjektet) i IMT3281 Applikasjonsutvikling
+# Prosjet 2 - LUDO
+Gruppe medlemmer
 
+Jonas Johan Solsvik
+Per-Morten Straume
+Herman Tandberg Dybing
+
+
+## Gammelt
 Opprett en fork av dette repositoriet. Inviter resten av gruppen inn som deltakere på det repositoriet du har forket. Last ned en lokal kopi av repositoriet (git clone) og importer prosjektet i din IDE som et maven prosjekt. Oppdater .gitignore med de filene som ble opprettet når du importerte prosjektet til din IDE.
 
 Redigere denne readme filen og sett inn navnene på de som jobber på prosjektet. Rediger også pom.xml og sett inn initialene (med store bokstaver) på de som jobber på prosjektet i <artifactId> og i <name> (dersom noen har ÆØÅ i initialene, bytt ut ÆØÅ med Æ=AE, Ø=O og Å=A.) Bruk underscore "_" mellom initialene til personene på gruppa.
