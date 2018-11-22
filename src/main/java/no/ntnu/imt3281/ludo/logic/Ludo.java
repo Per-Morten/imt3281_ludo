@@ -1,11 +1,11 @@
 package no.ntnu.imt3281.ludo.logic;
 
-import no.ntnu.imt3281.ludo.api.ActionType;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+
+import no.ntnu.imt3281.ludo.api.ActionType;
 
 
 public class Ludo {
@@ -305,6 +305,9 @@ public class Ludo {
 
                     if (from == 0 || (to - from) < 6) {
                         nextPlayersTurn();
+                    }
+                    if ((to - from) == 6) {
+                        mNextAction = ActionType.THROW_DICE;
                     }
 
                     return true;

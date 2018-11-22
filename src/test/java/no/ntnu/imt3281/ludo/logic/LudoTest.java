@@ -8,9 +8,10 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
-import no.ntnu.imt3281.ludo.api.ActionType;
 import org.junit.Test;
 import org.mockito.InOrder;
+
+import no.ntnu.imt3281.ludo.api.ActionType;
 
 
 /**
@@ -1047,10 +1048,37 @@ public class LudoTest {
     public void checkNextAction() {
         Ludo ludo = new Ludo(1, 2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 
+        // Red throws a 6, and should move out from start
         ludo.throwDice(6);
-        assertEquals(ludo.getNextAction(), ActionType.MOVE_PIECE);
+        assertEquals(ActionType.MOVE_PIECE, ludo.getNextAction());
         ludo.movePiece(0, 0, 1);
-        assertEquals(ludo.getNextAction(), ActionType.THROW_DICE);
+
+        // Should be Blue's turn, and they have three attempts at getting a 6
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        assertEquals(ludo.activePlayer(), 1);
+        ludo.throwDice(5);
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        ludo.throwDice(6);
+        assertEquals(ActionType.MOVE_PIECE, ludo.getNextAction());
+        ludo.movePiece(1, 0, 1);
+
+        // Should be Red's turn, and throwing three sixes in a row should give the turn
+        // to the next player
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        assertEquals(ludo.activePlayer(), 0);
+        ludo.throwDice(6);
+        assertEquals(ActionType.MOVE_PIECE, ludo.getNextAction());
+        ludo.movePiece(0, 1, 7);
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        ludo.throwDice(6);
+        assertEquals(ActionType.MOVE_PIECE, ludo.getNextAction());
+        ludo.movePiece(0, 7, 13);
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        ludo.throwDice(6);
+        // Oops, three sixes. Next player's turn.
+        assertEquals(ludo.activePlayer(), 1);
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+
     }
 
     @Test
