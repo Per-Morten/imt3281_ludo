@@ -116,7 +116,7 @@ public class Transitions {
     /**
      * Clear all game tabs and create them again with provded game data (excluding game state)
      */
-    public void renderGameTabs(Map<Integer, Game> activeGames, int userId) {
+    public void renderGameTabs(Map<Integer, Game> activeGames, Map<Integer, Chat> activeChats, int userId) {
         Platform.runLater(() -> {
 
             var live = this.mDocuments.get(Path.LIVE);
@@ -132,6 +132,7 @@ public class Transitions {
                 var initial = LudoBoard.getInitialPositions();
                 var gameTabController = (GameTabController)gameTab.controller;
                 gameTabController.mId = game.id;
+                gameTabController.mChatId = game.chatId;
                 gameTabController.setPiecePositions(initial);
                // gameTabController.setPlayerLabels(game.playerNames);
 
@@ -154,6 +155,11 @@ public class Transitions {
                 } else {
                     gameTabController.mCheckboxAllowRandoms.setSelected(game.allowRandoms);
                 }
+
+                var gamechat = activeChats.get(game.chatId);
+                gamechat.messages.forEach(message -> {
+                    gameTabController.chatArea.appendText(message.username + ": " + message.message + "\n");
+                });
 
                 liveController.mTabGames.getTabs().add(tab);
             });
@@ -231,8 +237,6 @@ public class Transitions {
         Platform.runLater(() -> {
 
             var overview = (OverviewController) this.getController(Path.OVERVIEW);
-
-
             overview.mListGames.getChildren().clear();
 
             activeGames.forEach(game -> {
@@ -322,7 +326,6 @@ public class Transitions {
 
                 case PENDING:
                     itemController.init(ListItemType.FRIEND_REQUEST, userId, overview, name + " [pending]"); // TODO
-                                                                                                             // i18n
                     overview.mListFriends.getChildren().add(item.root);
                     break;
                 }
@@ -366,21 +369,6 @@ public class Transitions {
                 itemController.init(ListItemType.USER_IGNORED, friendId, overview, name + " [ignored]"); // TODO i18n
                 overview.mListUsers.getChildren().add(item.root);
             });
-        });
-    }
-
-    /**
-     * Add new chat message to existing chat
-     *
-     * @param message contains message,username and chatId
-     */
-    public void newMessage(ChatMessage message) {
-        Platform.runLater(() -> {
-            var chat = (ChatTabController) this.getController(Path.CHAT_TAB, message.chatId);
-            var chatItem = this.loadFXML(Path.CHAT_ITEM);
-            var chatItemController = (ChatItemController) chatItem.controller;
-            chatItemController.mMessage.setText(message.username + ": " + message.message);
-            chat.mMessageList.getChildren().add(chatItem.root);
         });
     }
 
