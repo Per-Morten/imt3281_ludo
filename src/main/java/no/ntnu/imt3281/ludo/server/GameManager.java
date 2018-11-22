@@ -11,7 +11,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * TODO: Access to this class can be concurrent.
  * TODO: Need to create chat
  * But for now, just lock on everything (Lock on all public facing calls, assume lock on others).
  * Use re-entrant lock.
@@ -405,7 +404,7 @@ public class GameManager {
                     events.add(createGameUpdateMessage(game));
                 } else {
                     var id = mNextGameID++;
-                    game = new Game(id, userID, String.format("Random game %d", id));
+                    game = new Game(id, userID, String.format("Random game %d", id), true);
                     mGames.put(id, game);
                 }
 

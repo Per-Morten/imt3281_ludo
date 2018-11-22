@@ -3,6 +3,8 @@ package no.ntnu.imt3281.ludo.api;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.logic.Ludo;
 import no.ntnu.imt3281.ludo.server.Database;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -266,7 +268,7 @@ public class GameAPITests {
 
     @Test
     public void gameIsRemovedIfEmpty() {
-        String gameName = "GametoRemoveWhenEmpty";
+        String gameName = "GameToRemoveWhenEmpty";
         var gameID = new AtomicInteger();
 
         var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
@@ -274,10 +276,12 @@ public class GameAPITests {
                 Logger.log(Logger.Level.DEBUG, "Everyone has joined, time to leave", msg, context.count.get());
                 gameID.set(context.gameID.get());
                 assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
-                context.count.incrementAndGet();
 
-                Logger.log(Logger.Level.DEBUG, "Karl is Leaving the game game");
-                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.LEAVE_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
+                // Having gotten two of these means we have got in.
+                if (context.count.incrementAndGet() >= 2) {
+                    Logger.log(Logger.Level.DEBUG, "Karl is Leaving the game game");
+                    TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.LEAVE_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
+                }
             }
 
             if (TestUtility.isOfType(ResponseType.LEAVE_GAME_RESPONSE, msg)) {
@@ -317,25 +321,29 @@ public class GameAPITests {
 
     @Test
     public void errorOnTryingToStartGameWithTooFewPlayers() {
-        String gameName = "GameToCheckStartingWithTooFewPlayers";
+        var callback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
+                TestUtility.sendMessage(context.socket, TestUtility.createNewGameRequest(context.user.id, "My new game", context.user.token));
+            }
 
-        var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
-            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
-                Logger.log(Logger.Level.DEBUG, "Karl is alone in game, time to try and start", msg, context.count.get());
-                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.START_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
+            if (TestUtility.isOfType(ResponseType.CREATE_GAME_RESPONSE, msg)) {
+                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.START_GAME_REQUEST, context.user.id, msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.GAME_ID), context.user.token));
             }
 
             if (TestUtility.isOfType(ResponseType.START_GAME_RESPONSE, msg)) {
                 TestUtility.assertError(Error.NOT_ENOUGH_PLAYERS, msg);
-                context.finishedThreads.incrementAndGet();
+                context.finishedThreads.getAndIncrement();
             }
         });
+        TestUtility.testWithLoggedInUsers(List.of(KARL), List.of(callback));
     }
 
     @Test
     public void ownerIsTransferredToNextPlayerOnOwnerLeave() {
         String gameName = "GameToCheckOwnershipTransferred";
         var gameID = new AtomicInteger();
+        var karlHasLeft = new AtomicBoolean(false);
 
         var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
             if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
@@ -349,6 +357,7 @@ public class GameAPITests {
 
             if (TestUtility.isOfType(ResponseType.LEAVE_GAME_RESPONSE, msg)) {
                 assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+                karlHasLeft.set(true);
                 context.finishedThreads.incrementAndGet();
             }
         });
@@ -358,6 +367,7 @@ public class GameAPITests {
                 Logger.log(Logger.Level.DEBUG, "Frida is in game");
                     assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
                     Logger.log(Logger.Level.DEBUG, "Frida is now supposed to be owner");
+                    while (!karlHasLeft.get());
                     TestUtility.sendMessage(context.socket, TestUtility.createGetGameRequest(context.user.id, context.gameID.get(), context.user.token));
 
             }
@@ -396,6 +406,7 @@ public class GameAPITests {
         });
 
         var fridaCallback = TestUtility.createJSONCallback((context, msg) -> {
+            Logger.log(Logger.Level.DEBUG, "FRIDA GOT CALLLBACK!, %s", msg);
             if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
                 assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
                 //context.count.incrementAndGet();
@@ -404,10 +415,14 @@ public class GameAPITests {
             }
 
             if (TestUtility.isOfType(ResponseType.START_GAME_RESPONSE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Got start game response");
                 TestUtility.assertError(Error.USER_IS_NOT_OWNER, msg);
                 fridaIsFinished.set(true);
+                context.finishedThreads.incrementAndGet();
             }
         });
+
+        TestUtility.testWithUsersInGame(List.of(KARL, FRIDA), List.of(karlCallback, fridaCallback), gameName);
     }
 
     @Test
@@ -516,5 +531,44 @@ public class GameAPITests {
         });
 
         TestUtility.testWithUsersInGame(List.of(KARL, FRIDA), List.of(karlCallback, fridaCallback), gameName);
+    }
+
+    @Test
+    public void joiningRandomGameShouldGiveNewGameIfNoneIsAvailable() {
+        var gameID = new AtomicInteger();
+
+
+        TestUtility.testWithLoggedInUsers(List.of(KARL), List.of((context, msg) -> {
+            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
+                var payload = new JSONArray();
+                var request = new JSONObject();
+                request.put(FieldNames.ID, 0);
+                request.put(FieldNames.USER_ID, context.user.id);
+                payload.put(request);
+                TestUtility.sendMessage(context.socket, TestUtility.createRequest(RequestType.JOIN_RANDOM_GAME_REQUEST, payload, context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.JOIN_RANDOM_GAME_RESPONSE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Got message: %s", msg);
+                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+                gameID.set(msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.GAME_ID));
+                TestUtility.sendMessage(context.socket, TestUtility.createGetGameRequest(context.user.id, gameID.get(), context.user.token));
+            }
+
+                if (TestUtility.isOfType(ResponseType.GET_GAME_RESPONSE, msg)) {
+                    assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+                    var game = msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0);
+                    assertEquals(0, game.getInt(FieldNames.ID));
+                    assertEquals(gameID.get(), game.getInt(FieldNames.GAME_ID));
+                    assertTrue(game.getString(FieldNames.NAME).startsWith("Random game"));
+                    assertEquals(GameStatus.IN_LOBBY.toInt(), game.getInt(FieldNames.STATUS));
+                    assertEquals(context.user.id, game.getInt(FieldNames.OWNER_ID));
+                    assertEquals(context.user.id, game.getJSONArray(FieldNames.PLAYER_ID).getInt(0));
+                    assertEquals(0, game.getJSONArray(FieldNames.PENDING_ID).length());
+                    assertTrue(game.getBoolean(FieldNames.ALLOW_RANDOMS));
+                    context.finishedThreads.incrementAndGet();
+                }
+
+        }));
     }
 }

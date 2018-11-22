@@ -316,7 +316,6 @@ class TestUtility {
 
                 if (internalCount.get() < 2) {
                     if (type == ResponseType.CREATE_USER_RESPONSE) {
-                        Logger.log(Logger.Level.DEBUG," Got messsage: %s", msg);
                         var successes = msg.getJSONArray(FieldNames.SUCCESS);
                         assertEquals(1, successes.length());
                         TestUtility.sendMessage(context.socket, createLoginRequest(email, pwd));
@@ -388,6 +387,7 @@ class TestUtility {
             contexts[i].socket.setOnReceiveCallback((string) -> {
                 var msg = new JSONObject(string);
 
+                Logger.log(Logger.Level.DEBUG, "Client received: %s", string);
                 if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg) && contexts[idx].internalCount.get() < 1) {
 
                     var successes = msg.getJSONArray(FieldNames.SUCCESS);
@@ -465,7 +465,7 @@ class TestUtility {
             }
 
             if (TestUtility.isOfType(ResponseType.CREATE_GAME_RESPONSE, msg)) {
-                Logger.log(Logger.Level.DEBUG, "Got create game response");
+                //Logger.log(Logger.Level.DEBUG, "Got create game response");
 
                         TestCase.assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
                 var gameID = msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.GAME_ID);
@@ -476,12 +476,7 @@ class TestUtility {
 
             }
 
-            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
-                usersInGame.incrementAndGet();
-                Logger.log(Logger.Level.DEBUG, "Got game update: %d out of %d", usersInGame.get(), (users.size() - 1) * 2);
-            }
-
-            if (usersInGame.get() >= (users.size() - 1) * 2) {
+            if (usersInGame.get() >= (users.size() - 1)) {
                 callbacks.get(0).accept(context, msg);
             }
         });
@@ -492,12 +487,17 @@ class TestUtility {
             final var idx = i;
             totalCallbacks.add(TestUtility.createJSONCallback((context, msg) -> {
                 if (TestUtility.isOfType(EventType.GAME_INVITE, msg)) {
+                    Logger.log(Logger.Level.DEBUG, "Got game invite");
                     var gameID = msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID);
                     context.gameID.set(gameID);
                     TestUtility.sendMessage(context.socket, TestUtility.createJoinGameRequest(context.user.id, gameID, context.user.token));
                 }
 
-                if (usersInGame.get() >= (users.size() - 1) * 2) {
+                if (TestUtility.isOfType(ResponseType.JOIN_GAME_RESPONSE, msg)) {
+                    usersInGame.incrementAndGet();
+                }
+
+                if (usersInGame.get() >= (users.size() - 1)) {
                     callbacks.get(idx).accept(context, msg);
                 }
             }));

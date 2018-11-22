@@ -375,7 +375,7 @@ public class JSONValidator {
         }));
 
         sRequestTypes.add(new Field<>(FieldNames.ALLOW_RANDOMS, FieldType.BOOLEAN, new RequestType[]{
-                RequestType.JOIN_RANDOM_GAME,
+                RequestType.SET_ALLOW_RANDOMS_REQUEST,
         }));
     }
 
