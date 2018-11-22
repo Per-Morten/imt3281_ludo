@@ -112,9 +112,6 @@ public class GameTabController extends BaseController {
     private Circle mBluePiece3;
 
     @FXML
-    private CheckBox mCheckboxAllowRandoms;
-
-    @FXML
     private ChoiceBox<String> mChoicePiece;
 
     @FXML
@@ -125,6 +122,9 @@ public class GameTabController extends BaseController {
 
     @FXML
     Button mBtnStartGame;
+
+    @FXML
+    CheckBox mCheckboxAllowRandoms;
 
 
     private Circle[] mRedPieces;
