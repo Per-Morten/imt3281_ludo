@@ -113,12 +113,7 @@ public class StateManager {
 
             var json = new JSONObject(text);
             try {
-                state.authToken = json.getString(FieldNames.AUTH_TOKEN);
-                state.username = json.getString(FieldNames.USERNAME);
-                state.password = json.getString(FieldNames.PASSWORD);
-                state.email = json.getString(FieldNames.EMAIL);
-                state.userId = json.getInt(FieldNames.USER_ID);
-                state.avatarURI = json.getString(FieldNames.AVATAR_URI);
+                state = State.fromJson(json);
             } catch (JSONException e) {
                 Logger.log(Logger.Level.WARN, "Missing key in " + StateManager.filepath);
             }
@@ -134,13 +129,7 @@ public class StateManager {
     void dump() {
         var state = this.copy();
 
-        var json = new JSONObject();
-        json.put(FieldNames.AUTH_TOKEN, "");
-        json.put(FieldNames.USERNAME, state.username);
-        json.put(FieldNames.PASSWORD, state.password);
-        json.put(FieldNames.EMAIL, state.email);
-        json.put(FieldNames.USER_ID, state.userId);
-        json.put(FieldNames.AVATAR_URI, state.avatarURI);
+        var json = State.toJson(state);
 
         try (var writer = new FileWriter(StateManager.filepath)) {
 
@@ -158,27 +147,7 @@ public class StateManager {
     void reset() {
         try {
             State state = mState.take();
-
-            // Zero everything
-            state.userId = -1;
-            state.email = "";
-            state.authToken = "";
-            state.username = "";
-            state.password = "";
-            state.avatarURI = "";
-
-            state.searchUsers = "";
-            state.searchChats = "";
-            state.searchFriends = "";
-            state.searchGames = "";
-
-            state.activeChats.clear();
-            state.activeGames.clear();
-
-            state.chatInvites.clear();
-            state.gameInvites.clear();
-
-            // Put back into queue
+            State.reset(state);
             mState.put(state);
         } catch (InterruptedException e) {
             Platform.exit();

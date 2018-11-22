@@ -3,6 +3,7 @@ package no.ntnu.imt3281.ludo.api;
 public enum ActionType {
     THROW_DICE,
     MOVE_PIECE,
+    UNKNOWN
     ;
 
     /**
