@@ -14,7 +14,7 @@ public class Message {
 
     public Message(JSONObject object, List<Integer> receivers) {
         this.object = object;
-        this.receivers = receivers;
+        this.receivers = DeepCopy.copy(receivers);
     }
 
 }

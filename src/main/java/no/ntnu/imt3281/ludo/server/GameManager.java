@@ -28,11 +28,17 @@ public class GameManager {
 
         GameStatus status;
 
-        Game(int id, int ownerID, String name) {
-            this(id, ownerID, name, false);
+        int chatID;
+
+        Game (int id, int ownerID, String name) {
+            this(id, ownerID, name, 0);
         }
 
-        Game(int id, int ownerID, String name, boolean allowRandoms) {
+        Game(int id, int ownerID, String name, int chatID) {
+            this(id, ownerID, name, false, chatID);
+        }
+
+        Game(int id, int ownerID, String name, boolean allowRandoms, int chatID) {
             this.id = id;
             this.ownerID = ownerID;
             players = new ArrayList<>();
@@ -43,6 +49,7 @@ public class GameManager {
             this.name = name;
             status = GameStatus.IN_LOBBY;
             this.allowRandoms = allowRandoms;
+            this.chatID = chatID;
         }
 
         public void start() {
@@ -60,9 +67,11 @@ public class GameManager {
     private ReentrantLock mLock = new ReentrantLock();
 
     private UserManager mUserManager;
+    private ChatManager mChatManager;
 
-    public GameManager(UserManager userManager) {
+    public GameManager(UserManager userManager, ChatManager chatManager) {
         mUserManager = userManager;
+        mChatManager = chatManager;
     }
 
     /**
@@ -112,10 +121,10 @@ public class GameManager {
 
                 var success = new JSONObject();
                 success.put(FieldNames.GAME_ID, gameID);
-                success.put(FieldNames.PLAYER_ID, game.players);
+                success.put(FieldNames.PLAYER_ID, DeepCopy.copy(game.players));
                 success.put(FieldNames.STATUS, game.status.toInt());
                 success.put(FieldNames.OWNER_ID, game.ownerID);
-                success.put(FieldNames.PENDING_ID, game.pendingPlayers);
+                success.put(FieldNames.PENDING_ID, DeepCopy.copy(game.pendingPlayers));
                 success.put(FieldNames.NAME, game.name);
                 success.put(FieldNames.ALLOW_RANDOMS, game.allowRandoms);
                 MessageUtility.appendSuccess(successes, requestID, success);
@@ -404,7 +413,7 @@ public class GameManager {
                     events.add(createGameUpdateMessage(game));
                 } else {
                     var id = mNextGameID++;
-                    game = new Game(id, userID, String.format("Random game %d", id), true);
+                    game = new Game(id, userID, String.format("Random game %d", id), true, 0);
                     mGames.put(id, game);
                 }
 
@@ -506,7 +515,7 @@ public class GameManager {
         var payload = event.getJSONArray(FieldNames.PAYLOAD);
         payload.put(gameID);
 
-        var receivers = new ArrayList<>(game.players);
+        var receivers = DeepCopy.copy(game.players);
         receivers.addAll(game.pendingPlayers);
         return new Message(event, receivers);
     }
@@ -516,7 +525,7 @@ public class GameManager {
         var payload = event.getJSONArray(FieldNames.PAYLOAD);
         var gameState = new JSONObject();
         gameState.put(FieldNames.GAME_ID, game.id);
-        gameState.put(FieldNames.PLAYER_ORDER, game.ludo.getPlayerOrder());
+        gameState.put(FieldNames.PLAYER_ORDER, DeepCopy.copy(game.ludo.getPlayerOrder()));
         gameState.put(FieldNames.CURRENT_PLAYER_ID, game.ludo.getCurrentPlayerID());
         gameState.put(FieldNames.NEXT_ACTION, game.ludo.getNextAction().toInt());
         gameState.put(FieldNames.PREVIOUS_DICE_THROW, game.ludo.previousRoll());
@@ -529,4 +538,5 @@ public class GameManager {
 
         return new Message(event, game.players);
     }
+
 }

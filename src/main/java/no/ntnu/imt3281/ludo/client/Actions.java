@@ -311,13 +311,6 @@ public class Actions implements API.Events {
 
         send(CREATE_GAME_REQUEST, payload, successCreateGame -> {
 
-
-            // TODO ----------- HACK below. Join game before getting game, to prevent UNAUTHORIZED error
-            successCreateGame.put(USER_ID, mState.getUserId());
-            send(JOIN_GAME_REQUEST, successCreateGame);
-            // TODO ---------- End hack
-
-
             send(GET_GAME_REQUEST, successCreateGame, successGetGame -> {
 
                 var game = new Game(successGetGame);

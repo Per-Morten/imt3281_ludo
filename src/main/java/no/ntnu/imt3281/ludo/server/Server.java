@@ -8,7 +8,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.SQLException;
-import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -28,7 +27,7 @@ public class Server {
     }
 
     private static LinkedBlockingQueue<SocketManager.Message> sPendingRequests = new LinkedBlockingQueue<>();
-    private static Queue<Message> sPendingEvents = new ArrayDeque<>();
+    private static LinkedBlockingQueue<Message> sPendingEvents = new LinkedBlockingQueue<>();
 
     private static Database sDB;
     private static AtomicBoolean sRunning = new AtomicBoolean();
@@ -39,14 +38,16 @@ public class Server {
 
     private static HashMap<RequestType, EventHandler> mRequestHandlers = new HashMap<>();
 
+    private static Thread sEventThread;
+
     private static String sDatabaseURL = "ludo.db";
-    
+
     /**
      * Goldy locks number.
      * It is short enough that when shutting down the server, users don't really notice,
      * but long enough that the thread won't be spinning unnecessarily often.
      */
-    private static long sPollTimeout = 250;
+    private static long sPollTimeout = 2;
 
     private static void pushIncomingMessage(SocketManager.Message msg) {
         try {
@@ -61,7 +62,6 @@ public class Server {
     // that in the future.
     private static void run() throws InterruptedException {
         while (sRunning.get()) {
-
             // Doing a timeout here, so that I can shutdown the server without ending in the situation where
             // the request is blocking.
             var message = sPendingRequests.poll(sPollTimeout, TimeUnit.MILLISECONDS);
@@ -105,13 +105,6 @@ public class Server {
             }
 
             sSocketManager.sendWithSocketID(message.socketID, response.toString());
-
-            while (!sPendingEvents.isEmpty()) {
-                var event = sPendingEvents.remove();
-                for (var receiver : event.receivers) {
-                    sSocketManager.sendWithUserID(receiver, event.object.toString());
-                }
-            }
         }
     }
 
@@ -125,11 +118,12 @@ public class Server {
         final var requests = message.getJSONArray(FieldNames.PAYLOAD);
 
 
-                final var hasToken = sUserManager.tokenExists(token);
+        final var hasToken = sUserManager.tokenExists(token);
         MessageUtility.applyFilter(requests, (requestID, request) -> {
             boolean authorized = hasToken;
             if (type != RequestType.GET_USER_REQUEST && type != RequestType.GET_USER_RANGE_REQUEST &&
-                    type != RequestType.GET_CHAT_REQUEST && type != RequestType.GET_CHAT_RANGE_REQUEST) {
+                    type != RequestType.GET_CHAT_REQUEST && type != RequestType.GET_CHAT_RANGE_REQUEST &&
+                    type != RequestType.GET_GAME_REQUEST) {
 
                 authorized = sUserManager.isUserAuthorized(request, token);
             }
@@ -217,13 +211,42 @@ public class Server {
         });
     }
 
+    private static void startEventThread() {
+        sEventThread = new Thread(() -> {
+            try {
+                while (sRunning.get()) {
+                    var event = sPendingEvents.poll(sPollTimeout, TimeUnit.MILLISECONDS);
+                    if (event == null) {
+                        continue;
+                    }
+
+                    for (var receiver : event.receivers) {
+                        sSocketManager.sendWithUserID(receiver, event.object.toString());
+                    }
+
+                }
+            } catch (Exception e) {
+                Logger.logException(Logger.Level.ERROR, e, "Unexpected exception in eventThread");
+            }
+        });
+
+        sEventThread.start();
+    }
+
+    private static void stopEventThread() {
+        try {
+            sEventThread.join();
+        } catch (Exception e) {
+            Logger.logException(Logger.Level.ERROR, e, "Unexpected exception when joining eventThread");
+        }
+    }
+
+
     private static void setupShutdownHooks() {
         final Thread mainThread = Thread.currentThread();
-        Runtime.getRuntime().addShutdownHook(new Thread()
-        {
+        Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
-            public void run()
-            {
+            public void run() {
                 sRunning.set(false);
                 try {
                     mainThread.join();
@@ -252,7 +275,7 @@ public class Server {
         sChatManager = new ChatManager(sDB, sUserManager);
 
         Logger.log(Logger.Level.INFO, "Setting up GameManager");
-        sGameManager = new GameManager(sUserManager);
+        sGameManager = new GameManager(sUserManager, sChatManager);
 
         Logger.log(Logger.Level.INFO, "Setting up Event Handlers");
         setupRequestHandlers();
@@ -263,6 +286,9 @@ public class Server {
         Logger.log(Logger.Level.INFO, "Setting Running to true");
         sRunning.set(true);
 
+        Logger.log(Logger.Level.INFO, "Starting Event thread");
+        startEventThread();
+
         Logger.log(Logger.Level.INFO, "Server is up");
 
         try {
@@ -271,6 +297,9 @@ public class Server {
             sRunning.set(false);
             Logger.logException(Logger.Level.WARN, e, "Caught unexpected exception, shutting down server");
         }
+
+        Logger.log(Logger.Level.INFO, "Stopping Event thread");
+        stopEventThread();
 
         Logger.log(Logger.Level.INFO, "Server Stopping");
 
