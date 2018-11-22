@@ -11,12 +11,19 @@ import static org.mockito.Mockito.mock;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+import no.ntnu.imt3281.ludo.api.ActionType;
+
 
 /**
  * @author okolloen
  *
  */
 public class LudoTest {
+    static final int PLAYER1 = 1;
+    static final int PLAYER2 = 2;
+    static final int PLAYER3 = 3;
+    static final int PLAYER4 = 4;
+    static final int PLAYER5 = 5;
 
 	/**
 	 * Tests constants and constructors for class Ludo. Tests the constants for
@@ -44,22 +51,22 @@ public class LudoTest {
 
 		// Create new game with three players
 		try {
-			ludo = new Ludo("Player1", "Player2", "Player3", null);
+			ludo = new Ludo(PLAYER1, PLAYER2, PLAYER3, Ludo.UNASSIGNED);
 		} catch (NotEnoughPlayersException e) {
 			assertEquals("No exception should be thrown", e.getMessage());
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		assertEquals(3, ludo.nrOfPlayers(), 0);
-		assertEquals("Player1", ludo.getPlayerName(Ludo.RED));
-		assertEquals("Player2", ludo.getPlayerName(Ludo.BLUE));
-		assertEquals("Player3", ludo.getPlayerName(Ludo.YELLOW));
-		assertEquals(null, ludo.getPlayerName(Ludo.GREEN));
+		assertEquals(PLAYER1, ludo.getPlayerID(Ludo.RED));
+		assertEquals(PLAYER2, ludo.getPlayerID(Ludo.BLUE));
+		assertEquals(PLAYER3, ludo.getPlayerID(Ludo.YELLOW));
+		assertEquals(Ludo.UNASSIGNED, ludo.getPlayerID(Ludo.GREEN));
 
 		// Try to create new game with one player
 		boolean exceptionThrown = false;
 		try {
-			ludo = new Ludo("Player1", null, null, null);
+			ludo = new Ludo(PLAYER1, Ludo.UNASSIGNED, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 		} catch (NotEnoughPlayersException e) {
 			exceptionThrown = true;
 		}
@@ -82,17 +89,17 @@ public class LudoTest {
 	@Test
 	public void addingRemovingPlayers() {
         Ludo ludo = new Ludo();
-		ludo.addPlayer("Player A");
-		ludo.addPlayer("Player B");
-		ludo.addPlayer("Player C");
-		ludo.addPlayer("Player D");
+		ludo.addPlayer(PLAYER1);
+		ludo.addPlayer(PLAYER2);
+		ludo.addPlayer(PLAYER3);
+		ludo.addPlayer(PLAYER4);
 
 		assertEquals(4, ludo.nrOfPlayers(), 0);
 
 		// Try to add a fifth player, should throw an exception
 		boolean exceptionThrown = false;
 		try {
-			ludo.addPlayer("Player E");
+			ludo.addPlayer(PLAYER5);
 		} catch (NoRoomForMorePlayersException e) {
 			exceptionThrown = true;
 		}
@@ -100,11 +107,16 @@ public class LudoTest {
 
 		// Removing a player should not remove the name
 		// it should only set the player to inactive
-		ludo.removePlayer("Player B");
-		assertEquals(4, ludo.nrOfPlayers(), 0);
+		ludo.removePlayer(PLAYER2);
+
+		// We don't have the concept of inactive players, they are simply removed.
+		assertEquals(3, ludo.nrOfPlayers(), 0);
+
 		assertEquals(3, ludo.activePlayers(), 0);
-		assertEquals("Player D", ludo.getPlayerName(Ludo.GREEN));
-		assertEquals("Inactive: Player B", ludo.getPlayerName(Ludo.BLUE));
+		assertEquals(PLAYER4, ludo.getPlayerID(Ludo.GREEN));
+
+        // We don't have the concept of inactive players, they are simply removed.
+		assertEquals(Ludo.UNASSIGNED, ludo.getPlayerID(Ludo.BLUE));
     }
 
 	/**
@@ -114,7 +126,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void testInitialPositions() {
-        Ludo ludo = new Ludo("Player1", "Player2", null, null);
+        Ludo ludo = new Ludo(PLAYER1, PLAYER2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 
 		// All pieces should be placed at position 0
 		for (int player = 0; player < 4; player++) { // RED is 0, GREEN is 3
@@ -147,7 +159,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void needASixToGetStarted() {
-        Ludo ludo = new Ludo("Player1", "Player2", null, null);
+        Ludo ludo = new Ludo(PLAYER1, PLAYER2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 
 		assertEquals(Ludo.RED, ludo.activePlayer(), 0);
 		ludo.throwDice(1);
@@ -195,9 +207,9 @@ public class LudoTest {
 	public void gameStates() {
         Ludo ludo = new Ludo();
 		assertEquals("Created", ludo.getStatus()); // A game with no players are created
-		ludo.addPlayer("Player1");
+		ludo.addPlayer(PLAYER1);
 		assertEquals("Initiated", ludo.getStatus()); // A game with players are Initiated
-		ludo = new Ludo("Player1", "Player2", null, null);
+		ludo = new Ludo(PLAYER1, PLAYER2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 		assertEquals("Initiated", ludo.getStatus());
 
 		// Move first piece from start to finish (player RED)
@@ -338,7 +350,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void landingOnTopSendsPlayerBack() {
-        Ludo ludo = new Ludo("Player1", "Player2", null, null);
+        Ludo ludo = new Ludo(PLAYER1, PLAYER2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 
 		ludo.throwDice(6); // Lucky red, threw a six
 		ludo.movePiece(Ludo.RED, 0, 1); // Board position 16
@@ -382,7 +394,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void towersBlocksOpponents() {
-        Ludo ludo = new Ludo("Player1", "Player2", null, null);
+        Ludo ludo = new Ludo(PLAYER1, PLAYER2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 
 		ludo.throwDice(6); // RED is in play
 		assertTrue(ludo.movePiece(Ludo.RED, 0, 1));
@@ -472,7 +484,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void diceThrownEventTest() {
-		Ludo ludo = new Ludo("Player1", "Player2", null, null);
+		Ludo ludo = new Ludo(PLAYER1, PLAYER2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 
 		// Create a mock DiceListener
 		DiceListener diceListener = mock(DiceListener.class);
@@ -502,7 +514,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void pieceMovedEventTest() {
-		Ludo ludo = new Ludo("Player1", "Player2", null, null);
+		Ludo ludo = new Ludo(PLAYER1, PLAYER2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
 
 		// Create a mock PieceListener
 		PieceListener pieceListener = mock(PieceListener.class);
@@ -546,7 +558,7 @@ public class LudoTest {
 	 */
 	@Test
 	public void checkActivePlayerEventTest() {
-		Ludo ludo = new Ludo("Player1", "Player2", "Player3", null);
+		Ludo ludo = new Ludo(PLAYER1, PLAYER2, PLAYER3, Ludo.UNASSIGNED);
 
 		// Create a mock DiceListener
 		DiceListener diceListener = mock(DiceListener.class);
@@ -580,7 +592,7 @@ public class LudoTest {
 		ludo.movePiece(Ludo.BLUE, 1, 2);
 		ludo.throwDice(4);
 		ludo.throwDice(5);
-		ludo.removePlayer("Player3"); // Player gives up, with one more throw to go
+		ludo.removePlayer(PLAYER3); // Player gives up, with one more throw to go
 
 		// Red and blue moving on (***MOVE3***)
 		for (int i = 0; i < 3; i++) {
@@ -1019,5 +1031,66 @@ public class LudoTest {
 		pe = new PieceEvent(ludo, Ludo.RED, 3, 59, 59);
 		ple = new PlayerEvent(ludo, Ludo.RED, PlayerEvent.WON);
 		order.verify(playerListener).playerStateChanged(ple); // HURRAY, we have a winner
+	}
+
+    @Test
+    public void checkLastResult() {
+        Ludo ludo = new Ludo();
+
+        int result = ludo.throwDice();
+        assertEquals(result, ludo.previousRoll());
+
+        result = ludo.throwDice(5);
+        assertEquals(result, ludo.previousRoll());
+    }
+
+    @Test
+    public void checkNextAction() {
+        Ludo ludo = new Ludo(1, 2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
+
+        // Red throws a 6, and should move out from start
+        ludo.throwDice(6);
+        assertEquals(ActionType.MOVE_PIECE, ludo.getNextAction());
+        ludo.movePiece(0, 0, 1);
+
+        // Should be Blue's turn, and they have three attempts at getting a 6
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        assertEquals(ludo.activePlayer(), 1);
+        ludo.throwDice(5);
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        ludo.throwDice(6);
+        assertEquals(ActionType.MOVE_PIECE, ludo.getNextAction());
+        ludo.movePiece(1, 0, 1);
+
+        // Should be Red's turn, and throwing three sixes in a row should give the turn
+        // to the next player
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        assertEquals(ludo.activePlayer(), 0);
+        ludo.throwDice(6);
+        assertEquals(ActionType.MOVE_PIECE, ludo.getNextAction());
+        ludo.movePiece(0, 1, 7);
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        ludo.throwDice(6);
+        assertEquals(ActionType.MOVE_PIECE, ludo.getNextAction());
+        ludo.movePiece(0, 7, 13);
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+        ludo.throwDice(6);
+        // Oops, three sixes. Next player's turn.
+        assertEquals(ludo.activePlayer(), 1);
+        assertEquals(ActionType.THROW_DICE, ludo.getNextAction());
+
+    }
+
+    @Test
+	public void getPiecePositionsContainsCorrectGlobalPositionsForStartCells() {
+		var ludo = new Ludo(1, 2, 3, 4);
+		var positions = ludo.getPiecePositions();
+		int counter = 0;
+
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				assertEquals(counter++, positions[i][j]);
+			}
+		}
 	}
 }

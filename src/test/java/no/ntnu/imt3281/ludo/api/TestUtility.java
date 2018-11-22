@@ -1,5 +1,6 @@
 package no.ntnu.imt3281.ludo.api;
 
+import junit.framework.TestCase;
 import no.ntnu.imt3281.ludo.client.SocketManager;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.NetworkConfig;
@@ -9,6 +10,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -103,15 +105,15 @@ class TestUtility {
     }
 
     static JSONObject createChatJoinRequest(int userID, int chatID, String token) {
-        return createUserIDandChatIDChatRequest(RequestType.JOIN_CHAT_REQUEST, userID, chatID, token);
+        return createUserIDAndChatIDChatRequest(RequestType.JOIN_CHAT_REQUEST, userID, chatID, token);
     }
 
     static JSONObject createGetChatRequest(int userID, int chatID, String token) {
-        return createUserIDandChatIDChatRequest(RequestType.GET_CHAT_REQUEST, userID, chatID, token);
+        return createUserIDAndChatIDChatRequest(RequestType.GET_CHAT_REQUEST, userID, chatID, token);
     }
 
     static JSONObject createLeaveChatRequest(int userID, int chatID, String token) {
-        return createUserIDandChatIDChatRequest(RequestType.LEAVE_CHAT_REQUEST, userID, chatID, token);
+        return createUserIDAndChatIDChatRequest(RequestType.LEAVE_CHAT_REQUEST, userID, chatID, token);
     }
 
     static JSONObject createSendChatMessageRequest(int userID, int chatID, String token, String message) {
@@ -136,16 +138,55 @@ class TestUtility {
         return createRequest(RequestType.SEND_CHAT_INVITE_REQUEST, payload, token);
     }
 
+    static JSONObject createNewGameRequest(int userID, String name, String token) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.NAME, name);
+        payload.put(request);
+        return createRequest(RequestType.CREATE_GAME_REQUEST, payload, token);
+    }
+
+    static JSONObject createGameInviteRequest(int userID, int otherID, int gameID, String token) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.OTHER_ID, otherID);
+        request.put(FieldNames.GAME_ID, gameID);
+        payload.put(request);
+        return createRequest(RequestType.SEND_GAME_INVITE_REQUEST, payload, token);
+    }
+
+    static JSONObject createGetGameRequest(int userID, int gameID, String token) {
+        return createUserIDAndGameIDGameRequest(RequestType.GET_GAME_REQUEST, userID, gameID, token);
+    }
+
+    static JSONObject createJoinGameRequest(int userID, int gameID, String token) {
+        return createUserIDAndGameIDGameRequest(RequestType.JOIN_GAME_REQUEST, userID, gameID, token);
+    }
+
     static int getChatID(JSONObject msg) {
         return msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.CHAT_ID);
     }
 
-    private static JSONObject createUserIDandChatIDChatRequest(RequestType type, int userID, int chatID, String token) {
+    private static JSONObject createUserIDAndChatIDChatRequest(RequestType type, int userID, int chatID, String token) {
         var payload = new JSONArray();
         var request = new JSONObject();
         request.put(FieldNames.ID, 0);
         request.put(FieldNames.USER_ID, userID);
         request.put(FieldNames.CHAT_ID, chatID);
+        payload.put(request);
+        return createRequest(type, payload, token);
+    }
+
+    static JSONObject createUserIDAndGameIDGameRequest(RequestType type, int userID, int gameID, String token) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.GAME_ID, gameID);
         payload.put(request);
         return createRequest(type, payload, token);
     }
@@ -314,7 +355,6 @@ class TestUtility {
     static void testWithLoggedInUsers(List<Database.User> users, List<BiConsumer<TestContext, JSONObject>> callbacks) {
         assertEquals(users.size(), callbacks.size());
 
-        // Log in both FRIDA and KARL
         final var loggedInUsers = new AtomicInteger();
         final var finishedThreads = new AtomicInteger();
 
@@ -397,6 +437,62 @@ class TestUtility {
         }
     }
 
+    /**
+     * Note, The first "GAME_UPDATE" event you get is the event when the "last" of the players joined the game.
+     * @param users
+     * @param callbacks
+     * @param gameName
+     */
+    static void testWithUsersInGame(List<Database.User> users, List<BiConsumer<TestContext, JSONObject>> callbacks, String gameName) {
+        var usersInGame = new AtomicInteger();
+        var totalCallbacks = new ArrayList<BiConsumer<TestContext, JSONObject>>();
+
+        var gameCreatorCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
+                TestUtility.sendMessage(context.socket, TestUtility.createNewGameRequest(context.user.id, gameName, context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.CREATE_GAME_RESPONSE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Got create game response");
+
+                        TestCase.assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+                var gameID = msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.GAME_ID);
+                context.gameID.set(gameID);
+                users.stream()
+                        .filter(user -> user.id != context.user.id)
+                        .forEach(user -> TestUtility.sendMessage(context.socket, TestUtility.createGameInviteRequest(context.user.id, user.id, gameID, context.user.token)));
+
+            }
+
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                usersInGame.incrementAndGet();
+                Logger.log(Logger.Level.DEBUG, "Got game update: %d out of %d", usersInGame.get(), (users.size() - 1) * 2);
+            }
+
+            if (usersInGame.get() >= (users.size() - 1) * 2) {
+                callbacks.get(0).accept(context, msg);
+            }
+        });
+        totalCallbacks.add(gameCreatorCallback);
+
+
+        for (int i = 1; i < users.size(); i++) {
+            final var idx = i;
+            totalCallbacks.add(TestUtility.createJSONCallback((context, msg) -> {
+                if (TestUtility.isOfType(EventType.GAME_INVITE, msg)) {
+                    var gameID = msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID);
+                    context.gameID.set(gameID);
+                    TestUtility.sendMessage(context.socket, TestUtility.createJoinGameRequest(context.user.id, gameID, context.user.token));
+                }
+
+                if (usersInGame.get() >= (users.size() - 1) * 2) {
+                    callbacks.get(idx).accept(context, msg);
+                }
+            }));
+        }
+
+        testWithLoggedInUsers(users, totalCallbacks);
+    }
 
     ///////////////////////////////////////////////////////
     /// Utility for generating different aspects
@@ -491,6 +587,7 @@ class TestUtility {
         AtomicInteger count;
         SocketManager socket;
         Database.User user;
+        AtomicInteger gameID = new AtomicInteger();
 
         AtomicInteger finishedThreads;
 

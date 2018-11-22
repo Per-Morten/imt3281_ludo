@@ -34,6 +34,7 @@ public class Server {
     private static SocketManager sSocketManager = new SocketManager(NetworkConfig.LISTENING_PORT);
     private static UserManager sUserManager;
     private static ChatManager sChatManager;
+    private static GameManager sGameManager;
 
     private static HashMap<RequestType, EventHandler> mRequestHandlers = new HashMap<>();
 
@@ -78,7 +79,6 @@ public class Server {
             var json = new JSONObject(message.message);
             var requestType = RequestType.fromString(json.getString(FieldNames.TYPE));
 
-            var requests = json.getJSONArray(FieldNames.PAYLOAD);
             var successes = new JSONArray();
             var errors = new JSONArray();
 
@@ -90,10 +90,12 @@ public class Server {
             response.put(FieldNames.ERROR, errors);
 
             // Doing a filter of all things we aren't authorized to do.
-            removeUnauthorizedRequests(json, errors);
+            var requests = json.getJSONArray(FieldNames.PAYLOAD);
+            applyFirstOrderFilters(json, errors);
 
             var handler = mRequestHandlers.get(requestType);
             if (handler != null) {
+                //Logger.log(Logger.Level.DEBUG, "Sent to handler: %s", requests);
                 handler.apply(requests, successes, errors, sPendingEvents);
             } else {
                 Logger.log(Logger.Level.WARN, "Unimplemented feature: %s", requestType.toLowerCaseString());
@@ -104,6 +106,7 @@ public class Server {
                 updateSocketIDs(message, successes);
             }
 
+            //Logger.log(Logger.Level.DEBUG, "Response: %s", response);
             sSocketManager.sendWithSocketID(message.socketID, response.toString());
         }
     }
@@ -138,37 +141,36 @@ public class Server {
         }
     }
 
-    private static void removeUnauthorizedRequests(JSONObject message, JSONArray errors) {
+    private static void applyFirstOrderFilters(JSONObject message, JSONArray errors) {
         if (!JSONValidator.hasString(FieldNames.AUTH_TOKEN, message)) {
             return;
         }
 
-        var type = RequestType.fromString(message.getString(FieldNames.TYPE));
-        var token = message.getString(FieldNames.AUTH_TOKEN);
-        var requests = message.getJSONArray(FieldNames.PAYLOAD);
+        final var type = RequestType.fromString(message.getString(FieldNames.TYPE));
+        final var token = message.getString(FieldNames.AUTH_TOKEN);
+        final var requests = message.getJSONArray(FieldNames.PAYLOAD);
 
-        final var indexesToRemove = new ArrayList<Integer>();
-        for (int i = 0; i < requests.length(); i++) {
-            var request = requests.getJSONObject(i);
-            boolean isAuthorized;
-            if (type == RequestType.GET_USER_REQUEST
-                    || type == RequestType.GET_USER_RANGE_REQUEST
-                    || type == RequestType.GET_CHAT_REQUEST
-                    || type == RequestType.GET_CHAT_RANGE_REQUEST) {
 
-                isAuthorized = sUserManager.tokenExists(token);
-            } else {
-                isAuthorized = sUserManager.isUserAuthorized(request, token);
+                final var hasToken = sUserManager.tokenExists(token);
+        MessageUtility.applyFilter(requests, (requestID, request) -> {
+            boolean authorized = hasToken;
+            if (type != RequestType.GET_USER_REQUEST && type != RequestType.GET_USER_RANGE_REQUEST &&
+                    type != RequestType.GET_CHAT_REQUEST && type != RequestType.GET_CHAT_RANGE_REQUEST) {
+
+                authorized = sUserManager.isUserAuthorized(request, token);
+
             }
-            if (!isAuthorized) {
+            if (!authorized) {
                 MessageUtility.appendError(errors, request.getInt(FieldNames.ID), Error.UNAUTHORIZED);
-                indexesToRemove.add(i);
+                return false;
             }
-        }
 
-        for (var idx : indexesToRemove) {
-            requests.remove(idx);
-        }
+            return true;
+        });
+
+        sUserManager.applyFirstOrderFilter(type, requests, errors);
+        sChatManager.applyFirstOrderFilter(type, requests, errors);
+        sGameManager.applyFirstOrderFilter(type, requests, errors);
     }
 
     private static void updateSocketIDs(SocketManager.Message message, JSONArray successes) {
@@ -194,6 +196,7 @@ public class Server {
         mRequestHandlers.put(RequestType.LOGOUT_REQUEST, (requests, successes, errors, events) -> {
             sUserManager.logOutUser(requests, successes, errors, events);
             sChatManager.onLogoutUser(requests, successes, errors, events);
+            sGameManager.onLogoutUser(requests, successes, errors, events);
         });
 
         /// Friends Related
@@ -215,6 +218,17 @@ public class Server {
         mRequestHandlers.put(RequestType.JOIN_CHAT_REQUEST, sChatManager::joinChat);
         mRequestHandlers.put(RequestType.SEND_CHAT_MESSAGE_REQUEST, sChatManager::sendChatMessage);
 
+        // Games
+        mRequestHandlers.put(RequestType.CREATE_GAME_REQUEST, sGameManager::createGame);
+        mRequestHandlers.put(RequestType.GET_GAME_REQUEST, sGameManager::getGame);
+        mRequestHandlers.put(RequestType.LEAVE_GAME_REQUEST, sGameManager::leaveGame);
+        mRequestHandlers.put(RequestType.START_GAME_REQUEST, sGameManager::startGame);
+        mRequestHandlers.put(RequestType.SEND_GAME_INVITE_REQUEST, sGameManager::inviteToGame);
+        mRequestHandlers.put(RequestType.ROLL_DICE_REQUEST, sGameManager::rollDice);
+        mRequestHandlers.put(RequestType.MOVE_PIECE_REQUEST, sGameManager::movePiece);
+        mRequestHandlers.put(RequestType.SET_ALLOW_RANDOMS_REQUEST, sGameManager::setAllowRandoms);
+        mRequestHandlers.put(RequestType.JOIN_RANDOM_GAME, sGameManager::joinRandomGame);
+        mRequestHandlers.put(RequestType.JOIN_GAME_REQUEST, sGameManager::joinGame);
     }
 
     private static void setupSocketManager() {
@@ -223,6 +237,7 @@ public class Server {
             try {
                 sDB.setUserToken(id.intValue(), null);
                 sChatManager.removeFromChats(id.intValue(), sPendingEvents);
+                sGameManager.removeFromGames(id.intValue(), sPendingEvents);
             } catch (Exception e) {
                 Logger.logException(Logger.Level.WARN, e, "Exception encountered when disconnect logging out user");
             }
@@ -246,7 +261,6 @@ public class Server {
         });
     }
 
-    // TODO: Find out how we shall terminate the server. Should we just ctrl+c it?
     public static void main(String[] args) throws SQLException {
         Logger.setLogLevel(Logger.Level.DEBUG);
         setupShutdownHooks();
@@ -263,6 +277,9 @@ public class Server {
 
         Logger.log(Logger.Level.INFO, "Setting up ChatManager");
         sChatManager = new ChatManager(sDB, sUserManager);
+
+        Logger.log(Logger.Level.INFO, "Setting up GameManager");
+        sGameManager = new GameManager(sUserManager);
 
         Logger.log(Logger.Level.INFO, "Setting up Event Handlers");
         setupRequestHandlers();
@@ -292,20 +309,19 @@ public class Server {
         sSocketManager.stop();
         Logger.log(Logger.Level.INFO, "Stopped SocketManager");
 
-        // Drop by Rune's office and ask about this.
-        // This feels really dirty.
-        // Essentially what is happening is that the database apperantly is busy trying to run all the setUserToken
-        // requests that happen in the onClosedConnection callback (which will be run for everyone when the server shuts down)
-        // That seems to be done asynchroniously(?), and are often in the process of happening when the shutting down the server
-        // Leading to a variety of exceptions, or potentially also a fatal error in the Runtime Environment.
-        // Simply sleeping the thread a bit (not long enough to notice), seems to fix the problem.
         try {
             Thread.sleep(250);
         } catch (Exception e) {
-
+            // This is quite dirty.
+            // I have talked with Rune about this, and we have a theory on what we assume is happening:
+            // Essentially what is happening is that the database apparently is busy trying to run all the setUserToken
+            // requests that happen in the onClosedConnection callback (which will be run for everyone when the server shuts down)
+            // That seems to be done asynchronously(?), and are often in the process of happening when the shutting down the server
+            // Leading to a variety of exceptions, or potentially also a fatal error in the Runtime Environment.
         }
 
         Logger.log(Logger.Level.INFO, "Closing Database");
+
         sDB.close();
     }
 

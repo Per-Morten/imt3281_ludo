@@ -17,7 +17,7 @@ public class JSONValidator {
     /**
      * Checks that the message contains all the fields needed as indicated by the api.
      * Returns true in the case where the message is valid, false otherwise.
-     *
+     * <p>
      * Currently only Request types are supported, as this is most important on the server.
      *
      * @param message The message to check the validity of.
@@ -40,8 +40,7 @@ public class JSONValidator {
         var type = json.getString(FieldNames.TYPE);
         if (RequestType.fromString(type) != null) {
             return verifyRequest(json);
-        }
-        else {
+        } else {
             Logger.log(Logger.Level.DEBUG, String.format("Object RequestType Invalid, %s", type));
         }
 
@@ -50,13 +49,13 @@ public class JSONValidator {
 
     /**
      * Checks if the JSONObject has the object int type with the key key.
-     *
+     * <p>
      * The JSON library we use does not support a way to check if a value if of a specific type
      * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
      * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
      * that controlflow.
      *
-     * @param key The key of the value.
+     * @param key  The key of the value.
      * @param json The JSONObject to check.
      * @return True of it has an integer named key, false otherwise.
      */
@@ -65,7 +64,7 @@ public class JSONValidator {
             try {
                 json.getInt(key);
                 return true;
-            } catch(JSONException e) {
+            } catch (JSONException e) {
                 return false;
             }
         }
@@ -74,13 +73,13 @@ public class JSONValidator {
 
     /**
      * Checks if the JSONObject has the object String type with the key key.
-     *
+     * <p>
      * The JSON library we use does not support a way to check if a value if of a specific type
      * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
      * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
      * that controlflow.
      *
-     * @param key The key of the value.
+     * @param key  The key of the value.
      * @param json The JSONObject to check.
      * @return True of it has a String named key, false otherwise.
      */
@@ -89,7 +88,7 @@ public class JSONValidator {
             try {
                 json.getString(key);
                 return true;
-            } catch(JSONException e) {
+            } catch (JSONException e) {
                 //Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasString");
                 return false;
             }
@@ -100,13 +99,13 @@ public class JSONValidator {
 
     /**
      * Checks if the JSONObject has the object JSONArray type with the key key.
-     *
+     * <p>
      * The JSON library we use does not support a way to check if a value if of a specific type
      * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
      * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
      * that controlflow.
      *
-     * @param key The key of the value.
+     * @param key  The key of the value.
      * @param json The JSONObject to check.
      * @return True of it has a JSONArray named key, false otherwise.
      */
@@ -115,7 +114,7 @@ public class JSONValidator {
             try {
                 json.getJSONArray(key);
                 return true;
-            } catch(JSONException e) {
+            } catch (JSONException e) {
                 return false;
             }
         }
@@ -124,13 +123,13 @@ public class JSONValidator {
 
     /**
      * Checks if the JSONObject has the object JSONObject type with the key key.
-     *
+     * <p>
      * The JSON library we use does not support a way to check if a value if of a specific type
      * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
      * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
      * that controlflow.
      *
-     * @param key The key of the value.
+     * @param key  The key of the value.
      * @param json The JSONObject to check.
      * @return True of it has a JSONObject named key, false otherwise.
      */
@@ -139,7 +138,7 @@ public class JSONValidator {
             try {
                 json.getJSONObject(key);
                 return true;
-            } catch(JSONException e) {
+            } catch (JSONException e) {
                 Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasJSONObject");
                 return false;
             }
@@ -149,14 +148,14 @@ public class JSONValidator {
 
     /**
      * Checks if the JSONArray has the object JSONObject type with the at index index.
-     *
+     * <p>
      * The JSON library we use does not support a way to check if a value if of a specific type
      * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
      * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
      * that controlflow.
      *
      * @param index The index of the value.
-     * @param json The JSONArray to check.
+     * @param json  The JSONArray to check.
      * @return True of it has a JSONObject at index index, false otherwise.
      */
     public static boolean hasJSONObject(int index, JSONArray json) {
@@ -165,6 +164,28 @@ public class JSONValidator {
             return true;
         } catch (JSONException e) {
             Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasJSONObject");
+            return false;
+        }
+    }
+
+    /**
+     * Checks if the JSONObject has the boolean type with the key key.
+     * <p>
+     * The JSON library we use does not support a way to check if a value if of a specific type
+     * in addition to it being present. Rather throwing an exception upon getting that value if it is of incorrect type.
+     * This leads to using exceptions as control flow, which isn't desirable, therefore we added this method to at encapsulate
+     * that controlflow.
+     *
+     * @param key  The key of the value.
+     * @param json The JSONObject to check.
+     * @return True of it has a boolean named key, false otherwise.
+     */
+    public static boolean hasBoolean(String key, JSONObject json) {
+        try {
+            json.getBoolean(key);
+            return true;
+        } catch (JSONException e) {
+            Logger.logException(Logger.Level.DEBUG, e, "Exception was thrown in hasBooleanObject");
             return false;
         }
     }
@@ -232,6 +253,13 @@ public class JSONValidator {
                                 field.fieldName));
                         return false;
                     }
+
+                    if (field.type == FieldType.BOOLEAN && !hasBoolean(field.fieldName, item)) {
+                        Logger.log(Logger.Level.DEBUG, String.format("Request was of type: %s, but did not contain Boolean field: %s",
+                                type,
+                                field.fieldName));
+                        return false;
+                    }
                 }
             }
         }
@@ -243,7 +271,7 @@ public class JSONValidator {
         INTEGER,
         STRING,
         JSON_OBJECT,
-        JSON_ARRAY,
+        JSON_ARRAY, BOOLEAN,
     }
 
     private static class Field<T> {
@@ -266,19 +294,19 @@ public class JSONValidator {
                 RequestType.UPDATE_USER_REQUEST,
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.EMAIL, FieldType.STRING, new RequestType[] {
+        sRequestTypes.add(new Field<>(FieldNames.EMAIL, FieldType.STRING, new RequestType[]{
                 RequestType.CREATE_USER_REQUEST,
                 RequestType.LOGIN_REQUEST,
                 RequestType.UPDATE_USER_REQUEST,
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.PASSWORD, FieldType.STRING, new RequestType[] {
+        sRequestTypes.add(new Field<>(FieldNames.PASSWORD, FieldType.STRING, new RequestType[]{
                 RequestType.CREATE_USER_REQUEST,
                 RequestType.LOGIN_REQUEST,
                 RequestType.UPDATE_USER_REQUEST,
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.USER_ID, FieldType.INTEGER, new RequestType[] {
+        sRequestTypes.add(new Field<>(FieldNames.USER_ID, FieldType.INTEGER, new RequestType[]{
                 RequestType.LOGOUT_REQUEST,
                 RequestType.GET_USER_REQUEST,
                 RequestType.UPDATE_USER_REQUEST,
@@ -298,18 +326,17 @@ public class JSONValidator {
                 RequestType.ROLL_DICE_REQUEST,
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.PAGE_INDEX, FieldType.INTEGER,  new RequestType[] {
+        sRequestTypes.add(new Field<>(FieldNames.PAGE_INDEX, FieldType.INTEGER, new RequestType[]{
                 RequestType.GET_USER_RANGE_REQUEST,
                 RequestType.GET_FRIEND_RANGE_REQUEST,
                 RequestType.GET_CHAT_RANGE_REQUEST,
-                RequestType.GET_GAME_RANGE_REQUEST,
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.AVATAR_URI, FieldType.STRING, new RequestType[] {
-            RequestType.UPDATE_USER_REQUEST,
+        sRequestTypes.add(new Field<>(FieldNames.AVATAR_URI, FieldType.STRING, new RequestType[]{
+                RequestType.UPDATE_USER_REQUEST,
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.OTHER_ID, FieldType.INTEGER, new RequestType[] {
+        sRequestTypes.add(new Field<>(FieldNames.OTHER_ID, FieldType.INTEGER, new RequestType[]{
                 RequestType.FRIEND_REQUEST,
                 RequestType.UNFRIEND_REQUEST,
                 RequestType.SEND_CHAT_INVITE_REQUEST,
@@ -317,10 +344,10 @@ public class JSONValidator {
         }));
 
         sRequestTypes.add(new Field<>(FieldNames.NAME, FieldType.STRING, new RequestType[]{
-            RequestType.CREATE_CHAT_REQUEST,
+                RequestType.CREATE_CHAT_REQUEST, RequestType.CREATE_GAME_REQUEST,
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.CHAT_ID, FieldType.INTEGER, new RequestType[] {
+        sRequestTypes.add(new Field<>(FieldNames.CHAT_ID, FieldType.INTEGER, new RequestType[]{
                 RequestType.JOIN_CHAT_REQUEST,
                 RequestType.LEAVE_CHAT_REQUEST,
                 RequestType.GET_CHAT_REQUEST,
@@ -328,24 +355,27 @@ public class JSONValidator {
                 RequestType.SEND_CHAT_INVITE_REQUEST,
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.MESSAGE, FieldType.STRING, new RequestType[] {
+        sRequestTypes.add(new Field<>(FieldNames.MESSAGE, FieldType.STRING, new RequestType[]{
                 RequestType.SEND_CHAT_MESSAGE_REQUEST,
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.GAME_ID, FieldType.INTEGER, new RequestType[] {
+        sRequestTypes.add(new Field<>(FieldNames.GAME_ID, FieldType.INTEGER, new RequestType[]{
                 RequestType.SEND_GAME_INVITE_REQUEST,
                 RequestType.DECLINE_GAME_INVITE_REQUEST,
                 RequestType.JOIN_GAME_REQUEST,
                 RequestType.LEAVE_GAME_REQUEST,
                 RequestType.START_GAME_REQUEST,
                 RequestType.GET_GAME_REQUEST,
-                RequestType.GET_GAME_STATE_REQUEST,
                 RequestType.ROLL_DICE_REQUEST,
                 RequestType.MOVE_PIECE_REQUEST
         }));
 
-        sRequestTypes.add(new Field<>(FieldNames.PIECE_INDEX, FieldType.INTEGER, new RequestType[] {
+        sRequestTypes.add(new Field<>(FieldNames.PIECE_INDEX, FieldType.INTEGER, new RequestType[]{
                 RequestType.MOVE_PIECE_REQUEST,
+        }));
+
+        sRequestTypes.add(new Field<>(FieldNames.ALLOW_RANDOMS, FieldType.BOOLEAN, new RequestType[]{
+                RequestType.JOIN_RANDOM_GAME,
         }));
     }
 
