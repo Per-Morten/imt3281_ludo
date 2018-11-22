@@ -676,11 +676,12 @@ public class Actions implements API.Events {
     /**
      * Move piece in an active game
      */
-    public void movePiece(int gameId) {
+    public void movePiece(int gameId, int pieceIndex) {
         this.logAction("movePiece");
 
         var payload = new JSONObject();
         payload.put(GAME_ID, gameId);
+        payload.put(PIECE_INDEX, pieceIndex);
         payload.put(USER_ID, mState.getUserId());
 
         send(MOVE_PIECE_REQUEST, payload);

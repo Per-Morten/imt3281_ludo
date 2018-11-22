@@ -1,17 +1,13 @@
 package no.ntnu.imt3281.ludo.gui;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Circle;
-import no.ntnu.imt3281.ludo.client.GameState;
-import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.logic.Ludo;
 
 import java.util.ArrayList;
@@ -46,9 +42,6 @@ public class GameTabController extends BaseController {
 
     @FXML
     ImageView diceThrown;
-
-    @FXML
-    Button throwTheDice;
 
     @FXML
     TextArea chatArea;
@@ -111,6 +104,20 @@ public class GameTabController extends BaseController {
     @FXML
     private Circle mBluePiece3;
 
+
+    @FXML
+    private ChoiceBox<String> mChoicePiece;
+
+    @FXML
+    private Button mBtnMove;
+
+    @FXML
+    private Button mBtnThrowDice;
+
+    @FXML
+    private Button mBtnStartGame;
+
+
     private Circle[] mRedPieces;
     private Circle[] mBluePieces;
     private Circle[] mYellowPieces;
@@ -129,12 +136,15 @@ public class GameTabController extends BaseController {
         assert player4Active != null : "fx:id=\"player4Active\" was not injected: check your FXML file 'GameTab.fxml'.";
         assert player4Name != null : "fx:id=\"player4Name\" was not injected: check your FXML file 'GameTab.fxml'.";
         assert diceThrown != null : "fx:id=\"diceThrown\" was not injected: check your FXML file 'GameTab.fxml'.";
-        assert throwTheDice != null : "fx:id=\"throwTheDice\" was not injected: check your FXML file 'GameTab.fxml'.";
+        assert mBtnThrowDice != null : "fx:id=\"mBtnThrowDice\" was not injected: check your FXML file 'GameTab.fxml'.";
+        assert mBtnStartGame != null : "fx:id=\"mBtnStartGame\" was not injected: check your FXML file 'GameTab.fxml'.";
+        assert mChoicePiece != null : "fx:id=\"mChoicePiece\" was not injected: check your FXML file 'GameTab.fxml'.";
+        assert mBtnMove != null : "fx:id=\"mBtnMove\" was not injected: check your FXML file 'GameTab.fxml'.";
         assert chatArea != null : "fx:id=\"chatArea\" was not injected: check your FXML file 'GameTab.fxml'.";
         assert textToSay != null : "fx:id=\"textToSay\" was not injected: check your FXML file 'GameTab.fxml'.";
         assert sendTextButton != null : "fx:id=\"sendTextButton\" was not injected: check your FXML file 'GameTab.fxml'.";
+        assert mGreenPiece0 != null : "fx:id=\"mGreenPiece0\" was not injected: check your FXML file 'GameTab.fxml'.";
         assert mGreenPiece1 != null : "fx:id=\"mGreenPiece1\" was not injected: check your FXML file 'GameTab.fxml'.";
-        assert mGreenPiece0 != null : "fx:id=\"mGreenPiece12\" was not injected: check your FXML file 'GameTab.fxml'.";
         assert mGreenPiece2 != null : "fx:id=\"mGreenPiece2\" was not injected: check your FXML file 'GameTab.fxml'.";
         assert mGreenPiece3 != null : "fx:id=\"mGreenPiece3\" was not injected: check your FXML file 'GameTab.fxml'.";
         assert mRedPiece0 != null : "fx:id=\"mRedPiece0\" was not injected: check your FXML file 'GameTab.fxml'.";
@@ -155,7 +165,12 @@ public class GameTabController extends BaseController {
         mYellowPieces = new Circle[]{mYellowPiece0, mYellowPiece1, mYellowPiece2, mYellowPiece3};
         mGreenPieces = new Circle[]{mGreenPiece0, mGreenPiece1, mGreenPiece2, mGreenPiece3};
         mPlayerLabels = new Label[]{player1Name, player2Name, player3Name, player4Name};
+
+        ObservableList<String> pieceOptions = FXCollections.observableArrayList("1","2","3","4");
+        mChoicePiece.setItems(pieceOptions);
+        mChoicePiece.setValue("1");
     }
+
 
     void setPlayerLabels(ArrayList<String> playerNames) {
 
@@ -221,9 +236,9 @@ public class GameTabController extends BaseController {
         }
     }
 
-
+    @FXML
     void onMovePiece() {
-        mActions.movePiece(mId);
+        mActions.movePiece(mId, Integer.valueOf(mChoicePiece.getValue())-1);
     }
 
     @FXML
