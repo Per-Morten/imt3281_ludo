@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 import no.ntnu.imt3281.ludo.api.ActionType;
+import no.ntnu.imt3281.ludo.common.Logger;
 
 
 public class Ludo {
@@ -331,7 +332,13 @@ public class Ludo {
             }
         }
         var from = getPosition(color, piece);
-        return movePiece(color, from, from + mLastDiceResult);
+        var to = from + mLastDiceResult;
+        Logger.log(Logger.Level.DEBUG, "Trying to move piece: %d, from %d to %d", piece, from, to);
+        if (from == 0) {
+            to = 1;
+        }
+
+        return movePiece(color, from, to);
     }
 
     /**

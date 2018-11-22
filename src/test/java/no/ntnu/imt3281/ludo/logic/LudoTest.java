@@ -1093,4 +1093,16 @@ public class LudoTest {
 			}
 		}
 	}
+
+	@Test
+	public void throwDice() {
+		Ludo ludo = new Ludo(1, 2, Ludo.UNASSIGNED, Ludo.UNASSIGNED);
+
+		int res = 0;
+		while (res != 6) {
+			res = ludo.throwDice();
+		}
+		assertEquals(6, ludo.previousRoll());
+
+	}
 }
