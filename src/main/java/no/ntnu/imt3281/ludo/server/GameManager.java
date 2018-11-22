@@ -94,7 +94,8 @@ public class GameManager {
                 var owner = request.getInt(FieldNames.USER_ID);
                 var gameID = mNextGameID++;
 
-                mGames.put(gameID, new Game(gameID, owner, name));
+
+                mGames.put(gameID, new Game(gameID, owner, name, mChatManager.createChatForGame(name)));
 
                 var success = new JSONObject();
                 success.put(FieldNames.GAME_ID, gameID);
@@ -127,6 +128,7 @@ public class GameManager {
                 success.put(FieldNames.PENDING_ID, DeepCopy.copy(game.pendingPlayers));
                 success.put(FieldNames.NAME, game.name);
                 success.put(FieldNames.ALLOW_RANDOMS, game.allowRandoms);
+                success.put(FieldNames.CHAT_ID, game.chatID);
                 MessageUtility.appendSuccess(successes, requestID, success);
             });
         }
@@ -421,7 +423,8 @@ public class GameManager {
                     events.add(createGameUpdateMessage(game));
                 } else {
                     var id = mNextGameID++;
-                    game = new Game(id, userID, String.format("Random game %d", id), true, 0);
+                    var name = String.format("Random game %d", id);
+                    game = new Game(id, userID, name, true, mChatManager.createChatForGame(name));
                     mGames.put(id, game);
                 }
 
@@ -524,7 +527,6 @@ public class GameManager {
         payload.put(gameID);
 
         var receivers = DeepCopy.copy(game.players);
-        //receivers.addAll(game.pendingPlayers);
         return new Message(event, receivers);
     }
 

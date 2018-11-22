@@ -1,15 +1,18 @@
 package no.ntnu.imt3281.ludo.server;
 
-import no.ntnu.imt3281.ludo.api.*;
 import no.ntnu.imt3281.ludo.api.Error;
+import no.ntnu.imt3281.ludo.api.*;
 import no.ntnu.imt3281.ludo.common.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.sql.SQLException;
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 // Chats, cannot join chats you are not invited to. (All chats are private)
 // All chats are private (i.e. Invite only)
@@ -19,11 +22,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ChatManager {
     private class Chat {
-        // Participants can be accessed concurrently (by people logging out).
         public Queue<Integer> participants;
         public Queue<Integer> pending;
         public String name;
         public int id;
+
+        boolean isGameChat = false;
 
         public Chat(String name, int id) {
             this.name = name;
@@ -32,6 +36,8 @@ public class ChatManager {
             this.id = id;
         }
     }
+
+    private static final int PAGE_SIZE = 100;
 
     private Database mDB;
     private UserManager mUserManager;
@@ -84,6 +90,41 @@ public class ChatManager {
                 chat.participants.forEach(participants::put);
                 success.put(FieldNames.PARTICIPANT_ID, participants);
 
+                MessageUtility.appendSuccess(successes, requestID, success);
+            });
+        }
+    }
+
+    public void getChatRange(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
+        try (var lock = new LockGuard(mLock)) {
+            MessageUtility.each(requests, (requestID, request) -> {
+                var page = request.getInt(FieldNames.PAGE_INDEX);
+                if (page < 0) {
+                    Logger.log(Logger.Level.WARN, "Someone tried to get a negative range of chats");
+                    return;
+                }
+
+                var range = new JSONArray();
+                var chats = mChats.values()
+                        .stream()
+                        .skip(page * PAGE_SIZE)
+                        .filter(chat -> !chat.isGameChat)
+                        .limit(PAGE_SIZE).collect(Collectors.toList());
+
+                for (var chat : chats) {
+                    var chatJSON = new JSONObject();
+                    chatJSON.put(FieldNames.CHAT_ID, chat.id);
+                    chatJSON.put(FieldNames.NAME, chat.name);
+                    var participants = new JSONArray();
+                    chat.participants.forEach(participants::put);
+                    chatJSON.put(FieldNames.PARTICIPANT_ID, participants);
+                    range.put(chatJSON);
+                }
+
+
+                var success = new JSONObject();
+                success.put(FieldNames.ID, requestID);
+                success.put(FieldNames.RANGE, range);
                 MessageUtility.appendSuccess(successes, requestID, success);
             });
         }
@@ -232,9 +273,9 @@ public class ChatManager {
      * This filter is just a basic filter to get rid of the following common errors:
      * * Trying to access a chat that does not exist.
      *
-     * @param type The type of request that are stored in requests.
+     * @param type     The type of request that are stored in requests.
      * @param requests The actual requests themselves
-     * @param errors The JSONArray to put the errors in.
+     * @param errors   The JSONArray to put the errors in.
      */
     public void applyFirstOrderFilter(RequestType type, JSONArray requests, JSONArray errors) {
         MessageUtility.applyFilter(requests, (id, request) -> {
@@ -248,14 +289,17 @@ public class ChatManager {
     }
 
     public int createChatForGame(String gameName) {
-//        var chatID = mDB.createChat(gameName);
-//
-//        mChats.put(chatID, new Chat(gameName, chatID));
-//        var item = mChats.get(chatID);
+        try (var lock = new LockGuard(mLock)) {
+            var chatID = mDB.createChat(gameName);
 
-        //return chatID;
+            mChats.put(chatID, new Chat(gameName, chatID));
+            var item = mChats.get(chatID);
+
+            return chatID;
+        } catch (SQLException e) {
+            Logger.logException(Logger.Level.WARN, e, String.format("Exception encountered when creating chat for game: %s", gameName));
+        }
         return 0;
-
     }
 
 

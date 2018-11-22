@@ -178,6 +178,7 @@ public class Server {
         // Chats
         mRequestHandlers.put(RequestType.CREATE_CHAT_REQUEST, sChatManager::createChat);
         mRequestHandlers.put(RequestType.GET_CHAT_REQUEST, sChatManager::getChat);
+        mRequestHandlers.put(RequestType.GET_CHAT_RANGE_REQUEST, sChatManager::getChatRange);
         mRequestHandlers.put(RequestType.LEAVE_CHAT_REQUEST, sChatManager::leaveChat);
 
         mRequestHandlers.put(RequestType.SEND_CHAT_INVITE_REQUEST, sChatManager::inviteToChat);
