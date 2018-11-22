@@ -20,10 +20,10 @@ class Player {
 
 public class Ludo {
 
-    static final int RED = 0;
-    static final int BLUE = 1;
-    static final int YELLOW = 2;
-    static final int GREEN = 3;
+    public static final int RED = 0;
+    public static final int BLUE = 1;
+    public static final int YELLOW = 2;
+    public static final int GREEN = 3;
 
     Player[] mPlayer;
     int[][] mPiecePositions;

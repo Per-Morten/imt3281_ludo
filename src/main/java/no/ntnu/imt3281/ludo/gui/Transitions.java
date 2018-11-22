@@ -133,19 +133,8 @@ public class Transitions {
                 var gameTabController = (GameTabController)gameTab.controller;
                 gameTabController.mId = game.id;
 
-
-                // Colors
-                final Color green = new Color((float)0x1f/0xff, (float)0xff, (float)0x2b/0xff, 0);
-
-                // Make player
-                Circle player = new Circle();
-                player.setRadius(20);
-                player.setFill(green);
-                player.setStrokeWidth(4);
-                player.setLayoutX(97); // TODO map start position
-                player.setLayoutY(145);
-
-                gameTabController.mBoard.getChildren().add(player);
+                var initial = LudoBoard.getInitialPositions();
+                gameTabController.setPiecePositions(initial);
                 liveController.mTabGames.getTabs().add(tab);
             });
         });
@@ -343,54 +332,6 @@ public class Transitions {
                 itemController.init(ListItemType.USER_IGNORED, friendId, overview, name + " [ignored]"); // TODO i18n
                 overview.mListUsers.getChildren().add(item.root);
             });
-        });
-    }
-
-    /**
-     * New game tab, append to existing tabs
-     */
-    public void newGame(int id, Game game) {
-        Platform.runLater(() -> {
-            var live = (LiveController) this.getController(Path.LIVE);
-
-            var gameTab = this.loadFXML(Path.GAME_TAB, id);
-            Tab tab = new Tab(game.name);
-
-            // Colors
-            Color green = new Color((float)0x1f/0xff, (float)0xff/0xff, (float)0x2b/0xff, 0);
-
-
-
-            var gtController = (GameTabController)gameTab.controller;
-            var player = gtController.mPlayer;
-            // Make player
-            player.setRadius(20);
-            player.setFill(green);
-            player.setStrokeWidth(4);
-            player.setLayoutX(90); // TODO map start position
-            player.setLayoutY(150);
-
-            tab.setContent(gameTab.root);
-            live.mTabGames.getTabs().add(tab);
-        });
-    }
-
-    /**
-     * New chat tab, append to existing tabs
-     */
-    public void newChat(Chat chat) {
-        Platform.runLater(() -> {
-
-            var id = chat.id;
-            var live = (LiveController) this.getController(Path.LIVE);
-
-            var chatTab = this.loadFXML(Path.CHAT_TAB, id);
-            var chatTabController = (ChatTabController) chatTab.controller;
-            Tab tab = new Tab(chat.name);
-            chatTabController.mId = id;
-
-            tab.setContent(chatTab.root);
-            live.mTabChats.getTabs().add(tab);
         });
     }
 

@@ -325,7 +325,10 @@ public class Actions implements API.Events {
         game.ownerId = mState.getUserId();
         game.playerId.add(mState.getUserId());
         game.status = 0;
-        mTransitions.newGame(game.id, game);
+        mState.commit(state -> {
+            state.activeGames.put(game.id, game);
+        });
+        mTransitions.renderGameTabs(mState.copy().activeGames);
     }
 
     // TODO REMOVE WHEN SERVER IMPLEMENTS CREATE GAME
@@ -356,7 +359,7 @@ public class Actions implements API.Events {
                 mState.commit(state -> {
                     state.activeChats.put(chat.id, chat);
                 });
-                mTransitions.newChat(chat);
+                mTransitions.renderChatTabs(mState.copy().activeChats);
             });
         });
     }

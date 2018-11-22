@@ -151,6 +151,21 @@
             </VBox>
          </children>
       </HBox>
-      <Circle fx:id="mPlayer" fill="DODGERBLUE" radius="100.0" stroke="BLACK" strokeType="INSIDE" />
+      <Circle fx:id="mGreenPiece0" fill="#21ff35" layoutX="50.0" layoutY="210.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mGreenPiece1" fill="#21ff35" layoutX="50.0" layoutY="210.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mGreenPiece2" fill="#21ff35" layoutX="50.0" layoutY="210.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mGreenPiece3" fill="#21ff35" layoutX="50.0" layoutY="210.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mRedPiece0" fill="#ff2121" layoutX="500.0" layoutY="200.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mRedPiece1" fill="#ff2121" layoutX="500.0" layoutY="200.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mRedPiece2" fill="#ff2121" layoutX="500.0" layoutY="200.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mRedPiece3" fill="#ff2121" layoutX="500.0" layoutY="200.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mYellowPiece0" fill="#fcff21" layoutX="50.0" layoutY="500.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mYellowPiece1" fill="#fcff21" layoutX="50.0" layoutY="500.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mYellowPiece2" fill="#fcff21" layoutX="50.0" layoutY="500.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mYellowPiece3" fill="#e5ff21" layoutX="50.0" layoutY="500.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mBluePiece0" fill="#213aff" layoutX="500.0" layoutY="510.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mBluePiece1" fill="#213aff" layoutX="500.0" layoutY="510.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mBluePiece2" fill="#213aff" layoutX="500.0" layoutY="510.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
+      <Circle fx:id="mBluePiece3" fill="#213aff" layoutX="500.0" layoutY="510.0" radius="20.0" stroke="WHITE" strokeType="INSIDE" strokeWidth="4.0" />
    </children>
 </Pane>
