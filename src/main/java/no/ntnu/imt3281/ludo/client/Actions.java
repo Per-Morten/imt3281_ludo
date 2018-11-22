@@ -214,7 +214,7 @@ public class Actions implements API.Events {
 
         var state = mState.copy();
         mTransitions.renderLive();
-        mTransitions.renderGameTabs(state.activeGames);
+        mTransitions.renderGameTabs(state.activeGames, mState.getUserId());
         mTransitions.renderChatTabs(state.activeChats);
 
         mCurrentScene = Scene.LIVE;
@@ -325,7 +325,7 @@ public class Actions implements API.Events {
                     state.activeGames.put(game.id, game);
                 });
 
-                mTransitions.renderGameTabs(mState.copy().activeGames);
+                mTransitions.renderGameTabs(mState.copy().activeGames, mState.getUserId());
 
 
                 game.playerId.forEach(id -> {
@@ -339,7 +339,7 @@ public class Actions implements API.Events {
                         mState.commit(state -> {
                             state.activeGames.get(game.id).playerNames.add(user.username);
                         });
-                        mTransitions.renderGameTabs(mState.copy().activeGames);
+                        mTransitions.renderGameTabs(mState.copy().activeGames, mState.getUserId());
                     });
                 });
             });
@@ -795,7 +795,7 @@ public class Actions implements API.Events {
             });
 
             if(mCurrentScene.equals(Scene.LIVE)) {
-                mTransitions.renderGameTabs(mState.copy().activeGames);
+                mTransitions.renderGameTabs(mState.copy().activeGames, mState.getUserId());
             } else if(mCurrentScene.equals(Scene.OVERVIEW)) {
                 this.gotoOverview();
             }

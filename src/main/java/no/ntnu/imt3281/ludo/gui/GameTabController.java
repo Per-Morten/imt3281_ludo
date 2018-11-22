@@ -1,14 +1,20 @@
 package no.ntnu.imt3281.ludo.gui;
 
+import javafx.application.Platform;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.InputMethodEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.logic.Ludo;
+import no.ntnu.imt3281.ludo.logic.PlayerEvent;
 
 import java.util.ArrayList;
 
@@ -124,6 +130,8 @@ public class GameTabController extends BaseController {
     private Circle[] mGreenPieces;
     private Label[] mPlayerLabels;
 
+    int mColor = -1;
+
     @FXML
     void initialize() {
         assert mBoard != null : "fx:id=\"mBoard\" was not injected: check your FXML file 'GameTab.fxml'.";
@@ -166,9 +174,58 @@ public class GameTabController extends BaseController {
         mGreenPieces = new Circle[]{mGreenPiece0, mGreenPiece1, mGreenPiece2, mGreenPiece3};
         mPlayerLabels = new Label[]{player1Name, player2Name, player3Name, player4Name};
 
-        ObservableList<String> pieceOptions = FXCollections.observableArrayList("1","2","3","4");
+
+
+        final var pink = new Color(0, 0, 0,0);
+        mChoicePiece.getSelectionModel()
+                .selectedItemProperty()
+                .addListener( (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
+
+
+                    var pieceIndex = Integer.valueOf(newValue);
+
+                    Platform.runLater(() -> {
+                        switch (mColor) {
+                            case Ludo.RED: {
+                                for(var piece: mRedPieces) {
+                                    Logger.log(Logger.Level.WARN, "RED valuechange: " + newValue + "  color: " + mColor);
+                                    piece.setFill(Color.RED);
+                                }
+                                mRedPieces[pieceIndex].setFill(Color.PINK);
+                            } break;
+                            case Ludo.BLUE: {
+
+                                for(var piece: mBluePieces) {
+                                    Logger.log(Logger.Level.WARN, "BLUE valuechange: " + newValue + "  color: " + mColor);
+                                    piece.setFill(Color.BLUE);
+                                }
+                                mBluePieces[pieceIndex].setFill(Color.PINK);
+                            } break;
+                            case Ludo.YELLOW: {
+
+                                for(var piece: mYellowPieces) {
+                                    Logger.log(Logger.Level.WARN, "YELLOW valuechange: " + newValue + "  color: " + mColor);
+                                    piece.setFill(Color.YELLOW);
+                                }
+                                mYellowPieces[pieceIndex].setFill(Color.PINK);
+                            } break;
+                            case Ludo.GREEN: {
+
+                                for(var piece: mGreenPieces) {
+                                    Logger.log(Logger.Level.WARN, "GREEN valuechange: " + newValue + "  color: " + mColor);
+                                    piece.setFill(Color.GREEN);
+                                }
+                                mGreenPieces[pieceIndex].setFill(Color.PINK);
+                            } break;
+                        }
+                    });
+                });
+
+
+        ObservableList<String> pieceOptions = FXCollections.observableArrayList("0","1","2","3");
         mChoicePiece.setItems(pieceOptions);
-        mChoicePiece.setValue("1");
+        mChoicePiece.setValue("0");
+
     }
 
 
@@ -238,7 +295,7 @@ public class GameTabController extends BaseController {
 
     @FXML
     void onMovePiece() {
-        mActions.movePiece(mId, Integer.valueOf(mChoicePiece.getValue())-1);
+        mActions.movePiece(mId, Integer.valueOf(mChoicePiece.getValue()));
     }
 
     @FXML

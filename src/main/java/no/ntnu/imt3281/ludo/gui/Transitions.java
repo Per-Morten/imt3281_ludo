@@ -116,7 +116,7 @@ public class Transitions {
     /**
      * Clear all game tabs and create them again with provded game data (excluding game state)
      */
-    public void renderGameTabs(Map<Integer, Game> activeGames) {
+    public void renderGameTabs(Map<Integer, Game> activeGames, int userId) {
         Platform.runLater(() -> {
 
             var live = this.mDocuments.get(Path.LIVE);
@@ -134,6 +134,17 @@ public class Transitions {
                 gameTabController.mId = game.id;
                 gameTabController.setPiecePositions(initial);
                 gameTabController.setPlayerLabels(game.playerNames);
+
+                // Compute color
+                int i = 0;
+                for (var pid: game.playerId) {
+                    if (pid.equals(userId)) {
+                        gameTabController.mColor = i;
+                        break;
+                    }
+                    i++;
+                };
+                if (i == 4) Logger.log(Level.WARN, "Logged in user not found in active games player id's");
 
                 liveController.mTabGames.getTabs().add(tab);
             });
