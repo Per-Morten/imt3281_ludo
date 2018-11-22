@@ -7,10 +7,8 @@ import no.ntnu.imt3281.ludo.api.RequestType;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.common.Logger.Level;
 import no.ntnu.imt3281.ludo.gui.Transitions;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -680,8 +678,34 @@ public class Actions implements API.Events {
         send(MOVE_PIECE_REQUEST, payload);
     }
 
-    // ------------------- GET REQUESTS -------------------
+    /**
+     * Join a random game or creates a new game with allow random flag set to true
+     */
+    public void randomGame() {
+        var payload = new JSONObject();
+        payload.put(USER_ID, mState.getUserId());
 
+        send(JOIN_RANDOM_GAME_REQUEST, payload, successRandom -> {
+            send(GET_GAME_REQUEST, successRandom, successGetGame -> {
+                var game = new Game(successGetGame);
+                mState.commit(state -> state.activeGames.put(game.id, game));
+                mTransitions.renderGameTabs(mState.copy().activeGames, mState.getUserId());
+            });
+        });
+    }
+
+    /**
+     * Set random flag to true or false
+     */
+    public void allowRandoms(int gameId, boolean shouldAllowRandom) {
+
+        var payload = new JSONObject();
+        payload.put(ALLOW_RANDOMS, shouldAllowRandom);
+        payload.put(USER_ID, mState.getUserId());
+        payload.put(GAME_ID, gameId);
+
+        send(SET_ALLOW_RANDOMS_REQUEST, payload);
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -942,5 +966,4 @@ public class Actions implements API.Events {
     private void send(RequestType type, JSONObject payload) {
         mAPI.send(mRequests.make(type, payload, mState.getAuthToken(), success -> {}, this::logError));
     }
-
 }

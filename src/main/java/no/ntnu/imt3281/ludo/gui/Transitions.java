@@ -150,6 +150,9 @@ public class Transitions {
                 // Hide start button if not game master
                 if (game.ownerId != userId) {
                     gameTabController.mBtnStartGame.setVisible(false);
+                    gameTabController.mCheckboxAllowRandoms.setVisible(false);
+                } else {
+                    gameTabController.mCheckboxAllowRandoms.setSelected(game.allowRandoms);
                 }
 
                 liveController.mTabGames.getTabs().add(tab);
