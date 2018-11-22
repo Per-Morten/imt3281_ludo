@@ -307,9 +307,11 @@ public class ChatAPITests {
             // Frida has joined
             if (TestUtility.isOfType(EventType.CHAT_UPDATE, msg)) {
                 // Just disconnect.
+                Logger.log(Logger.Level.DEBUG, "Karl CHAT_UPDATE");
+//                Logger.log(Logger.Level.DEBUG, "Frida joined chat");
+//                Logger.log(Logger.Level.DEBUG, "Karl is leaving chat");
                 context.running.set(false);
                 context.finishedThreads.incrementAndGet();
-
             }
         });
 
@@ -320,14 +322,18 @@ public class ChatAPITests {
                 TestUtility.sendMessage(context.socket, TestUtility.createChatJoinRequest(context.user.id, msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.CHAT_ID), context.user.token));
             }
 
+            Logger.log(Logger.Level.DEBUG, "Frida receive a message. %s", msg);
+
             if (TestUtility.isOfType(ResponseType.JOIN_CHAT_RESPONSE, msg)) {
                 numberInChat.getAndIncrement();
                 context.count.incrementAndGet();
+                Logger.log(Logger.Level.DEBUG, "Frida received message, count is: %d", context.count.get());
             }
 
             if (TestUtility.isOfType(EventType.CHAT_UPDATE, msg)) {
                 assertEquals(1, msg.getJSONArray(FieldNames.PAYLOAD).length());
                 context.count.incrementAndGet();
+                Logger.log(Logger.Level.DEBUG, "Frida CHAT_UPDATE received message, count is: %d", context.count.get());
             }
 
             // Should get exactly 3 messages: JOIN_CHAT_RESPONSE, CHAT_UPDATE (for me joining), CHAT_UPDATE(for karl leaving)

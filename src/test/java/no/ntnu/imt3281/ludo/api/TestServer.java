@@ -19,7 +19,7 @@ class TestServer {
         Server.setPollTimeout(2);
         sServerThread = new Thread(() -> {
             try {
-                Server.main(null);
+                    Server.main(null);
             } catch (SQLException e) {
                 System.out.println("Exception");
                 Logger.logException(Logger.Level.WARN, e, "Unhandled Exception in Server");

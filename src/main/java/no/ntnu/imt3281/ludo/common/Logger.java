@@ -58,7 +58,7 @@ public class Logger {
         var currentTime = new Timestamp(new Date().getTime());
 
         var out = (level == Level.ERROR || level == Level.WARN) ? System.err : System.out;
-        out.println(String.format("%s %s: %s%n", currentTime, level.toString(), string));
+        out.println(String.format("%s %s: Thread: %d %s%n", currentTime, level.toString(), Thread.currentThread().getId(), string));
         out.flush();
 
         if (level == Level.ERROR) {
