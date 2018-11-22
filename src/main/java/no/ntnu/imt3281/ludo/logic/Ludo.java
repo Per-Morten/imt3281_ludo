@@ -40,13 +40,7 @@ public class Ludo {
             mPlayer[i] = UNASSIGNED;
         }
 
-        mPiecePositions = new int[4][4];
-        mCurrentPlayer = 0;
-        mRemainingAttempts = 3;
-        mStarted = false;
-        mSixesInARow = 0;
-        mLastDiceResult = -1;
-        mNextAction = ActionType.THROW_DICE;
+        setUp();
     }
 
     /**
@@ -70,6 +64,13 @@ public class Ludo {
         mPlayer[2] = player3ID;
         mPlayer[3] = player4ID;
 
+        setUp();
+    }
+
+    /**
+     * Initializes member variables. Called in all constructors.
+     */
+    private void setUp() {
         mPiecePositions = new int[4][4];
         mCurrentPlayer = 0;
         mRemainingAttempts = 3;
