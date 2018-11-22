@@ -1,11 +1,8 @@
 package no.ntnu.imt3281.ludo.gui;
 
-import javafx.scene.shape.Circle;
-import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.logic.Ludo;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,9 +12,8 @@ import java.util.Map;
  *     See image -> https://bytebucket.org/Per-Morten/imt3281-project2-2018/raw/efd4711576a1681438538265f2d880e81a04e37f/src/test/java/images/ludo-board-filled.png?token=1ec98982fead5be3afbb04ac020270c21a94af10 22.11.18
  *         Black numbers represents the ludo logical positions
  */
-public class LudoBoard {
-
-    public static class Point {
+class LudoBoard {
+     static class Point {
         float x;
         float y;
         Point(float inX, float inY) {
@@ -25,20 +21,29 @@ public class LudoBoard {
             y = inY;
         }
     }
+    /**
+     * Get initial logical positions of each ludo piece in a 2d array
+     *
+     * @return 2d array of piece positions
+     */
+    static ArrayList<ArrayList<Integer>> getInitialPositions(){
+        return sInitialPositions;
+    }
 
     /**
-     * Convert ludo position to layout position x,y
+     * Map ludo position to layout position x,y
      *
      * @param ludoPosition 1D ludo logical position
      *
      * @return point x,y in layout
      */
-     public static Point mapToLayoutPosition(int ludoPosition) {
-        var gridPosition = mLudo2GridMap.get(ludoPosition);
+     static Point mapToLayoutPosition(int ludoPosition) {
+        var gridPosition = sLudoToGridMap.get(ludoPosition);
         return gridToLayoutPosition(gridPosition);
      }
 
-     private static final Map<Integer, Point> mLudo2GridMap = makeLudo2GridMap();
+     private static final ArrayList<ArrayList<Integer>> sInitialPositions = makeInitialPositions();
+     private static final Map<Integer, Point> sLudoToGridMap = makeLudo2GridMap();
 
     private final static float offsetX = 25.0f;
     private final static float offsetY = 25.0f;
@@ -55,7 +60,6 @@ public class LudoBoard {
 
         return new Point(layoutX, layoutY);
     }
-
 
     private static Map<Integer, Point> makeLudo2GridMap() {
 
@@ -166,7 +170,7 @@ public class LudoBoard {
          * ______________________________________________________
          */
 
-        var initial = getInitialPositions();
+        var initial = makeInitialPositions();
 
         ludo2GridMap.put(initial.get(Ludo.GREEN).get(TOP), new Point(2.5f, 1.5f));
         ludo2GridMap.put(initial.get(Ludo.GREEN).get(BOTTOM), new Point(2.5f, 3.5f));
@@ -191,12 +195,7 @@ public class LudoBoard {
         return ludo2GridMap;
     }
 
-    /**
-     * Get initial logical positions of each ludo piece in a 2d array
-     *
-     * @return 2d array of piece positions
-     */
-     static ArrayList<ArrayList<Integer>> getInitialPositions() {
+     private static ArrayList<ArrayList<Integer>> makeInitialPositions() {
 
         var greenInitial = new ArrayList<Integer>(4);
         greenInitial.add(TOP, 12);
