@@ -115,6 +115,7 @@ public class Actions implements API.Events {
                 });
             });
 
+            mTransitions.toastInfo("Successfully logged in"); // TODO i18n
             this.gotoUser();
 
         }, error ->  {
@@ -675,7 +676,7 @@ public class Actions implements API.Events {
         if (mCurrentScene.equals(Scene.OVERVIEW)) {
             this.gotoOverview();
         }
-        mTransitions.toastSuccess("Friends list updated"); // TODO i18n
+        mTransitions.toastInfo("Friends list updated"); // TODO i18n
     }
 
     /**
@@ -694,7 +695,6 @@ public class Actions implements API.Events {
             } else if (mCurrentScene.equals(Scene.LIVE)) {
                 this.gotoLive();
             }
-            mTransitions.toastSuccess("Chat" + " " + chat.name + " " + "updated"); // TODO i18n
         });
     }
 
@@ -727,7 +727,7 @@ public class Actions implements API.Events {
                 if (mCurrentScene.equals(Scene.OVERVIEW)) {
                     this.gotoOverview();
                 }
-                mTransitions.toastSuccess("New chat invite from" + chatInvite.userName + " " + "to" + " " + chatInvite.chatName); // TODO i18n
+                mTransitions.toastInfo("New chat invite from" + chatInvite.userName + " " + "to" + " " + chatInvite.chatName); // TODO i18n
             });
         });
     }
@@ -752,7 +752,7 @@ public class Actions implements API.Events {
             if (mCurrentScene.equals(Scene.LIVE)) {
                 mTransitions.newMessage(message);
             }
-            mTransitions.toastSuccess(message.username + ": " + message.message);
+            mTransitions.toastInfo(message.username + ": " + message.message);
         });
     }
 
@@ -772,7 +772,6 @@ public class Actions implements API.Events {
             } else if(mCurrentScene.equals(Scene.OVERVIEW)) {
                 this.gotoOverview();
             }
-            mTransitions.toastSuccess("Game" + " " + game.name+  " " + "updated"); // TODO i18n
         });
     }
 
@@ -802,7 +801,7 @@ public class Actions implements API.Events {
                 if (mCurrentScene.equals(Scene.OVERVIEW)) {
                     this.gotoOverview();
                 }
-                mTransitions.toastSuccess("New game invite from" + " " + gameInvite.userName + " " + "to" + " " + gameInvite.gameName); // TODO i18n
+                mTransitions.toastInfo("New game invite from" + " " + gameInvite.userName + " " + "to" + " " + gameInvite.gameName); // TODO i18n
             });
         });
     }

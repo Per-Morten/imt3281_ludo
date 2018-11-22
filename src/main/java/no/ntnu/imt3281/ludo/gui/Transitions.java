@@ -1,5 +1,11 @@
 package no.ntnu.imt3281.ludo.gui;
 
+import com.notification.NotificationFactory;
+import com.notification.NotificationManager;
+import com.notification.manager.SimpleManager;
+import com.notification.types.TextNotification;
+import com.theme.ThemePackagePresets;
+import com.utils.Time;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -25,6 +31,8 @@ public class Transitions {
     private Stage mStage;
     private Actions mActions;
     private Map<String, FXMLDocument> mDocuments = new HashMap<>();
+    private NotificationFactory mFactory = new NotificationFactory(ThemePackagePresets.cleanLight());
+    private NotificationManager mPlain = new SimpleManager(NotificationFactory.Location.NORTHEAST);
 
     /**
      * Constructor
@@ -367,24 +375,19 @@ public class Transitions {
         });
     }
 
-    public void toastSuccess(String message) {
+    public void toastInfo(String message) {
         Platform.runLater(() -> {
-            int toastMsgTime = 1500;
-            int fadeInTime = 180;
-            int fadeOutTime = 180;
-            final var red = Color.color((float) 0x54 / 0xff, (float) 0x97 / 0xff, (float) 0xFF / 0xff);
-            Toast.makeText(mStage, message, toastMsgTime, fadeInTime, fadeOutTime, red);
+            TextNotification notification = mFactory.buildTextNotification("Info",message); // TODO i18n
+            notification.setCloseOnClick(true);
+            mPlain.addNotification(notification, Time.seconds(2));
         });
     }
 
-
     public void toastError(String message) {
         Platform.runLater(() -> {
-            int toastMsgTime = 1500;
-            int fadeInTime = 180;
-            int fadeOutTime = 180;
-            final var red = Color.color((float) 0xB0 / 0xff, (float) 0x00 / 0xff, (float) 0x20 / 0xff);
-            Toast.makeText(mStage, message, toastMsgTime, fadeInTime, fadeOutTime, red);
+            TextNotification notification = mFactory.buildTextNotification("Error", message); // TODO i18n
+            notification.setCloseOnClick(true);
+            mPlain.addNotification(notification, Time.seconds(2));
         });
     }
 
