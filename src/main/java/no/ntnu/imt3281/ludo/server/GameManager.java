@@ -11,27 +11,8 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Questions I need answer too:
- * [x] You create game first, then you start inviting people: Yes.
- * [x] Inviting randoms is a specific request:
- * [x] You can invite more people than there is room for in Ludo, but whoever accepts first gets in: yes
- * * And then the pending queue is cleared.
- * [x] Decline game invites should also contain user_id:
- * [x] We probably need an own game_state_update event! (As the other, game_update, only cares about the meta information): Add this.
- * <p>
- * <p>
- * <p>
- * Think:
- * [] Need to also create a chat.
- * [] Need to also shut down chats in the case where a game is removed because everyone left.
- * [] If a lot of people are queued,
- * <p>
- * GameState events contains game state (Da trengs ikke funksjonen get gamestate)
- * Lag ny enum som er game status.
- */
-
-/**
  * TODO: Access to this class can be concurrent.
+ * TODO: Need to create chat
  * But for now, just lock on everything (Lock on all public facing calls, assume lock on others).
  * Use re-entrant lock.
  */
@@ -98,6 +79,8 @@ public class GameManager {
      */
     public void createGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.CREATE_GAME_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var name = request.getString(FieldNames.NAME);
                 var owner = request.getInt(FieldNames.USER_ID);
@@ -122,16 +105,11 @@ public class GameManager {
      */
     public void getGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.GET_GAME_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var gameID = request.getInt(FieldNames.GAME_ID);
                 var game = mGames.get(gameID);
-
-                if (game == null) {
-
-                }
-                if (game.status == null) {
-                    Logger.log(Logger.Level.WARN, "Game with id: %d has null status", gameID);
-                }
 
                 var success = new JSONObject();
                 success.put(FieldNames.GAME_ID, gameID);
@@ -148,6 +126,8 @@ public class GameManager {
 
     public void joinGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.JOIN_GAME_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var gameID = request.getInt(FieldNames.GAME_ID);
                 var game = mGames.get(gameID);
@@ -187,6 +167,8 @@ public class GameManager {
     // Send both: Game Update, and game state update (if the game is in session)
     public void leaveGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.LEAVE_GAME_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var userID = request.getInt(FieldNames.USER_ID);
                 var gameID = request.getInt(FieldNames.GAME_ID);
@@ -195,14 +177,18 @@ public class GameManager {
                 game.players.removeIf(item -> item == userID);
                 game.pendingPlayers.removeIf(item -> item == userID);
 
-                events.add(createGameUpdateMessage(game));
-
                 if (game.status == GameStatus.IN_SESSION) {
                     removePlayerFromActiveGame(game, userID, events);
-                    if (game.status == GameStatus.GAME_OVER) {
-                        mGames.remove(game.id);
-                    }
                 }
+
+                if (game.players.size() < 1) {
+                    mGames.remove(game.id);
+                } else {
+                    game.ownerID = game.players.get(0);
+                    events.add(createGameUpdateMessage(game));
+                }
+
+                MessageUtility.appendSuccess(successes, requestID, new JSONObject());
             });
         }
     }
@@ -216,6 +202,8 @@ public class GameManager {
      */
     public void startGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.START_GAME_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var userID = request.getInt(FieldNames.USER_ID);
                 var gameID = request.getInt(FieldNames.GAME_ID);
@@ -231,6 +219,11 @@ public class GameManager {
                     return;
                 }
 
+                if (game.players.size() < Ludo.MIN_PLAYERS) {
+                    MessageUtility.appendError(errors, requestID, Error.NOT_ENOUGH_PLAYERS);
+                    return;
+                }
+
                 game.start();
 
                 MessageUtility.appendSuccess(successes, requestID, new JSONObject());
@@ -242,6 +235,8 @@ public class GameManager {
 
     public void inviteToGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.SEND_GAME_INVITE_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var gameID = request.getInt(FieldNames.GAME_ID);
                 var game = mGames.get(gameID);
@@ -281,6 +276,8 @@ public class GameManager {
 
     public void rollDice(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.ROLL_DICE_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var gameID = request.getInt(FieldNames.GAME_ID);
                 var game = mGames.get(gameID);
@@ -309,6 +306,8 @@ public class GameManager {
 
     public void movePiece(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.MOVE_PIECE_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var gameID = request.getInt(FieldNames.GAME_ID);
                 var game = mGames.get(gameID);
@@ -355,6 +354,8 @@ public class GameManager {
      */
     public void setAllowRandoms(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.SET_ALLOW_RANDOMS_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var userID = request.getInt(FieldNames.USER_ID);
                 var gameID = request.getInt(FieldNames.GAME_ID);
@@ -383,6 +384,8 @@ public class GameManager {
      */
     public void joinRandomGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
+            applyFirstOrderFilter(RequestType.JOIN_GAME_REQUEST, requests, errors);
+
             MessageUtility.each(requests, (requestID, request) -> {
                 var userID = request.getInt(FieldNames.USER_ID);
                 var item = mGames.values().stream()
@@ -438,7 +441,7 @@ public class GameManager {
                 if (game.status == GameStatus.IN_SESSION) {
                     removePlayerFromActiveGame(game, userID, events);
                 }
-                return game.status == GameStatus.GAME_OVER;
+                return game.players.size() < 1;
             });
         }
     }
@@ -452,8 +455,6 @@ public class GameManager {
      */
     private void removePlayerFromActiveGame(Game game, int userID, Queue<Message> events) {
         if (game.players.size() < Ludo.MIN_PLAYERS) {
-            if (game.status != GameStatus.IN_SESSION)
-                throw new RuntimeException("Game is not in session");
 
             game.status = GameStatus.GAME_OVER;
             events.add(createGameStateUpdateMessage(game));
@@ -478,14 +479,14 @@ public class GameManager {
         try (var lock = new LockGuard(mLock)) {
 
             MessageUtility.applyFilter(requests, (id, request) -> {
-                if (JSONValidator.hasInt(FieldNames.GAME_ID, request) && mGames.containsKey(request.getInt(FieldNames.GAME_ID))) {
+                if (JSONValidator.hasInt(FieldNames.GAME_ID, request)) {
                     var game = mGames.get(request.getInt(FieldNames.GAME_ID));
                     if (game == null) {
                         MessageUtility.appendError(errors, id, Error.GAME_ID_NOT_FOUND);
                         return false;
                     }
 
-                    if (JSONValidator.hasInt(FieldNames.USER_ID, request) && type != RequestType.JOIN_GAME_REQUEST) {
+                    if (JSONValidator.hasInt(FieldNames.USER_ID, request) && type != RequestType.JOIN_GAME_REQUEST && type != RequestType.GET_GAME_REQUEST) {
                         var userID = request.getInt(FieldNames.USER_ID);
                         if (!game.players.contains(userID) && !game.pendingPlayers.contains(userID)) {
                             MessageUtility.appendError(errors, id, Error.USER_NOT_IN_GAME);

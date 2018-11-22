@@ -167,6 +167,17 @@ class TestUtility {
         return createUserIDAndGameIDGameRequest(RequestType.JOIN_GAME_REQUEST, userID, gameID, token);
     }
 
+    static JSONObject createMovePieceRequest(int userID, int gameID, int pieceIndex, String token) {
+        var payload = new JSONArray();
+        var request = new JSONObject();
+        request.put(FieldNames.ID, 0);
+        request.put(FieldNames.USER_ID, userID);
+        request.put(FieldNames.PIECE_INDEX, pieceIndex);
+        request.put(FieldNames.GAME_ID, gameID);
+        payload.put(request);
+        return createRequest(RequestType.MOVE_PIECE_REQUEST, payload, token);
+    }
+
     static int getChatID(JSONObject msg) {
         return msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.CHAT_ID);
     }
@@ -305,6 +316,7 @@ class TestUtility {
 
                 if (internalCount.get() < 2) {
                     if (type == ResponseType.CREATE_USER_RESPONSE) {
+                        Logger.log(Logger.Level.DEBUG," Got messsage: %s", msg);
                         var successes = msg.getJSONArray(FieldNames.SUCCESS);
                         assertEquals(1, successes.length());
                         TestUtility.sendMessage(context.socket, createLoginRequest(email, pwd));

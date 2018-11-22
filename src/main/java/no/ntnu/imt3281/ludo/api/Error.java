@@ -29,7 +29,10 @@ public enum Error {
     NOT_INVITED_TO_GAME,             // 22
     MALFORMED_EMAIL,                 // 23
     MALFORMED_USERNAME,              // 24
-    MALFORMED_AVATAR_URI,;           // 25
+    MALFORMED_AVATAR_URI,            // 25
+    NOT_ENOUGH_PLAYERS,              // 26
+    ;
+
 
 
 

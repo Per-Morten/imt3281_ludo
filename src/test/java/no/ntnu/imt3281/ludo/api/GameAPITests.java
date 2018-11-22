@@ -197,106 +197,6 @@ public class GameAPITests {
 
     @Test
     public void canStartGameIfOwner() {
-//        String gameName = "GameToStartIfYouAreOwner";
-//        var gameID = new AtomicInteger();
-//
-//        var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
-//            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
-//                Logger.log(Logger.Level.DEBUG, "Karl creates a game");
-//                TestUtility.sendMessage(context.socket, TestUtility.createNewGameRequest(context.user.id, gameName, context.user.token));
-//            }
-//
-//            if (TestUtility.isOfType(ResponseType.CREATE_GAME_RESPONSE, msg)) {
-//                Logger.log(Logger.Level.DEBUG, "Karl got create game response %s", msg);
-//                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
-//                gameID.set(msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0).getInt(FieldNames.GAME_ID));
-//                Logger.log(Logger.Level.DEBUG, "Karl invites Frida to game %s", msg);
-//                TestUtility.sendMessage(context.socket, TestUtility.createGameInviteRequest(context.user.id, FRIDA.id, gameID.get(), context.user.token));
-//            }
-//
-//            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
-//                Logger.log(Logger.Level.DEBUG, "Karl Got game update: %s, count: %d", msg, context.count.get());
-//                assertEquals(gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
-//                context.count.incrementAndGet();
-//
-//                // Atleast two players are in
-//                // One update on sending out invite, one for joining the game.
-//                if (context.count.get() >= 2) {
-//                    Logger.log(Logger.Level.DEBUG, "Karl is starting game");
-//                    TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.START_GAME_REQUEST, context.user.id, gameID.get(), context.user.token));
-//                }
-//            }
-//
-//            if (TestUtility.isOfType(ResponseType.START_GAME_RESPONSE, msg)) {
-//                Logger.log(Logger.Level.DEBUG, "Got start game response: %s", msg);
-//                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
-//            }
-//
-//            if (TestUtility.isOfType(EventType.GAME_STATE_UPDATE, msg)) {
-//                Logger.log(Logger.Level.DEBUG, "Karl got game state update");
-//                assertEquals(1, msg.getJSONArray(FieldNames.PAYLOAD).length());
-//
-//                var gameState = msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0);
-//                assertEquals(gameID.get(), gameState.getInt(FieldNames.GAME_ID));
-//
-//                var playerOrder = gameState.getJSONArray(FieldNames.PLAYER_ORDER);
-//                assertEquals(context.user.id, playerOrder.getInt(0));
-//                assertEquals(FRIDA.id, playerOrder.getInt(1));
-//                assertEquals(context.user.id, gameState.getInt(FieldNames.CURRENT_PLAYER_ID));
-//
-//                assertEquals(ActionType.THROW_DICE.toInt(), gameState.getInt(FieldNames.NEXT_ACTION));
-//                assertEquals(-1, gameState.getInt(FieldNames.PREVIOUS_DICE_THROW));
-//
-//                // Check piece positions
-//                var piecePositions = gameState.getJSONArray(FieldNames.PIECE_POSITIONS);
-//                int counter = 0;
-//                for (int i = 0; i < 4; i++) {
-//                    for (int j = 0; j < 4; j++) {
-//                        assertEquals(counter++, piecePositions.getJSONArray(i).getInt(j));
-//                    }
-//                }
-//
-//                assertEquals(GameStatus.IN_SESSION.toInt(), gameState.getInt(FieldNames.STATUS));
-//                assertEquals(Ludo.UNASSIGNED, gameState.getInt(FieldNames.WINNER));
-//
-//                context.finishedThreads.incrementAndGet();
-//            }
-//        });
-//
-//        var fridaCallback = TestUtility.createJSONCallback((context, msg) -> {
-//            if (TestUtility.isOfType(EventType.GAME_INVITE, msg)) {
-//                Logger.log(Logger.Level.DEBUG, "Frida got invite");
-//                assertEquals(gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
-//                assertEquals(KARL.id, msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.USER_ID));
-//                Logger.log(Logger.Level.DEBUG, "Frida joining game");
-//                TestUtility.sendMessage(context.socket, TestUtility.createJoinGameRequest(context.user.id, gameID.get(), context.user.token));
-//            }
-//
-//            if (TestUtility.isOfType(ResponseType.JOIN_GAME_RESPONSE, msg)) {
-//                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
-//                Logger.log(Logger.Level.DEBUG, "Frida joined game");
-//            }
-//
-//            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
-//                assertEquals(gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
-//                context.count.incrementAndGet();
-//                Logger.log(Logger.Level.DEBUG, "Frida got game update, count is: %d", context.count.get());
-//            }
-//
-//            if (TestUtility.isOfType(EventType.GAME_STATE_UPDATE, msg)) {
-//                context.count.incrementAndGet();
-//                Logger.log(Logger.Level.DEBUG, "Frida got game State Update, count is: %d", context.count.get());
-//            }
-//
-//            // Two game updates (for
-//            if (context.count.get() >= 3) {
-//                context.finishedThreads.incrementAndGet();
-//            }
-//        });
-//
-//        TestUtility.testWithLoggedInUsers(List.of(FRIDA, KARL), List.of(fridaCallback, karlCallback));
-
-        // USING UTILITY FUNCTION
         String gameName = "GameToStartIfYouAreOwner";
         var gameID = new AtomicInteger();
 
@@ -362,17 +262,6 @@ public class GameAPITests {
 
         TestUtility.testWithUsersInGame(List.of(KARL, FRIDA), List.of(karlCallback, fridaCallback), gameName);
 
-        var callback = TestUtility.createJSONCallback((context, msg) -> {
-            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
-                TestUtility.sendMessage(context.socket, TestUtility.createGetGameRequest(context.user.id, gameID.get(), context.user.token));
-            }
-
-            if (TestUtility.isOfType(ResponseType.GET_GAME_RESPONSE, msg)) {
-                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
-                context.finishedThreads.getAndIncrement();
-            }
-        });
-        TestUtility.testWithLoggedInUsers(List.of(KARL), List.of(callback));
     }
 
     @Test
@@ -383,11 +272,12 @@ public class GameAPITests {
         var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
             if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
                 Logger.log(Logger.Level.DEBUG, "Everyone has joined, time to leave", msg, context.count.get());
-                assertEquals(gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
+                gameID.set(context.gameID.get());
+                assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
                 context.count.incrementAndGet();
 
                 Logger.log(Logger.Level.DEBUG, "Karl is Leaving the game game");
-                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.LEAVE_GAME_REQUEST, context.user.id, gameID.get(), context.user.token));
+                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.LEAVE_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
             }
 
             if (TestUtility.isOfType(ResponseType.LEAVE_GAME_RESPONSE, msg)) {
@@ -398,14 +288,89 @@ public class GameAPITests {
 
         var fridaCallback = TestUtility.createJSONCallback((context, msg) -> {
             if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
-                assertEquals(gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
-                //context.count.incrementAndGet();
-                Logger.log(Logger.Level.DEBUG, "Frida got game update, count is: %d", context.count.get());
+                assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
+                Logger.log(Logger.Level.DEBUG, "Frida is leaving the game is Leaving the game game");
+                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.LEAVE_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
             }
 
-            if (TestUtility.isOfType(EventType.GAME_STATE_UPDATE, msg)) {
-                //context.count.incrementAndGet();
-                Logger.log(Logger.Level.DEBUG, "Frida got game State Update, count is: %d", context.count.get());
+            if (TestUtility.isOfType(ResponseType.LEAVE_GAME_RESPONSE, msg)) {
+                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+                context.finishedThreads.incrementAndGet();
+            }
+        });
+
+        TestUtility.testWithUsersInGame(List.of(KARL, FRIDA), List.of(karlCallback, fridaCallback), gameName);
+
+
+        var callback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(ResponseType.LOGIN_RESPONSE, msg)) {
+                TestUtility.sendMessage(context.socket, TestUtility.createGetGameRequest(context.user.id, gameID.get(), context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.GET_GAME_RESPONSE, msg)) {
+                TestUtility.assertError(Error.GAME_ID_NOT_FOUND, msg);
+                context.finishedThreads.getAndIncrement();
+            }
+        });
+        TestUtility.testWithLoggedInUsers(List.of(KARL), List.of(callback));
+    }
+
+    @Test
+    public void errorOnTryingToStartGameWithTooFewPlayers() {
+        String gameName = "GameToCheckStartingWithTooFewPlayers";
+
+        var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Karl is alone in game, time to try and start", msg, context.count.get());
+                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.START_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.START_GAME_RESPONSE, msg)) {
+                TestUtility.assertError(Error.NOT_ENOUGH_PLAYERS, msg);
+                context.finishedThreads.incrementAndGet();
+            }
+        });
+    }
+
+    @Test
+    public void ownerIsTransferredToNextPlayerOnOwnerLeave() {
+        String gameName = "GameToCheckOwnershipTransferred";
+        var gameID = new AtomicInteger();
+
+        var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Everyone has joined, time to leave", msg, context.count.get());
+                gameID.set(context.gameID.get());
+                assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
+
+                Logger.log(Logger.Level.DEBUG, "Karl is Leaving the game game");
+                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.LEAVE_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.LEAVE_GAME_RESPONSE, msg)) {
+                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+                context.finishedThreads.incrementAndGet();
+            }
+        });
+
+        var fridaCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Frida is in game");
+                    assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
+                    Logger.log(Logger.Level.DEBUG, "Frida is now supposed to be owner");
+                    TestUtility.sendMessage(context.socket, TestUtility.createGetGameRequest(context.user.id, context.gameID.get(), context.user.token));
+
+            }
+
+            if (TestUtility.isOfType(ResponseType.GET_GAME_RESPONSE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Frida got get game response");
+                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+                var game = msg.getJSONArray(FieldNames.SUCCESS).getJSONObject(0);
+                assertEquals(context.gameID.get(), game.getInt(FieldNames.GAME_ID));
+                assertEquals(GameStatus.IN_LOBBY.toInt(), game.getInt(FieldNames.STATUS));
+                assertEquals(context.user.id, game.getInt(FieldNames.OWNER_ID));
+                assertEquals(context.user.id, game.getJSONArray(FieldNames.PLAYER_ID).getInt(0));
+                assertEquals(0, game.getJSONArray(FieldNames.PENDING_ID).length());
                 context.finishedThreads.incrementAndGet();
             }
         });
@@ -414,32 +379,142 @@ public class GameAPITests {
     }
 
     @Test
-    public void errorOnTryingToStartGameWithTooFewPlayers() {
-
-    }
-
-    @Test
-    public void canInviteRandomWhoIsInRandomGamesQueue() {
-        fail();
-    }
-
-    @Test
-    public void ownerIsTransferredToNextPlayerOnOwnerLeave() {
-        fail();
-    }
-
-    @Test
     public void startingGameWithoutBeingOwnerReturnsError() {
-        fail();
+        String gameName = "GameToStartWithoutYouBeingOwner";
+        var fridaIsFinished = new AtomicBoolean(false);
+
+
+        var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Karl Got game update: %s, count: %d", msg, context.count.get());
+                while (!fridaIsFinished.get()) {
+                    // Just spin until Frida has tried her thing.
+                }
+
+                context.finishedThreads.incrementAndGet();
+            }
+        });
+
+        var fridaCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
+                //context.count.incrementAndGet();
+                Logger.log(Logger.Level.DEBUG, "Frida Joined game her time to start", context.count.get());
+                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.START_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.START_GAME_RESPONSE, msg)) {
+                TestUtility.assertError(Error.USER_IS_NOT_OWNER, msg);
+                fridaIsFinished.set(true);
+            }
+        });
     }
 
     @Test
     public void throwingDiceOutsideOfYourTurnReturnsError() {
-        fail();
+        String gameName = "GameToCheckThrowingDiceOutsideOfYourTurn";
+        var fridaIsFinished = new AtomicBoolean(false);
+
+        var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Karl Got game update: %s, count: %d", msg, context.count.get());
+                assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
+                context.count.incrementAndGet();
+
+                Logger.log(Logger.Level.DEBUG, "Karl is starting game");
+                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.START_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.START_GAME_RESPONSE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Got start game response: %s", msg);
+                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+            }
+
+            if (TestUtility.isOfType(EventType.GAME_STATE_UPDATE, msg)) {
+                while (!fridaIsFinished.get()){
+
+                }
+
+                context.finishedThreads.incrementAndGet();
+            }
+        });
+
+        var fridaCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
+                //context.count.incrementAndGet();
+                Logger.log(Logger.Level.DEBUG, "Frida got game update, count is: %d", context.count.get());
+            }
+
+            if (TestUtility.isOfType(EventType.GAME_STATE_UPDATE, msg)) {
+                //context.count.incrementAndGet();
+                Logger.log(Logger.Level.DEBUG, "Frida got game state and will now try to throw dice, even though it isn't her turn.", context.count.get());
+                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.ROLL_DICE_REQUEST, context.user.id, context.gameID.get(), context.user.token));
+
+            }
+
+            if (TestUtility.isOfType(ResponseType.ROLL_DICE_RESPONSE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Got roll dice response");
+                fridaIsFinished.set(true);
+                TestUtility.assertError(Error.OUT_OF_TURN, msg);
+                context.finishedThreads.incrementAndGet();
+            }
+        });
+
+        TestUtility.testWithUsersInGame(List.of(KARL, FRIDA), List.of(karlCallback, fridaCallback), gameName);
     }
 
     @Test
     public void movingPieceOutsideOfYourTurnReturnsError() {
-        fail();
+        String gameName = "GameToCheckThrowingDiceOutsideOfYourTurn";
+        var fridaIsFinished = new AtomicBoolean(false);
+
+        var karlCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Karl Got game update: %s, count: %d", msg, context.count.get());
+                assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
+                context.count.incrementAndGet();
+
+                Logger.log(Logger.Level.DEBUG, "Karl is starting game");
+                TestUtility.sendMessage(context.socket, TestUtility.createUserIDAndGameIDGameRequest(RequestType.START_GAME_REQUEST, context.user.id, context.gameID.get(), context.user.token));
+            }
+
+            if (TestUtility.isOfType(ResponseType.START_GAME_RESPONSE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Got start game response: %s", msg);
+                assertEquals(1, msg.getJSONArray(FieldNames.SUCCESS).length());
+            }
+
+            if (TestUtility.isOfType(EventType.GAME_STATE_UPDATE, msg)) {
+                while (!fridaIsFinished.get()){
+
+                }
+
+                context.finishedThreads.incrementAndGet();
+            }
+        });
+
+        var fridaCallback = TestUtility.createJSONCallback((context, msg) -> {
+            if (TestUtility.isOfType(EventType.GAME_UPDATE, msg)) {
+                assertEquals(context.gameID.get(), msg.getJSONArray(FieldNames.PAYLOAD).getJSONObject(0).getInt(FieldNames.GAME_ID));
+                //context.count.incrementAndGet();
+                Logger.log(Logger.Level.DEBUG, "Frida got game update, count is: %d", context.count.get());
+            }
+
+            if (TestUtility.isOfType(EventType.GAME_STATE_UPDATE, msg)) {
+                //context.count.incrementAndGet();
+                Logger.log(Logger.Level.DEBUG, "Frida got game state and will now try to throw dice, even though it isn't her turn.", context.count.get());
+                TestUtility.sendMessage(context.socket, TestUtility.createMovePieceRequest(context.user.id, context.gameID.get(), 0, context.user.token));
+
+            }
+
+            if (TestUtility.isOfType(ResponseType.MOVE_PIECE_RESPONSE, msg)) {
+                Logger.log(Logger.Level.DEBUG, "Got roll dice response");
+                fridaIsFinished.set(true);
+                TestUtility.assertError(Error.OUT_OF_TURN, msg);
+                context.finishedThreads.incrementAndGet();
+            }
+        });
+
+        TestUtility.testWithUsersInGame(List.of(KARL, FRIDA), List.of(karlCallback, fridaCallback), gameName);
     }
 }
