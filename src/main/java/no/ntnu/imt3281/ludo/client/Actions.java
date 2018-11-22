@@ -311,10 +311,12 @@ public class Actions implements API.Events {
 
         send(CREATE_GAME_REQUEST, payload, successCreateGame -> {
 
-            // TODO HACK below. Join game before getting game, to prevent UNAUTHORIZED error
+
+            // TODO ----------- HACK below. Join game before getting game, to prevent UNAUTHORIZED error
             successCreateGame.put(USER_ID, mState.getUserId());
             send(JOIN_GAME_REQUEST, successCreateGame);
-            // TODO End hack
+            // TODO ---------- End hack
+
 
             send(GET_GAME_REQUEST, successCreateGame, successGetGame -> {
 
@@ -440,40 +442,65 @@ public class Actions implements API.Events {
     public void joinChat(HashSet<Integer> chatsId) {
         this.logAction("joinChat");
 
-        var payload = new ArrayList<JSONObject>();
-        chatsId.forEach(chatId -> {
-            var item = new JSONObject();
-            item.put(FieldNames.USER_ID, mState.getUserId());
-            item.put(CHAT_ID, chatId);
-            payload.add(item);
-        });
+        chatsId.forEach(id -> {
+            var payload = new JSONObject();
+            payload.put(FieldNames.USER_ID, mState.getUserId());
+            payload.put(CHAT_ID, id);
 
-        send(JOIN_CHAT_REQUEST, payload, success -> {
-            this.gotoOverview();
+            send(JOIN_CHAT_REQUEST, payload, success -> {
+                this.gotoOverview();
+
+                mState.commit(state -> {
+                    if (state.chatInvites.containsKey(id)) {
+                        state.chatInvites.get(id).removed = true;
+                    }
+                });
+            });
         });
     }
 
     /**
-     * Join chat you have been invited to or active chat
+     * Leave active caht
      */
     public void leaveChat(HashSet<Integer> chatsId) {
         this.logAction("leaveChat");
 
-        var payload = new ArrayList<JSONObject>();
-        chatsId.forEach(chatId -> {
-            var item = new JSONObject();
-            item.put(FieldNames.USER_ID, mState.getUserId());
-            item.put(CHAT_ID, chatId);
-            payload.add(item);
-        });
+        chatsId.forEach(id -> {
+            var payload = new JSONObject();
+            payload.put(FieldNames.USER_ID, mState.getUserId());
+            payload.put(CHAT_ID, id);
 
-        send(LEAVE_CHAT_REQUEST, payload, success -> {
-            mState.commit(state -> {
-                state.activeChats.get(success.getInt(CHAT_ID)).removed = true;
+            send(LEAVE_CHAT_REQUEST, payload, success -> {
+                mState.commit(state -> {
+                    state.activeChats.get(id).removed = true;
+                });
+                this.gotoOverview();
             });
-            this.gotoOverview();
         });
     }
+
+    /**
+     * Decline chat invite
+     */
+    public void declineChatInvite(HashSet<Integer> chatsId) {
+        this.logAction("declineChatInvite");
+
+        chatsId.forEach(id -> {
+
+            var payload  = new JSONObject();
+            payload.put(FieldNames.USER_ID, mState.getUserId());
+            payload.put(CHAT_ID, id);
+
+            send(LEAVE_CHAT_REQUEST, payload, success -> {
+                mState.commit(state -> {
+                    state.chatInvites.get(id).removed = true;
+                });
+                this.gotoOverview();
+            });
+        });
+    }
+
+
 
     /**
      * Send a chat message as currently logged in user
@@ -518,17 +545,24 @@ public class Actions implements API.Events {
     public void joinGame(HashSet<Integer> gamesId) {
         this.logAction("joinGame");
 
-        var payload = new ArrayList<JSONObject>();
-        gamesId.forEach(gameId -> {
-            var item = new JSONObject();
-            item.put(FieldNames.USER_ID, mState.getUserId());
-            item.put(FieldNames.GAME_ID, gameId);
-            payload.add(item);
+        gamesId.forEach(id -> {
+
+            var payload = new JSONObject();
+            payload.put(FieldNames.USER_ID, mState.getUserId());
+            payload.put(FieldNames.GAME_ID, id);
+
+            send(JOIN_GAME_REQUEST, payload, success -> {
+                this.gotoOverview();
+
+
+                mState.commit(state -> {
+                    if(state.gameInvites.containsKey(id)) {
+                        state.gameInvites.get(id).removed = true;
+                    }
+                });
+            });
         });
 
-        send(JOIN_GAME_REQUEST, payload, success -> {
-            this.gotoOverview();
-        });
     }
 
     /**
@@ -537,29 +571,23 @@ public class Actions implements API.Events {
     public void leaveGame(HashSet<Integer> gamesId) {
         this.logAction("leaveGame");
 
-        var payload = new ArrayList<JSONObject>();
-        gamesId.forEach(gameId -> {
-            var item = new JSONObject();
-            item.put(FieldNames.USER_ID, mState.getUserId());
-            item.put(FieldNames.GAME_ID, gameId);
-            payload.add(item);
-        });
 
-        send(LEAVE_GAME_REQUEST, payload, success -> {
-            // TODO SERVER UNIMPLEMENTED
+        gamesId.forEach(id -> {
+            var payload = new JSONObject();
+            payload.put(FieldNames.USER_ID, mState.getUserId());
+            payload.put(FieldNames.GAME_ID, id);
 
-        });
-
-        mState.commit(state -> {
-            gamesId.forEach(id -> {
-                state.activeGames.get(id).removed = true;
+            send(LEAVE_GAME_REQUEST, payload, success -> {
+                mState.commit(state -> {
+                    state.activeGames.get(id).removed = true;
+                });
+                this.gotoOverview();
             });
         });
-        this.gotoOverview();
     }
 
     /**
-     *
+     * Send game invite from logged in user to friend
      */
     public void sendGameInvite(HashSet<Integer> gamesId, HashSet<Integer> friendsId) {
         this.logAction("sendGameInvite");
@@ -577,26 +605,27 @@ public class Actions implements API.Events {
 
         send(SEND_GAME_INVITE_REQUEST, payload, success -> {
             this.gotoOverview();
-
         });
     }
 
     /**
-     *
+     * Decline game invite
      */
     public void declineGameInvite(HashSet<Integer> gamesId) {
         this.logAction("declineGameInvite");
 
-        var payload = new ArrayList<JSONObject>();
-        gamesId.forEach(gameId -> {
-            var item = new JSONObject();
-            item.put(FieldNames.GAME_ID, gameId);
-            payload.add(item);
-        });
+        gamesId.forEach(id -> {
 
-        send(DECLINE_GAME_INVITE_REQUEST, payload, success -> {
-            this.gotoOverview();
+            var payload = new JSONObject();
+            payload.put(FieldNames.GAME_ID, id);
 
+            send(DECLINE_GAME_INVITE_REQUEST, payload, success -> {
+                mState.commit(state -> {
+                    state.gameInvites.get(id).removed = false;
+                });
+
+                this.gotoOverview();
+            });
         });
     }
 
@@ -621,22 +650,40 @@ public class Actions implements API.Events {
     /**
      * Start an active game
      */
-    public void startGame() {
+    public void startGame(int gameId) {
         this.logAction("startGame");
+
+        var payload = new JSONObject();
+        payload.put(GAME_ID, gameId);
+        payload.put(USER_ID, mState.getUserId());
+
+        send(START_GAME_REQUEST, payload);
     }
 
     /**
      * Roll the dice in an active game
      */
-    public void sendRollDice() {
+    public void throwDice(int gameId) {
         this.logAction("sendRollDice");
+
+        var payload = new JSONObject();
+        payload.put(GAME_ID, gameId);
+        payload.put(USER_ID, mState.getUserId());
+
+        send(ROLL_DICE_REQUEST, payload);
     }
 
     /**
      * Move piece in an active game
      */
-    public void movePiece() {
+    public void movePiece(int gameId) {
         this.logAction("movePiece");
+
+        var payload = new JSONObject();
+        payload.put(GAME_ID, gameId);
+        payload.put(USER_ID, mState.getUserId());
+
+        send(MOVE_PIECE_REQUEST, payload);
     }
 
     // ------------------- GET REQUESTS -------------------

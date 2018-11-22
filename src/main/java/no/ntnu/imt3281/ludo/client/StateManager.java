@@ -163,6 +163,7 @@ public class StateManager {
         return this.copy().activeGames
                 .values()
                 .stream()
+                .filter(game -> !game.removed)
                 .filter(game -> game.name.toUpperCase()
                         .contains(copy.searchGames.toUpperCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -174,6 +175,7 @@ public class StateManager {
         return copy.gameInvites
                 .values()
                 .stream()
+                .filter(gameInv -> !gameInv.removed)
                 .filter(gameInv -> gameInv.gameName.toUpperCase()
                         .contains(copy.searchGames.toUpperCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -185,6 +187,7 @@ public class StateManager {
         return copy.activeChats
                 .values()
                 .stream()
+                .filter(chat -> !chat.removed)
                 .filter(chat -> chat.name.toUpperCase()
                         .contains(copy.searchChats.toUpperCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -196,6 +199,7 @@ public class StateManager {
         return copy.chatInvites
                 .values()
                 .stream()
+                .filter(chatInv -> !chatInv.removed)
                 .filter(chatInv -> chatInv.chatName.toUpperCase()
                         .contains(copy.searchChats.toUpperCase()))
                 .collect(Collectors.toCollection(ArrayList::new));

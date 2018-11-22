@@ -168,7 +168,7 @@ public class OverviewController extends BaseController {
         mSendChatInvite.setText(textSendChatInvite + " " + mSelectedChats.size() + " ->  " + mSelectedFriends.size());
 
         // Leave selected chats
-        mLeaveChat.setText(textLeaveChat + " " + mSelectedChats.size());
+        mLeaveChat.setText(textLeaveChat + " " + mSelectedChats.size() + mSelectedChatInvites.size());
 
         // Accept chat invites
         mAcceptChatInvite.setText(textAcceptChatInvite + " " + mSelectedChatInvites.size());
@@ -247,9 +247,12 @@ public class OverviewController extends BaseController {
 
     @FXML
     void onLeaveChat(ActionEvent event) {
-        if (mSelectedChats.size() == 0)
-            return;
-        mActions.leaveChat(mSelectedChats);
+        if (mSelectedChats.size() > 0)
+            mActions.leaveChat(mSelectedChats);
+
+        if (mSelectedChatInvites.size() > 0)
+            mActions.declineChatInvite(mSelectedChatInvites);
+
     }
 
     @FXML

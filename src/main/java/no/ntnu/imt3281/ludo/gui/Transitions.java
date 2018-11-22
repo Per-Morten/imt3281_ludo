@@ -129,10 +129,9 @@ public class Transitions {
                 Tab tab = new Tab(game.name);
                 tab.setContent(gameTab.root);
 
+                var initial = LudoBoard.getInitialPositions();
                 var gameTabController = (GameTabController)gameTab.controller;
                 gameTabController.mId = game.id;
-
-                var initial = LudoBoard.getInitialPositions();
                 gameTabController.setPiecePositions(initial);
                 gameTabController.setPlayerLabels(game.playerNames);
 

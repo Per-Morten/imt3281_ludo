@@ -1,5 +1,6 @@
 package no.ntnu.imt3281.ludo.gui;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -218,5 +219,20 @@ public class GameTabController extends BaseController {
                 mYellowPieces[i].setLayoutY(layoutPosition.y);
             }
         }
+    }
+
+
+    void onMovePiece() {
+        mActions.movePiece(mId);
+    }
+
+    @FXML
+    void onThrowDice(ActionEvent event) {
+        mActions.throwDice(mId);
+    }
+
+    @FXML
+    void onStartGame(ActionEvent event) {
+        mActions.startGame(mId);
     }
 }
