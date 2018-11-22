@@ -1,11 +1,5 @@
 package no.ntnu.imt3281.ludo.server;
 
-import no.ntnu.imt3281.ludo.api.Error;
-import no.ntnu.imt3281.ludo.api.*;
-import no.ntnu.imt3281.ludo.common.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -15,9 +9,15 @@ import java.util.List;
 import java.util.Queue;
 import java.util.regex.Pattern;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import no.ntnu.imt3281.ludo.api.Error;
+import no.ntnu.imt3281.ludo.api.EventType;
 import no.ntnu.imt3281.ludo.api.FieldNames;
 import no.ntnu.imt3281.ludo.api.FriendStatus;
 import no.ntnu.imt3281.ludo.api.JSONValidator;
+import no.ntnu.imt3281.ludo.common.Logger;
 
 /**
  * Responsible for parsing and executing the incoming requests related to users & friends.
@@ -54,13 +54,13 @@ public class UserManager {
             var email = request.getString(FieldNames.EMAIL);
 
             // Check username
-            if (!Pattern.matches("^(\\w|-|_){5,50}$", username)) {
+            if (!validateUsername(username)) {
                 Logger.log(Logger.Level.DEBUG, "User name failed: %s", request);
                 MessageUtility.appendError(errors, requestID, Error.MALFORMED_USERNAME);
                 return;
             }
             // Check email
-            if (!Pattern.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$", email)) {
+            if (!validateEmail(email)) {
                 Logger.log(Logger.Level.DEBUG, "email failed: %s", request);
                 MessageUtility.appendError(errors, requestID, Error.MALFORMED_EMAIL);
                 return;
@@ -117,23 +117,20 @@ public class UserManager {
     public void updateUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         MessageUtility.each(requests, (requestID, request) -> {
 
-            if (!Pattern.matches("^(\\w|-|_){5,50}$", request.getString(FieldNames.USERNAME))) {
+            if (!validateUsername(request.getString(FieldNames.USERNAME))) {
                 Logger.log(Logger.Level.DEBUG, "User name failed: %s", request);
                 MessageUtility.appendError(errors, requestID, Error.MALFORMED_USERNAME);
                 return;
             }
             // Check email
-            if (!Pattern.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$",
-                    request.getString(FieldNames.EMAIL))) {
+            if (!validateEmail(request.getString(FieldNames.EMAIL))) {
                 Logger.log(Logger.Level.DEBUG, "email failed: %s", request);
                 MessageUtility.appendError(errors, requestID, Error.MALFORMED_EMAIL);
                 return;
             }
             // Check avatar uri
             String uri = request.getString(FieldNames.AVATAR_URI);
-            if (uri != "" && !Pattern.matches(
-                    "(?i)^(?:(?:https?|ftp)://)(?:\\S+(?::\\S*)?@)?(?:(?!(?:10|127)(?:\\.\\d{1,3}){3})(?!(?:169\\.254|192\\.168)(?:\\.\\d{1,3}){2})(?!172\\.(?:1[6-9]|2\\d|3[0-1])(?:\\.\\d{1,3}){2})(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,}))\\.?)(?::\\d{2,5})?(?:[/?#]\\S*)?$",
-                    uri)) {
+            if (uri != "" && !validateAvatarURI(uri)) {
                 Logger.log(Logger.Level.DEBUG, "avatar uri failed: %s", request);
                 MessageUtility.appendError(errors, requestID, Error.MALFORMED_AVATAR_URI);
                 return;
@@ -154,6 +151,42 @@ public class UserManager {
                 MessageUtility.appendError(errors, requestID, e.getError());
             }
         });
+    }
+
+    /**
+     * Checks if username is between 5 and 50 symbols, and only contains letters
+     * (both uppercase and lowercase), numbers, dashes and underscores.
+     *
+     * @param name
+     * @return
+     */
+    public boolean validateUsername(String name) {
+        return Pattern.matches("^(\\w|-|_){5,50}$", name);
+    }
+
+    /**
+     * Checks if email is a valid email address. Regex found at
+     * https://stackoverflow.com/questions/8204680/java-regex-email#8204716 and
+     * modified to accept lowercase letters.
+     *
+     * @param email
+     * @return
+     */
+    public boolean validateEmail(String email) {
+        return Pattern.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$", email);
+    }
+
+    /**
+     * Checks if avatar URI is a valid URL. Regex found at
+     * https://stackoverflow.com/questions/31440758/perfect-url-validation-regex-in-java
+     *
+     * @param URI
+     * @return
+     */
+    public boolean validateAvatarURI(String URI) {
+        return Pattern.matches(
+                "(?i)^(?:(?:https?|ftp)://)(?:\\S+(?::\\S*)?@)?(?:(?!(?:10|127)(?:\\.\\d{1,3}){3})(?!(?:169\\.254|192\\.168)(?:\\.\\d{1,3}){2})(?!172\\.(?:1[6-9]|2\\d|3[0-1])(?:\\.\\d{1,3}){2})(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,}))\\.?)(?::\\d{2,5})?(?:[/?#]\\S*)?$",
+                URI);
     }
 
     /**
