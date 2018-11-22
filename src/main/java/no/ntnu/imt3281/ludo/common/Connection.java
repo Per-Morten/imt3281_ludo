@@ -1,9 +1,12 @@
 package no.ntnu.imt3281.ludo.common;
 
+import no.ntnu.imt3281.ludo.server.LockGuard;
+
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
@@ -24,7 +27,7 @@ public class Connection {
     private Socket mSocket;
     private BufferedWriter mSocketWriter;
 
-    private Semaphore mSemaphore = new Semaphore(1);
+    private ReentrantLock mLock = new ReentrantLock();
 
     private Thread mReceiveThread;
 
@@ -72,7 +75,6 @@ public class Connection {
      *                              thread does it on join (should not happen).
      */
     public void stop() throws InterruptedException {
-        mReceiveThread.interrupt();
 
         try {
             mSocketWriter.close();
@@ -81,7 +83,10 @@ public class Connection {
             Logger.logException(Logger.Level.WARN, e, "Could not close connection socket");
         }
 
+
+        mReceiveThread.interrupt();
         mReceiveThread.join();
+        mReceiveThread = null;
     }
 
     /**
@@ -100,8 +105,7 @@ public class Connection {
 //        Logger.log(Logger.Level.DEBUG, String.format("Sending message to:%s: %d, message: %s",
 //                mSocket.getInetAddress().toString(), mSocket.getPort(), message));
 
-        try {
-            mSemaphore.acquire();
+        try (var lock = new LockGuard(mLock)) {
             // Don't remove + "%n", it is needed for readLine on the other side.
             // Tok me 5 hours to figure out.
             mSocketWriter.write(String.format("%s%n", message));
@@ -110,10 +114,6 @@ public class Connection {
             mSocketWriter.flush();
         } catch (SocketException e) {
             onException(e);
-        } catch (InterruptedException e) {
-            Logger.logException(Logger.Level.WARN, e, "Interrupt exception encountered");
-        } finally {
-            mSemaphore.release();
         }
     }
 

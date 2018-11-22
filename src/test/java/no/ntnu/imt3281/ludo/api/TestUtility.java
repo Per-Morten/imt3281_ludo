@@ -25,7 +25,7 @@ import static org.junit.Assert.fail;
  */
 class TestUtility {
 
-    static final long TIMEOUT_TIME_MS = 2000;
+    static final long TIMEOUT_TIME_MS = 5000;
 
     ///////////////////////////////////////////////////////
     /// Utility Function to Simplify testing
