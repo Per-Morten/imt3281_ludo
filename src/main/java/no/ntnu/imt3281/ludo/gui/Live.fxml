@@ -19,7 +19,7 @@
                      <children>
                         <HBox alignment="CENTER_LEFT" style="-fx-background-color: #ddd;">
                            <children>
-                              <Button mnemonicParsing="false" style="-fx-background-color: #9CCC65; -fx-text-fill: white;" text="%live.newgame">
+                              <Button fx:id="mBtnNewGame" mnemonicParsing="false" onAction="#onBtnNewGame" style="-fx-background-color: #9CCC65; -fx-text-fill: white;" text="%live.newgame">
                                  <font>
                                     <Font size="14.0" />
                                  </font>
@@ -44,7 +44,7 @@
                      <children>
                         <HBox alignment="CENTER_LEFT" style="-fx-background-color: #ddd;">
                            <children>
-                              <Button mnemonicParsing="false" style="-fx-background-color: #EF5350; -fx-text-fill: white;" text="%live.newchat">
+                              <Button fx:id="mBtnNewChat" mnemonicParsing="false" onAction="#onBtnNewChat" style="-fx-background-color: #EF5350; -fx-text-fill: white;" text="%live.newchat">
                                  <font>
                                     <Font size="14.0" />
                                  </font>

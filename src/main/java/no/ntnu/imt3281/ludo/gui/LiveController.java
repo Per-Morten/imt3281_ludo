@@ -21,6 +21,12 @@ public class LiveController extends BaseController {
     public Button mBtnLogout;
 
     @FXML
+    public Button mBtnNewGame;
+
+    @FXML
+    public Button mBtnNewChat;
+
+    @FXML
     public TabPane mTabGames;
 
     @FXML
@@ -45,6 +51,24 @@ public class LiveController extends BaseController {
     @FXML
     void onClickUser(ActionEvent event) {
         mActions.gotoUser();
+    }
+
+    @FXML
+    void onBtnNewGame(ActionEvent event) {
+        if (mGameName.getText().isEmpty())
+            return;
+
+        mActions.createGame(mGameName.getText());
+        Platform.runLater(() -> mGameName.setText(""));
+    }
+
+    @FXML
+    void onBtnNewChat(ActionEvent event) {
+        if (mChatName.getText().isEmpty())
+            return;
+
+        mActions.createChat(mChatName.getText());
+        Platform.runLater(() -> mChatName.setText(""));
     }
 
     @FXML
