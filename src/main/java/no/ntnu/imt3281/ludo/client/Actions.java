@@ -322,10 +322,26 @@ public class Actions implements API.Events {
                 mState.commit(state -> {
                     state.activeGames.put(game.id, game);
                 });
+
                 mTransitions.renderGameTabs(mState.copy().activeGames);
+
+
+                game.playerId.forEach(id -> {
+                    var payloadUser = new JSONObject();
+                    payloadUser.put(USER_ID, id);
+
+                    send(GET_USER_REQUEST, payloadUser, successUser -> {
+
+                        var user = new User(successUser);
+
+                        mState.commit(state -> {
+                            state.activeGames.get(game.id).playerNames.add(user.username);
+                        });
+                        mTransitions.renderGameTabs(mState.copy().activeGames);
+                    });
+                });
             });
         });
-
     }
 
 
@@ -453,7 +469,7 @@ public class Actions implements API.Events {
 
         send(LEAVE_CHAT_REQUEST, payload, success -> {
             mState.commit(state -> {
-                state.activeChats.remove(success.getInt(CHAT_ID));
+                state.activeChats.get(success.getInt(CHAT_ID)).removed = true;
             });
             this.gotoOverview();
         });
@@ -536,7 +552,7 @@ public class Actions implements API.Events {
 
         mState.commit(state -> {
             gamesId.forEach(id -> {
-                state.activeGames.remove(id);
+                state.activeGames.get(id).removed = true;
             });
         });
         this.gotoOverview();
@@ -603,21 +619,21 @@ public class Actions implements API.Events {
     }
 
     /**
-     *
+     * Start an active game
      */
     public void startGame() {
         this.logAction("startGame");
     }
 
     /**
-     *
+     * Roll the dice in an active game
      */
     public void sendRollDice() {
         this.logAction("sendRollDice");
     }
 
     /**
-     *
+     * Move piece in an active game
      */
     public void movePiece() {
         this.logAction("movePiece");
@@ -656,7 +672,7 @@ public class Actions implements API.Events {
             if (mCurrentScene.equals(Scene.OVERVIEW)) {
                 this.gotoOverview();
             } else if (mCurrentScene.equals(Scene.LIVE)) {
-                this.gotoLive();
+                mTransitions.renderChatTabs(mState.copy().activeChats);
             }
         });
     }
@@ -698,14 +714,14 @@ public class Actions implements API.Events {
     /**
      * Handle incoming chat messages. Make sure there is a user matching the user_id in state.
      */
-    public void chatMessage(JSONObject messagejson) {
+    public void chatMessage(JSONObject messageJson) {
 
         var payload = new JSONObject();
-        payload.put(USER_ID, messagejson.getInt(USER_ID));
+        payload.put(USER_ID, messageJson.getInt(USER_ID));
 
         send(GET_USER_REQUEST, payload, success -> {
             var user = new User(success);
-            var message = new ChatMessage(messagejson);
+            var message = new ChatMessage(messageJson);
             message.username = user.username;
 
             mState.commit(state -> {
@@ -731,7 +747,7 @@ public class Actions implements API.Events {
             });
 
             if(mCurrentScene.equals(Scene.LIVE)) {
-                this.gotoLive();
+                mTransitions.renderGameTabs(mState.copy().activeGames);
             } else if(mCurrentScene.equals(Scene.OVERVIEW)) {
                 this.gotoOverview();
             }
@@ -767,14 +783,35 @@ public class Actions implements API.Events {
     }
 
     /**
-     * Handle incomming game state changes
+     * Handle incoming game state changes
      */
     public void gameStateUpdate(JSONObject gameStateUpdate) {
 
         var gameState = new GameState(gameStateUpdate);
+        gameState.playerOrder.forEach(playerId -> {
+            mState.commit(state -> {
+                state.activeGameStates.put(gameState.gameId, gameState);
+            });
 
-        mState.commit(state -> {
-            state.activeGameStates.put(gameState.gameId, gameState);
+            if (this.mCurrentScene.equals(Scene.LIVE)) {
+                mTransitions.updateGameTabs(mState.copy().activeGameStates);
+            }
+
+            var payload = new JSONObject();
+            payload.put(USER_ID, playerId);
+
+            send(GET_USER_REQUEST, payload, userJson -> {
+                var user = new User(userJson);
+                mState.commit(state -> {
+                    state.activeGameStates.get(gameState.gameId).playerNames.add(user.username);
+                });
+
+                var state = mState.copy();
+                if (this.mCurrentScene.equals(Scene.LIVE)) {
+                    mTransitions.updateGameTabs(state.activeGameStates);
+                }
+                mTransitions.toastInfo("Game " + state.activeGames.get(gameState.gameId).name + " updated"); // TODO i18n
+            });
         });
     }
 
@@ -785,11 +822,11 @@ public class Actions implements API.Events {
         this.gotoLogin();
     }
 
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // Private functions
     //
-
     /**
      * Do prep-work for each action.
      *

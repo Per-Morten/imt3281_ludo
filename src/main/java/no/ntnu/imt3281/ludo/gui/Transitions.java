@@ -114,7 +114,7 @@ public class Transitions {
     }
 
     /**
-     * Clear all game tabs and render them again
+     * Clear all game tabs and create them again with provded game data (excluding game state)
      */
     public void renderGameTabs(Map<Integer, Game> activeGames) {
         Platform.runLater(() -> {
@@ -129,13 +129,27 @@ public class Transitions {
                 Tab tab = new Tab(game.name);
                 tab.setContent(gameTab.root);
 
-
                 var gameTabController = (GameTabController)gameTab.controller;
                 gameTabController.mId = game.id;
 
                 var initial = LudoBoard.getInitialPositions();
                 gameTabController.setPiecePositions(initial);
+                gameTabController.setPlayerLabels(game.playerNames);
+
                 liveController.mTabGames.getTabs().add(tab);
+            });
+        });
+    }
+
+    /**
+     * Update existing gameTabs with game state
+     */
+    public void updateGameTabs(Map<Integer, GameState> gameStates) {
+        Platform.runLater(() -> {
+            gameStates.forEach((id, gameState) -> {
+                var gameTabController = (GameTabController)this.getController(Path.GAME_TAB, id);
+                gameTabController.setPlayerLabels(gameState.playerNames);
+                gameTabController.setPiecePositions(gameState.piecePositions);
             });
         });
     }

@@ -9,6 +9,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Circle;
+import no.ntnu.imt3281.ludo.client.GameState;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.logic.Ludo;
 
@@ -113,6 +114,7 @@ public class GameTabController extends BaseController {
     private Circle[] mBluePieces;
     private Circle[] mYellowPieces;
     private Circle[] mGreenPieces;
+    private Label[] mPlayerLabels;
 
     @FXML
     void initialize() {
@@ -151,8 +153,18 @@ public class GameTabController extends BaseController {
         mBluePieces = new Circle[]{ mBluePiece0, mBluePiece1, mBluePiece2, mBluePiece3 };
         mYellowPieces = new Circle[]{mYellowPiece0, mYellowPiece1, mYellowPiece2, mYellowPiece3};
         mGreenPieces = new Circle[]{mGreenPiece0, mGreenPiece1, mGreenPiece2, mGreenPiece3};
+        mPlayerLabels = new Label[]{player1Name, player2Name, player3Name, player4Name};
     }
 
+    void setPlayerLabels(ArrayList<String> playerNames) {
+
+        int i = 0;
+        for (var name: playerNames) {
+            var label = mPlayerLabels[i];
+            label.setText(name);
+            i++;
+        }
+    }
 
     void setPiecePositions(ArrayList<ArrayList<Integer>> piecePositions) {
 

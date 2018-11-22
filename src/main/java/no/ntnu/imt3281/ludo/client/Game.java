@@ -13,8 +13,10 @@ public class Game {
     public int ownerId = -1;
     public ArrayList<Integer> playerId = new ArrayList<>();
     public ArrayList<Integer> pendingId = new ArrayList<>();
+    public ArrayList<String> playerNames = new ArrayList<>();
 
-    Game(){}
+    public boolean removed = false;
+
     Game(JSONObject json) {
         id = json.getInt(GAME_ID);
         name = json.getString(NAME);
