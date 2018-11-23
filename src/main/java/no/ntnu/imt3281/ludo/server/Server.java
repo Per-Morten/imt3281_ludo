@@ -47,7 +47,7 @@ public class Server {
      * It is short enough that when shutting down the server, users don't really notice,
      * but long enough that the thread won't be spinning unnecessarily often.
      */
-    private static long sPollTimeout = 2;
+    private static long sPollTimeout = 250;
 
     private static void pushIncomingMessage(SocketManager.Message msg) {
         try {
