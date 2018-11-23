@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.SocketException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -50,6 +52,9 @@ public class SocketManager {
     private ConcurrentHashMap<Long, Connection> mUserSockets;
 
     private ServerSocket mServerSocket;
+
+    private LinkedBlockingQueue<Connection> mConnectionsToRemove = new LinkedBlockingQueue<>();
+    private Thread mRemoveThread;
 
     /**
      * Initializes the SocketManager with the port it should listen to.
@@ -108,6 +113,9 @@ public class SocketManager {
             }
         });
         mThread.start();
+
+        mRemoveThread = new Thread(this::removeConnections);
+        mRemoveThread.start();
     }
 
     /**
@@ -119,6 +127,7 @@ public class SocketManager {
         mRunning.set(false);
         try {
             mServerSocket.close();
+            mRemoveThread.join();
         } catch (Exception e) {
             Logger.logException(Logger.Level.ERROR, e, "Could not close SocketManager socket");
         }
@@ -139,6 +148,7 @@ public class SocketManager {
 
         try {
             mThread.join();
+            mRemoveThread.join();
         } catch (Exception e) {
             Logger.logException(Logger.Level.ERROR, e, "Could not join the SocketManager Thread");
         }
@@ -175,7 +185,8 @@ public class SocketManager {
         var socket = mUserSockets.get(userID);
         if (socket != null) {
             try {
-                socket.send(message);
+                Logger.log(Logger.Level.DEBUG, "Sending event to %d, %s", userID, message);
+            socket.send(message);
             } catch (Exception e) {
                 Logger.logException(Logger.Level.WARN, e, "Exception Encountered when sending message");
             }
@@ -226,6 +237,7 @@ public class SocketManager {
                         var msg = new Message();
                         msg.message = value;
                         msg.socketID = newSocketId; // This is a problem! Because this obviously isn't updated
+                        Logger.log(Logger.Level.DEBUG, "Server received: %s", value);
                         mOnReceiveCallback.accept(msg);
                     });
 
@@ -238,7 +250,15 @@ public class SocketManager {
                             var id = entries.get(0).getKey();
                             mUserSockets.remove(id);
                             mOnDisconnectCallback.accept(id);
+                            mConnectionsToRemove.add(connection);
+//                            try {
+//                                connection.stop();
+//                            } catch (InterruptedException e) {
+//                                e.printStackTrace();
+//                            }
                         }
+
+                        Logger.log(Logger.Level.DEBUG, "Finished onSocketClosed()");
                     });
 
                     connection.start();
@@ -254,6 +274,20 @@ public class SocketManager {
         } finally {
             if (!mServerSocket.isClosed()) {
                 mServerSocket.close();
+            }
+        }
+    }
+
+    private void removeConnections() {
+        while(mRunning.get()) {
+            try {
+
+                var connection = mConnectionsToRemove.poll(250, TimeUnit.MILLISECONDS);
+                if (connection != null) {
+                    connection.stop();
+                }
+            } catch (InterruptedException e) {
+                Logger.logException(Logger.Level.ERROR, e, "Interruption in removeConnectionsThread");
             }
         }
     }

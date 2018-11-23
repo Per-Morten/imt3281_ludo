@@ -11,7 +11,7 @@ public enum EventType {
     GAME_UPDATE,
     GAME_INVITE,
     FORCE_LOGOUT,
-    ;
+    GAME_STATE_UPDATE;
 
     /**
      * Creates the event from a given string value, returning null if the value is illegal.

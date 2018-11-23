@@ -27,6 +27,8 @@ public class API {
 
         void gameInvite(JSONObject gameInvite);
 
+        void gameStateUpdate(JSONObject gameStateUpdate);
+
         void forceLogout();
     }
 
@@ -80,7 +82,7 @@ public class API {
 
         Logger.log(Level.INFO, "Got response|event: " + message);
 
-        var jsonResponse = new JSONObject();
+        JSONObject jsonResponse;
         try {
             jsonResponse = new JSONObject(message);
         } catch (JSONException e) {
@@ -186,6 +188,9 @@ public class API {
             break;
         case GAME_INVITE:
             payload.forEach(item -> mEvents.gameInvite(item));
+            break;
+        case GAME_STATE_UPDATE:
+            payload.forEach(item -> mEvents.gameStateUpdate(item));
             break;
         case FORCE_LOGOUT:
             payload.forEach(item -> mEvents.forceLogout());

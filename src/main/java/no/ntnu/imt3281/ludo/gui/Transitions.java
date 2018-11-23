@@ -102,7 +102,7 @@ public class Transitions {
     }
 
     /**
-     *
+     * Render live controller
      */
     public void renderLive() {
         Platform.runLater(() -> {
@@ -114,9 +114,9 @@ public class Transitions {
     }
 
     /**
-     * Clear all game tabs and render them again
+     * Clear all game tabs and create them again with provded game data (excluding game state)
      */
-    public void renderGameTabs(Map<Integer, Game> activeGames) {
+    public void renderGameTabs(Map<Integer, Game> activeGames, Map<Integer, Chat> activeChats, int userId) {
         Platform.runLater(() -> {
 
             var live = this.mDocuments.get(Path.LIVE);
@@ -129,13 +129,53 @@ public class Transitions {
                 Tab tab = new Tab(game.name);
                 tab.setContent(gameTab.root);
 
-
+                var initial = LudoBoard.getInitialPositions();
                 var gameTabController = (GameTabController)gameTab.controller;
                 gameTabController.mId = game.id;
-
-                var initial = LudoBoard.getInitialPositions();
+                gameTabController.mChatId = game.chatId;
                 gameTabController.setPiecePositions(initial);
+               // gameTabController.setPlayerLabels(game.playerNames);
+
+                // Compute color
+                int i = 0;
+                for (var pid: game.playerId) {
+                    if (pid.equals(userId)) {
+                        gameTabController.mColor = i;
+                        break;
+                    }
+                    i++;
+                };
+                if (i == 4) Logger.log(Level.WARN, "Logged in user not found in active games player id's");
+
+
+                // Hide start button if not game master
+                if (game.ownerId != userId) {
+                    gameTabController.mBtnStartGame.setVisible(false);
+                    gameTabController.mCheckboxAllowRandoms.setVisible(false);
+                } else {
+                    gameTabController.mCheckboxAllowRandoms.setSelected(game.allowRandoms);
+                }
+
+                var gamechat = activeChats.get(game.chatId);
+                gamechat.messages.forEach(message -> {
+                    gameTabController.chatArea.appendText(message.username + ": " + message.message + "\n");
+                });
+
                 liveController.mTabGames.getTabs().add(tab);
+            });
+        });
+    }
+
+    /**
+     * Update existing gameTabs with game state
+     */
+    public void updateGameTabs(Map<Integer, GameState> gameStates) {
+        Platform.runLater(() -> {
+            gameStates.forEach((id, gameState) -> {
+                var gameTabController = (GameTabController)this.getController(Path.GAME_TAB, id);
+                gameTabController.setPlayerLabels(gameState.playerNames);
+                gameTabController.setPiecePositions(gameState.piecePositions);
+                gameTabController.setRolledDiceImage(gameState.previousDiceThrow);
             });
         });
     }
@@ -197,8 +237,6 @@ public class Transitions {
         Platform.runLater(() -> {
 
             var overview = (OverviewController) this.getController(Path.OVERVIEW);
-
-
             overview.mListGames.getChildren().clear();
 
             activeGames.forEach(game -> {
@@ -288,7 +326,6 @@ public class Transitions {
 
                 case PENDING:
                     itemController.init(ListItemType.FRIEND_REQUEST, userId, overview, name + " [pending]"); // TODO
-                                                                                                             // i18n
                     overview.mListFriends.getChildren().add(item.root);
                     break;
                 }
@@ -332,21 +369,6 @@ public class Transitions {
                 itemController.init(ListItemType.USER_IGNORED, friendId, overview, name + " [ignored]"); // TODO i18n
                 overview.mListUsers.getChildren().add(item.root);
             });
-        });
-    }
-
-    /**
-     * Add new chat message to existing chat
-     *
-     * @param message contains message,username and chatId
-     */
-    public void newMessage(ChatMessage message) {
-        Platform.runLater(() -> {
-            var chat = (ChatTabController) this.getController(Path.CHAT_TAB, message.chatId);
-            var chatItem = this.loadFXML(Path.CHAT_ITEM);
-            var chatItemController = (ChatItemController) chatItem.controller;
-            chatItemController.mMessage.setText(message.username + ": " + message.message);
-            chat.mMessageList.getChildren().add(chatItem.root);
         });
     }
 

@@ -14,7 +14,8 @@ public class Chat {
     public ArrayList<Integer> participants = new ArrayList<>();
     public ArrayList<ChatMessage> messages = new ArrayList<>();
 
-    Chat(){}
+    public boolean removed = false;
+
     Chat(JSONObject json) {
         id = json.getInt(CHAT_ID);
         name = json.getString(NAME);

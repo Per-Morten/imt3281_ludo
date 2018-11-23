@@ -11,15 +11,21 @@ public class Game {
     public String name = "";
     public int status = -1;
     public int ownerId = -1;
+    public int chatId = -1;
+    public boolean allowRandoms;
     public ArrayList<Integer> playerId = new ArrayList<>();
     public ArrayList<Integer> pendingId = new ArrayList<>();
+    public ArrayList<String> playerNames = new ArrayList<>();
 
-    Game(){}
+    public boolean removed = false;
+
     Game(JSONObject json) {
         id = json.getInt(GAME_ID);
         name = json.getString(NAME);
         status = json.getInt(STATUS);
         ownerId = json.getInt(OWNER_ID);
+        allowRandoms = json.getBoolean(ALLOW_RANDOMS);
+        chatId = json.getInt(CHAT_ID);
 
         for (var plId: json.getJSONArray(PLAYER_ID)) {
             playerId.add((int)plId);

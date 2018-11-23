@@ -113,17 +113,13 @@ public class StateManager {
 
             var json = new JSONObject(text);
             try {
-                state.authToken = json.getString(FieldNames.AUTH_TOKEN);
-                state.username = json.getString(FieldNames.USERNAME);
-                state.password = json.getString(FieldNames.PASSWORD);
-                state.email = json.getString(FieldNames.EMAIL);
-                state.userId = json.getInt(FieldNames.USER_ID);
-                state.avatarURI = json.getString(FieldNames.AVATAR_URI);
+                state = State.fromJson(json);
+                Logger.log(Logger.Level.DEBUG, "Loading state from " + StateManager.filepath + " " + json.toString());
             } catch (JSONException e) {
-                Logger.log(Logger.Level.WARN, "Missing key in " + StateManager.filepath);
+                Logger.logException(Logger.Level.WARN, e, "Failed in fromJson");
             }
         } catch (Exception e) {
-            Logger.log(Logger.Level.INFO, "Failed to load " + StateManager.filepath);
+            Logger.logException(Logger.Level.INFO, e, "Failed to load " + StateManager.filepath);
         }
         mState.put(state);
     }
@@ -134,19 +130,14 @@ public class StateManager {
     void dump() {
         var state = this.copy();
 
-        var json = new JSONObject();
-        json.put(FieldNames.AUTH_TOKEN, "");
-        json.put(FieldNames.USERNAME, state.username);
-        json.put(FieldNames.PASSWORD, state.password);
-        json.put(FieldNames.EMAIL, state.email);
-        json.put(FieldNames.USER_ID, state.userId);
-        json.put(FieldNames.AVATAR_URI, state.avatarURI);
+        var json = State.toJson(state);
 
         try (var writer = new FileWriter(StateManager.filepath)) {
 
             var plainText = json.toString();
             var encryptedText = mEncryptDecrypt.encrypt(plainText);
             writer.write(encryptedText);
+            Logger.log(Logger.Level.DEBUG, "Dumping state to " + StateManager.filepath + " " + plainText);
         } catch (Exception e) {
             Logger.logException(Logger.Level.WARN, e, "Failed to write to " + StateManager.filepath);
         }
@@ -158,27 +149,7 @@ public class StateManager {
     void reset() {
         try {
             State state = mState.take();
-
-            // Zero everything
-            state.userId = -1;
-            state.email = "";
-            state.authToken = "";
-            state.username = "";
-            state.password = "";
-            state.avatarURI = "";
-
-            state.searchUsers = "";
-            state.searchChats = "";
-            state.searchFriends = "";
-            state.searchGames = "";
-
-            state.activeChats.clear();
-            state.activeGames.clear();
-
-            state.chatInvites.clear();
-            state.gameInvites.clear();
-
-            // Put back into queue
+            State.reset(state);
             mState.put(state);
         } catch (InterruptedException e) {
             Platform.exit();
@@ -192,6 +163,7 @@ public class StateManager {
         return this.copy().activeGames
                 .values()
                 .stream()
+                .filter(game -> !game.removed)
                 .filter(game -> game.name.toUpperCase()
                         .contains(copy.searchGames.toUpperCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -203,6 +175,7 @@ public class StateManager {
         return copy.gameInvites
                 .values()
                 .stream()
+                .filter(gameInv -> !gameInv.removed)
                 .filter(gameInv -> gameInv.gameName.toUpperCase()
                         .contains(copy.searchGames.toUpperCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -214,6 +187,7 @@ public class StateManager {
         return copy.activeChats
                 .values()
                 .stream()
+                .filter(chat -> !chat.removed)
                 .filter(chat -> chat.name.toUpperCase()
                         .contains(copy.searchChats.toUpperCase()))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -225,6 +199,7 @@ public class StateManager {
         return copy.chatInvites
                 .values()
                 .stream()
+                .filter(chatInv -> !chatInv.removed)
                 .filter(chatInv -> chatInv.chatName.toUpperCase()
                         .contains(copy.searchChats.toUpperCase()))
                 .collect(Collectors.toCollection(ArrayList::new));

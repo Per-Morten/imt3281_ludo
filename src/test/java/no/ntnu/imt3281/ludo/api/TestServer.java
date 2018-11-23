@@ -19,7 +19,7 @@ class TestServer {
         Server.setPollTimeout(2);
         sServerThread = new Thread(() -> {
             try {
-                Server.main(null);
+                    Server.main(null);
             } catch (SQLException e) {
                 System.out.println("Exception");
                 Logger.logException(Logger.Level.WARN, e, "Unhandled Exception in Server");
@@ -27,7 +27,7 @@ class TestServer {
         });
         sServerThread.start();
         // We need to sleep a bit here to ensure that the thread is actually running.
-        Thread.sleep(250);
+        Thread.sleep(1000);
     }
 
     static void stop() throws InterruptedException {

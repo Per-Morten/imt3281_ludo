@@ -12,6 +12,7 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
+import no.ntnu.imt3281.ludo.common.Logger;
 
 /**
  * https://stackoverflow.com/a/38373408 10.11.18
@@ -47,8 +48,7 @@ public final class Toast {
                     try {
                         Thread.sleep(toastDelay);
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        Logger.logException(Logger.Level.WARN, e, "Exception encountered when sleeping on toastDelay");
                     }
 
                     Timeline fadeOutTimeline = new Timeline();

@@ -11,6 +11,8 @@ public class GameInvite {
     public String gameName = "";
     public String userName = "";
 
+    public boolean removed = false;
+
     GameInvite(JSONObject json) {
         gameId = json.getInt(GAME_ID);
         userId = json.getInt(USER_ID);

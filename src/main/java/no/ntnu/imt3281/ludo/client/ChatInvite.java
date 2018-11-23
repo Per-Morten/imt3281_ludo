@@ -12,6 +12,8 @@ public class ChatInvite {
     public String chatName = "";
     public String userName = "";
 
+    public boolean removed = false;
+
     ChatInvite(JSONObject json) {
         chatId = json.getInt(CHAT_ID);
         userId = json.getInt(USER_ID);

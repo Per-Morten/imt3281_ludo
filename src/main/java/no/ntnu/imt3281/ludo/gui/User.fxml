@@ -27,7 +27,7 @@
                <children>
                   <ImageView fx:id="mAvatar" fitHeight="200.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true">
                      <image>
-                        <Image url="@../../../../../images/basic-avatar.png" />
+                        <Image url="@images/basic-avatar.png" />
                      </image></ImageView>
                   <Button fx:id="mBtnPlay" maxWidth="-Infinity" mnemonicParsing="false" onAction="#onPlay" prefHeight="26.0" prefWidth="199.0" style="-fx-background-color: #9CCC65; -fx-text-fill: white;" text="PLAY" />
                   <Label text="Username" />
