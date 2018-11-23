@@ -248,7 +248,7 @@ public class Server {
                 try {
                     mainThread.join();
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    Logger.logException(Logger.Level.ERROR, e, "Could not join main thread");
                 }
             }
         });
@@ -312,6 +312,7 @@ public class Server {
             // requests that happen in the onClosedConnection callback (which will be run for everyone when the server shuts down)
             // That seems to be done asynchronously(?), and are often in the process of happening when the shutting down the server
             // Leading to a variety of exceptions, or potentially also a fatal error in the Runtime Environment.
+            Logger.logException(Logger.Level.WARN, e, "Exception encountered when sleeping to wait for DB to finish");
         }
 
         Logger.log(Logger.Level.INFO, "Closing Database");

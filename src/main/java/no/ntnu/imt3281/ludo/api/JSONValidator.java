@@ -197,10 +197,12 @@ public class JSONValidator {
     private static boolean verifyRequest(JSONObject json) {
         var type = RequestType.fromString(json.getString(FieldNames.TYPE));
         if (type != RequestType.CREATE_USER_REQUEST && type != RequestType.LOGIN_REQUEST && !hasString(FieldNames.AUTH_TOKEN, json)) {
+            Logger.log(Logger.Level.DEBUG,"Does not have auth_token");
             return false;
         }
 
         if (ResponseType.getCorrespondingResponse(type) == null) {
+            Logger.log(Logger.Level.DEBUG,"Does not have response");
             return false;
         }
 

@@ -1,5 +1,8 @@
 package no.ntnu.imt3281.ludo.api;
 
+/**
+ * ActionType relates to what the next action in the Ludo game is.
+ */
 public enum ActionType {
     THROW_DICE,
     MOVE_PIECE,

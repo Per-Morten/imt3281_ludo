@@ -542,10 +542,10 @@ public class Database implements AutoCloseable {
                         + ChatFields.ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
                         + ChatFields.Name + " TEXT NOT NULL);";
 
-                var statement = getOneOffConnection().createStatement();
-                statement.execute(command);
-
-                createChat(GlobalChat.NAME);
+                try(var statement = getOneOffConnection().createStatement()) {
+                    statement.execute(command);
+                    createChat(GlobalChat.NAME);
+                }
             }
         }
     }

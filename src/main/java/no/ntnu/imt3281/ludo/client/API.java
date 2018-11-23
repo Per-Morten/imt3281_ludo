@@ -82,7 +82,7 @@ public class API {
 
         Logger.log(Level.INFO, "Got response|event: " + message);
 
-        var jsonResponse = new JSONObject();
+        JSONObject jsonResponse;
         try {
             jsonResponse = new JSONObject(message);
         } catch (JSONException e) {

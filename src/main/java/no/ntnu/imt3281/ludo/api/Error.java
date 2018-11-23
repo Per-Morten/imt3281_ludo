@@ -33,9 +33,6 @@ public enum Error {
     NOT_ENOUGH_PLAYERS,              // 26
     ;
 
-
-
-
     /**
      * Utility function for going to integer, which we considered more readable than ordinal.
      * @return this.ordinal();

@@ -179,8 +179,6 @@ public class GameTabController extends BaseController {
         mPlayerLabels = new Label[]{player1Name, player2Name, player3Name, player4Name};
 
 
-
-        final var pink = new Color(0, 0, 0,0);
         mChoicePiece.getSelectionModel()
                 .selectedItemProperty()
                 .addListener( (ObservableValue<? extends String> observable, String oldValue, String newValue) -> {

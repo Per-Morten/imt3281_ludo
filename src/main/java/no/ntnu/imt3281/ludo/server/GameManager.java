@@ -1,13 +1,16 @@
 package no.ntnu.imt3281.ludo.server;
 
-import no.ntnu.imt3281.ludo.api.Error;
 import no.ntnu.imt3281.ludo.api.*;
+import no.ntnu.imt3281.ludo.api.Error;
 import no.ntnu.imt3281.ludo.common.Logger;
 import no.ntnu.imt3281.ludo.logic.Ludo;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -15,7 +18,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Use re-entrant lock.
  */
 public class GameManager {
-    private class Game {
+    private static class Game {
         int id;
         int ownerID;
         String name;
@@ -29,7 +32,7 @@ public class GameManager {
 
         int chatID;
 
-        Game (int id, int ownerID, String name) {
+        Game(int id, int ownerID, String name) {
             this(id, ownerID, name, 0);
         }
 
@@ -76,13 +79,13 @@ public class GameManager {
     /**
      * Creates a game, and gives the client back a game ID.
      * This function always succeeds (unless you are not authorized, but then you have already been removed)
-     *
+     * <p>
      * TODO: Check that the name is well formed.
      *
-     * @param requests The incoming create game requests.
+     * @param requests  The incoming create game requests.
      * @param successes The array to store the successes in.
-     * @param errors The array to store the errors in.
-     * @param events Function will not lead to any events.
+     * @param errors    The array to store the errors in.
+     * @param events    Function will not lead to any events.
      */
     public void createGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
@@ -106,10 +109,10 @@ public class GameManager {
     /**
      * Gets the meta information about the games indicated by the ID's in the requests.
      *
-     * @param requests
-     * @param successes
-     * @param errors
-     * @param events Function will not lead to any events.
+     * @param requests  The requests containing the game ids to get meta information of.
+     * @param successes The array to store the successes in.
+     * @param errors    The array to store the errors in.
+     * @param events    Function will not lead to any events.
      */
     public void getGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
@@ -133,6 +136,14 @@ public class GameManager {
         }
     }
 
+    /**
+     * Parses and executes the join game requests present in the requests JSONArray
+     *
+     * @param requests  The requests containing the game ids to try and join.
+     * @param successes The array to store the successes in.
+     * @param errors    The array to store the errors in.
+     * @param events    Function will lead to GameUpdateEvent in the case where a player manages to join a game, which will be stored in this queue.
+     */
     public void joinGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
             applyFirstOrderFilter(RequestType.JOIN_GAME_REQUEST, requests, errors);
@@ -167,13 +178,12 @@ public class GameManager {
     /**
      * Removes users from any games requested.
      *
-     * @param requests
-     * @param successes
-     * @param errors
-     * @param events
+     * @param requests  The requests to remove users.
+     * @param successes The array to store the successes in;
+     * @param errors    The array to store the errors in.
+     * @param events    Function will lead to GameUpdate event in the case where a player leaves the game,
+     *                  additionally a GameStateUpdate event in the case where the game was in session.
      */
-
-    // Send both: Game Update, and game state update (if the game is in session)
     public void leaveGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
             applyFirstOrderFilter(RequestType.LEAVE_GAME_REQUEST, requests, errors);
@@ -203,11 +213,12 @@ public class GameManager {
     }
 
     /**
-     * Starts the specified games.
-     * @param requests
-     * @param successes
-     * @param errors
-     * @param events
+     * Starts the specified games in the requests.
+     *
+     * @param requests  The requests to start the games.
+     * @param successes The array to store the successes in;
+     * @param errors    The array to store the errors in.
+     * @param events    Function will lead to GameStateUpdate event in the case where a game is started.
      */
     public void startGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
@@ -242,6 +253,14 @@ public class GameManager {
         }
     }
 
+    /**
+     * Parses and executes all the invite to game requests.
+     *
+     * @param requests  The requests to invite specific users to specific games.
+     * @param successes The array to store the successes in;
+     * @param errors    The array to store the errors in.
+     * @param events    Function will lead to GameUpdate event in the case where a someone is invited successfully.
+     */
     public void inviteToGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
             applyFirstOrderFilter(RequestType.SEND_GAME_INVITE_REQUEST, requests, errors);
@@ -283,6 +302,14 @@ public class GameManager {
         }
     }
 
+    /**
+     * Parses and executes all the RollDice requests.
+     *
+     * @param requests  The requests contaning the user that want to roll and the game ids they want to roll dice in.
+     * @param successes The array to store the successes in;
+     * @param errors    The array to store the errors in.
+     * @param events    Function will lead to GameStateUpdate event in the case where someone rolls successfully.
+     */
     public void rollDice(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
             applyFirstOrderFilter(RequestType.ROLL_DICE_REQUEST, requests, errors);
@@ -318,6 +345,14 @@ public class GameManager {
         }
     }
 
+    /**
+     * Parses and executes all the MovePiece requests.
+     *
+     * @param requests  The requests contaning the user that want to roll and the game ids they want to roll dice in.
+     * @param successes The array to store the successes in;
+     * @param errors    The array to store the errors in.
+     * @param events    Function will lead to GameStateUpdate event in the case where someone moves successfully.
+     */
     public void movePiece(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
             applyFirstOrderFilter(RequestType.MOVE_PIECE_REQUEST, requests, errors);
@@ -363,11 +398,12 @@ public class GameManager {
     }
 
     /**
-     * Allows randoms to be able to join the games specified by the requests.
-     * @param requests
-     * @param successes
-     * @param errors
-     * @param events
+     * Parses and executes all the allow randoms requests.
+     *
+     * @param requests  JSONArray containing the requests to allow randoms to join the specified games.
+     * @param successes The array to store the successes in;
+     * @param errors    The array to store the errors in.
+     * @param events    Function will lead to GameStateUpdate event in the case where someone moves successfully, which will be stored in events.
      */
     public void setAllowRandoms(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
@@ -394,10 +430,10 @@ public class GameManager {
      * If it does not exist a new game will be created with the allow randoms flag set to true, so that the next
      * player looking for a random game can join that game.
      *
-     * @param requests
-     * @param successes
-     * @param errors
-     * @param events
+     * @param requests  The join random game requests.
+     * @param successes The JSONArray to store the successes in.
+     * @param errors    The JSONArray to store the errors in.
+     * @param events    Function will lead to a GameUpdate event in the case where someone moves successfully, which will be stored in events.
      */
     public void joinRandomGame(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
@@ -434,6 +470,14 @@ public class GameManager {
         }
     }
 
+    /**
+     * Reactive function to what should happen when a user logs out. Function will remove the user from all games.
+     *
+     * @param requests  The users who are requesting to log out.
+     * @param successes Successes are ignored, as the GameManager cant fail to remove a user.
+     * @param errors    Errors are ignored, as the GameManager cant fail to remove a user.
+     * @param events    Function will lead to GameUpdate event if a user is removed from a game, and a GameStateUpdate if that game was in session.
+     */
     public void onLogoutUser(JSONArray requests, JSONArray successes, JSONArray errors, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
             MessageUtility.each(requests, (requestID, request) -> {
@@ -442,11 +486,12 @@ public class GameManager {
         }
     }
 
-    private void putUserInGame(Game game, int userID) {
-        game.players.add(userID);
-        game.pendingPlayers.removeIf(item -> item == userID);
-    }
-
+    /**
+     * Removes the specified user from all games they are present in
+     *
+     * @param userID The user to remove from games.
+     * @param events Function will lead to GameUpdate event for the games that the user was removed from, and a GameStateUpdate if that game was in session.
+     */
     public void removeFromGames(int userID, Queue<Message> events) {
         try (var lock = new LockGuard(mLock)) {
 
@@ -464,12 +509,18 @@ public class GameManager {
         }
     }
 
+    private void putUserInGame(Game game, int userID) {
+        game.players.add(userID);
+        game.pendingPlayers.removeIf(item -> item == userID);
+    }
+
     /**
-     * Returns true if the game should continue, and false if it should be deleted.
-     * @param game
-     * @param userID
-     * @param events
-     * @return
+     * Removes a player from an active game, stopping the game (by setting the status to game over, and removing the ludo reference)
+     * if there is not enough players left in the game.
+     *
+     * @param game   The game to remove a user from.
+     * @param userID The user to remove from the game
+     * @param events Where to put any events generated. If a user is removed from a game that is active, a GameStateUpdate will be issued.
      */
     private void removePlayerFromActiveGame(Game game, int userID, Queue<Message> events) {
         if (game.players.size() < Ludo.MIN_PLAYERS) {
@@ -489,9 +540,9 @@ public class GameManager {
      * * Trying to access a game that does not exist.
      * * Trying to "participate" in a game your are not a player in.
      *
-     * @param type The type of request that are stored in requests.
+     * @param type     The type of request that are stored in requests.
      * @param requests The actual requests themselves
-     * @param errors The JSONArray to put the errors in.
+     * @param errors   The JSONArray to put the errors in.
      */
     private void applyFirstOrderFilter(RequestType type, JSONArray requests, JSONArray errors) {
         try (var lock = new LockGuard(mLock)) {
@@ -543,7 +594,6 @@ public class GameManager {
         gameState.put(FieldNames.WINNER, game.ludo.getWinner());
 
         payload.put(gameState);
-        Logger.log(Logger.Level.DEBUG, "creating game state: %s", gameState);
 
         return new Message(event, game.players);
     }

@@ -300,7 +300,6 @@ public class ChatManager {
             var chatID = mDB.createChat(gameName);
 
             mChats.put(chatID, new Chat(gameName, chatID));
-            var item = mChats.get(chatID);
 
             return chatID;
         } catch (SQLException e) {
