@@ -335,6 +335,10 @@ public class Ludo {
         var to = from + mLastDiceResult;
         Logger.log(Logger.Level.DEBUG, "Trying to move piece: %d, from %d to %d", piece, from, to);
         if (from == 0) {
+            if (mLastDiceResult != 6) {
+                // Can't move from 0 unles you rolled a 6
+                return false;
+            }
             to = 1;
         }
 
