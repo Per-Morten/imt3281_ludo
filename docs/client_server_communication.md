@@ -8,21 +8,6 @@
 
 # TODOS
 
-* [x] TODO: Skal vi bytte ut action med: Type?
-* [x] TODO: Skal vi ha PascalCase eller snake_case på feilkoder og action navn? snake_case i json, og PascalCase i Java.
-* [x] TODO: Når skal vi sende user_id, når skal vi ikke?
-* [ ] TODO: Sikre at alle error koder kan direkte knyttes til det objektet det er snakk om.
-* [ ] TODO: Sikre at vi er konsekvente på når det er sub-arrayer med objekter med navngitte attributter vs sub-array med verdier.
-* [x] TODO: Oppdater alle til å sende med id.
-* [ ] TODO: Spør kolloen om tynnklienter?
-* [x] TODO: Ska vi bruke s? nei, alle skal være entall, da alle meldinger kan inneholde flere objekter som skal handles på.
-* [x] TODO: Fjern alle @examples tags
-* [ ] TODO: Skriv @brief på alt?
-* [ ] TODO: Skriv @errors
-* [x] TODO: Endre payload navnet på alle request_responses til success.
-* [ ] TODO: sjekk @requires authentication
-* [ ] TODO: Oppdater alle til å sende inn user_id.
-
 # Message protocol
 
 The aim of the protocol is to be as consistent as possible. Therefore all messages follow a standard pattern of 'type' and 'payload'. Where the type describes the type of the message and is always interpreted the same, and the payload is an array of objects that are interpreted differently based on the 'type' value.
@@ -173,7 +158,7 @@ Events are one-way communication from the server to clients. You can think of it
 ### create_user
 
 `@brief` Creates a user with the given username, email and password hash.
-`@error` not_unique_username, not_unique_email
+`@error` not_unique_username, malformed_username, not_unique_email, malformed_email
 
 create_user_request
 ```json
@@ -467,6 +452,10 @@ delete_user_response
 
 `@requires` authentication
 `@brief` - Get a range of friends.
+Different status numbers means:
+`0: friended`
+`1: ignored`
+`2: pending`
 
 get_friend_range
 ```json 
@@ -474,8 +463,8 @@ get_friend_range
     "id": 19,
     "type": "get_friend_range_request",
     "payload": [
-        {"id": 0, "page_index": 0}
-        {"id": 1, "page_index": 99}
+        {"id": 0, "user_id": 0, "page_index": 0}
+        {"id": 1, "user_id": 1, "page_index": 99}
     ],
     "auth_token": "f4029..",
 }
@@ -489,11 +478,15 @@ get_friend_range_response
     "success": [
         {
             "id": 0,
-            "friend":
+            "range":
             [
                 { "user_id": 2, "username": "karl", "status": "accepted" },
                 { "user_id": 3, "username": "jonas", "status": "pending" },
             ]
+        },
+        {
+            "id": 1,
+            "range":[]
         }
     ],
     "error": [
@@ -506,7 +499,7 @@ get_friend_range_response
 
 `@requires` authentication
 `@brief` Friend someone. Both users has to friend each other, to actually be friends. If only one of the users has friended the other, the friend is just a pending.
-`@error` user_not_found | friend_not_found
+`@error` user_not_found | other_id_not_found | user_and_other_id_is_same
 
 
 
@@ -540,14 +533,14 @@ friend_response
 ### unfriend
 
 `@requires` authentication
-`@brief` Unfriend can also be used to ignore other users trying to be your friend.
+`@brief` Delete the friendship between user_id and other_id.
 `@error` user_not_found | friend_not_found
 
 unfriend_request
 ```json
 {
     "id":  8,
-    "type": "ufriend_request",
+    "type": "unfriend_request",
     "payload": [
         {"id": 0, "user_id": 3, "other_id": 4},
         {"id": 1, "user_id": 3, "other_id": 5}
@@ -570,7 +563,38 @@ unfriend_response
 }
 ```
 
+### ignore
+`@requires` authentication
+`@brief` Ignores the specified user, so they cannot send friend requests anymore.
+         You cannot ignore friends, you need to unfriend them first.
+`@error` user_not_found | user_is_friend
 
+ignore_request
+```json
+{
+    "id":  8,
+    "type": "ignore_request",
+    "payload": [
+        {"id": 0, "user_id": 3, "other_id": 4},
+        {"id": 1, "user_id": 3, "other_id": 5}
+    ],
+    "auth_token": "f1368.." 
+}
+```
+
+ignore_response
+```json
+{
+    "id":  8,
+    "type": "ignore_response",
+    "success": [
+        {"id": 1}
+    ],
+    "error": [
+        {"id": 0, "code": ["user_not_found"]}
+    ]
+}
+```
 
 ## Chat API
 
@@ -686,7 +710,7 @@ get_chat_request
     "type": "get_chat_request",
     "payload": [
         {"id": 0, "chat_id": 2}
-        {"id": 1, "chat_id": 2}
+        {"id": 1, "chat_id": 3}
     ],
     "auth_token": "f4029.."
 }
@@ -703,49 +727,6 @@ get_chat_response
         {"id": 1, "chat_id": 3, "name": "my cool chat2", "participant_id": [1, 3, 4] }
     ],
     "error": []
-}
-```
-
-### get_chat_range
-
-`@requires` authentication
-`@brief` - Gets all the non-game chats from the specified range.
-
-get_chat_range
-```json 
-{
-    "id": 19,
-    "type": "get_chat_range_request",
-    "payload": [
-        {"id": 0, "page_index": 0}
-        {"id": 1, "page_index": 99}
-    ],
-    "auth_token": "f4029..",
-}
-```
-
-get_chat_range_response
-```json 
-{
-    "id": 19,
-    "type": "get_chat_range_response",
-    "success": [
-        {
-            "id": 0,
-            "chat":
-            [
-                {
-                    "chat_id": 2, "name": "my cool chat", "participant_id": [1, 2, 3] 
-                },
-                {
-                    "chat_id": 3, "name": "my cool chat2", "participant_id": [1, 3, 4] 
-                }
-            ]
-        }
-    ],
-    "error": [
-        {"id": 1, "code": ["page_out_of_bounds"]}
-    ]
 }
 ```
 
@@ -818,9 +799,7 @@ send_chat_invite_response
 ### create_game
 
 `@requires` authentication
-`@Brief` - Create a game of Ludo. Decied how many participants you want.
-`@Errors` - max_participants_not_unsigned_integer
-
+`@Brief` - Create a game of Ludo. Afterwards you can invite users.
 
 create_game_request
 ```json
@@ -828,9 +807,9 @@ create_game_request
     "id": 14,
     "type": "create_game_request",
     "payload": [
-        {"id": 0, "user_id": 1},
-        {"id": 1, "user_id": 1},
-        {"id": 2, "user_id": 59}
+        {"id": 0, "user_id": 1, "name": "my game"},
+        {"id": 1, "user_id": 1, "name": "my game2"},
+        {"id": 2, "user_id": 59, "name": "my game"}
     ],
     "auth_token": "f4029..",
 }
@@ -893,7 +872,7 @@ decline_game_invite_request
     "id": 16,
     "type": "decline_game_invite_request",
     "payload": [
-        {"id": 0, "game_id": 0},
+        {"id": 0, "user_id": 0, "game_id": 0},
     ]
 }
 ```
@@ -1022,6 +1001,7 @@ start_game_response
 
 `@requires` authentication
 `@brief` - Get metainformation from games with id. `owner_id`, `player_id` and `pending_id` are all the respective users `user_id`'s.
+`@status` - Status is a numerical constant. 0 for LOBBY, 1 for INSESSION, 2 for GAME OVER
 
 get_game_request
 ```json 
@@ -1044,109 +1024,24 @@ get_game_response
     "success": [
         {
             "id": 0,
+            "name": "Game 1st",
             "game_id": 0, 
+            "status": 0,
             "owner_id": 2,
-            "player_id": [58, 3, 4, 7],
+            "player_id": [58, 2, 4, 7],
+            "pending_id": [1]
+        },
+        {
+            "id": 1,
+            "name": "Game 2nd",
+            "game_id": 1,
+            "status": 1,
+            "owner_id": 3,
+            "player_id": [58, 3, 4],
             "pending_id": [1]
         }
     ],
     "error": [
-        {"id": 1, "code": ["access_denied"]}
-    ]
-}
-```
-
-### get_game_range
-
-`@requires` authentication
-`@brief` - Get metainformation from games based on page. `owner_id`, `player_id` and `pending_id` are all the respective users `user_id`'s.
-
-get_game_range_request
-```json 
-{
-    "id": 19,
-    "type": "get_game_range_request",
-    "payload": [
-        {"id": 0, "page_index": 0}
-        {"id": 1, "page_index": 99}
-    ],
-    "auth_token": "f4029..",
-}
-```
-
-get_game_range_response
-```json 
-{
-    "id": 19,
-    "type": "get_game_range_response",
-    "success": [
-        {
-            "id": 0,
-            "game":
-            [
-                {
-                    "game_id": 0, 
-                    "owner_id": 2,
-                    "player_id": [58, 3, 4, 7],
-                    "pending_id": [1]
-                },
-                {
-                    "game_id": 1, 
-                    "owner_id": 3,
-                    "player_id": [58, 3, 4, 7],
-                    "pending_id": [1]
-                }
-            ]
-        }
-    ],
-    "error": [
-        {"id": 1, "code": ["page_out_of_bounds"]}
-    ]
-}
-```
-
-
-### get_game_state
-
-`@requires` authentication
-`@brief` - Gets the current gamestate of the games games with id game_id. 
-`piece_positions` is a 2d array containing the positions of the 4 pieces belonging to each player. 
-get_game_state_request
-```json 
-{
-    "id": 19,
-    "type": "get_game_state_request",
-    "payload": [
-        {"id": 0, "game_id": 0},
-        {"id": 1, "game_id": 1}
-    ],
-    "auth_token": "f4029..",
-}
-```
-
-get_game_state_response
-```json 
-{
-    "id": 19,
-    "type": "get_game_response",
-    "success": [ 
-        // In this game player 58 threw a 4, and will move its piece
-        {
-            "id": 0,                 
-            "player_order": [58, 3, 4, 7],
-            "current_player_id": 58,
-            "next_action": move,
-            "previous_dice_throw": 4,
-            "piece_positions": [
-                [ 3, 1,  3,  5],    // player 1
-                [ 7, 7,  7,  7],    // player 2
-                [32, 2,  0,  0],    // player 3
-                [ 0, 1, 17, 19]     // player 4
-            ]
-        }
-    ],
-    "error": [
-        {"id": 1, "code": ["access_denied"]}
     ]
 }
 ```
@@ -1157,11 +1052,11 @@ get_game_state_response
 `@brief` - The player wants to roll the dice
 `@triggers` - game_update
 
-send_roll_dice_request
+roll_dice_request
 ```json 
 {
     "id": 20,
-    "type": "send_roll_dice_request",
+    "type": "roll_dice_request",
     "payload": [
         {"id": 0, "user_id": 0, "game_id": 0},
         {"id": 1, "user_id": 0, "game_id": 1},
@@ -1172,11 +1067,11 @@ send_roll_dice_request
 }
 ```
 
-send_roll_dice_response
+roll_dice_response
 ```json 
 {
     "id": 20,
-    "type": "send_roll_dice_response",
+    "type": "roll_dice_response",
     "success": [
         {"id": 1},
         {"id": 2},
@@ -1237,8 +1132,6 @@ move_piece_response
 {
     "type": "friend_update",
     "payload": [
-        {"user_id": 2},
-        {"user_id": 3},
     ]
 }
 ```
@@ -1285,7 +1178,6 @@ chat_message
 ```
 
 ### game_update
-
 `@brief` - Game you are in has been updated
 
 ```json 
@@ -1310,6 +1202,39 @@ chat_message
     ]
 }
 ```
+
+### game_state_update
+`@requires` authentication
+`@brief` - Sent every time the gamestate is updated.
+`piece_positions` is a 2d array containing the positions of the 4 pieces belonging to each player. 
+`@status` 1 - indicating insession, 2 - indicating "gameover"
+`@status` Either a user_id, or -1 if no one has won.
+
+game_state_update
+```json 
+{
+    "type": "game_state_update",
+    "payload": [ 
+        // In this game player 58 threw a 4, and will move its piece
+        {
+            "game_id": 1,
+            "player_order": [58, 3, 4, 7],
+            "current_player_id": 58,
+            "next_action": move,
+            "previous_dice_throw": 4,
+            "piece_positions": [
+                [ 3, 1,  3,  5],    // player 1
+                [ 7, 7,  7,  7],    // player 2
+                [32, 2,  0,  0],    // player 3
+                [ 0, 1, 17, 19]     // player 4
+            ],
+            "status": 1
+            "winner": -1
+        }
+    ]
+}
+```
+
 
 ### force_logout
 
