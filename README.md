@@ -1,9 +1,11 @@
 # Prosjet 2 - LUDO
 Gruppe medlemmer
 
-Jonas Johan Solsvik
-Per-Morten Straume
-Herman Tandberg Dybing
+Jonas Johan Solsvik  
+Per-Morten Straume  
+Herman Tandberg Dybing  
+
+Rapport ligger på Wikien.
 
 
 ## Gammelt
